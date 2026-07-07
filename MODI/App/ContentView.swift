@@ -7,7 +7,7 @@ struct ContentView: View {
     var body: some View {
         Group {
             if hasCompletedOnboarding {
-                HomeView()
+                MainTabView()
                     .transition(.opacity)
             } else {
                 OnboardingView {
