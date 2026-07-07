@@ -51,6 +51,16 @@ final class MODIRepository {
         return record
     }
 
+    func updateRecord(_ record: MODIRecord, image: UIImage) throws {
+        guard let imageData = image.jpegData(compressionQuality: 0.85) else {
+            throw MODIRepositoryError.imageEncodingFailed
+        }
+
+        record.imageData = imageData
+        try modelContext.save()
+        reload()
+    }
+
     // MARK: - Fetch
 
     func reload() {

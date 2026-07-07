@@ -2,13 +2,11 @@ import SwiftUI
 
 // MARK: - StickerPickerView
 
-/// 스티커 목록에서 선택해 캔버스에 추가한다.
+/// 하단 툴바에 표시되는 스티커 선택 패널.
 struct StickerPickerView: View {
 
     let stickers: [String]
     var onSelect: (String) -> Void
-
-    @Environment(\.dismiss) private var dismiss
 
     init(
         stickers: [String] = EditorSticker.catalog,
@@ -19,55 +17,34 @@ struct StickerPickerView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.adaptive(minimum: 72), spacing: AppSpacing.md)
-                    ],
-                    spacing: AppSpacing.md
-                ) {
-                    ForEach(stickers, id: \.self) { sticker in
-                        Button {
-                            onSelect(sticker)
-                            dismiss()
-                        } label: {
-                            Text(sticker)
-                                .font(.system(size: 40))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 80)
-                                .background(
-                                    AppColor.Background.secondary,
-                                    in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                                )
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                                        .strokeBorder(AppColor.Border.subtle, lineWidth: 1)
-                                }
-                        }
-                        .buttonStyle(.plain)
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.sm) {
+                ForEach(stickers, id: \.self) { sticker in
+                    Button {
+                        onSelect(sticker)
+                    } label: {
+                        Text(sticker)
+                            .font(.system(size: 32))
+                            .frame(width: 56, height: 56)
+                            .background(
+                                AppColor.Background.secondary,
+                                in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+                                    .strokeBorder(AppColor.Border.default, lineWidth: 1)
+                            }
                     }
-                }
-                .padding(AppSpacing.screenHorizontal)
-                .padding(.vertical, AppSpacing.lg)
-            }
-            .appScreenBackground()
-            .navigationTitle("스티커")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("닫기") {
-                        dismiss()
-                    }
-                    .foregroundStyle(AppColor.Text.secondary)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("스티커 \(sticker)")
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
     }
 }
 
 #Preview {
     StickerPickerView { _ in }
+        .padding()
+        .appScreenBackground()
 }

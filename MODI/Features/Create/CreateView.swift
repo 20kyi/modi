@@ -60,10 +60,9 @@ struct CreateView: View {
                 }
             }
             .sheet(isPresented: $showPhotoLibrary) {
-                ImagePicker(source: .photoLibrary) { image in
+                AlbumPhotoPickerSheet { image in
                     presentEditor(with: image)
                 }
-                .ignoresSafeArea()
             }
             .fullScreenCover(item: $editorPresentation) { presentation in
                 if let concept = missionManager.todaysConcept {

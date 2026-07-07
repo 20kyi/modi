@@ -3,11 +3,12 @@ import SwiftUI
 
 // MARK: - PhotoEditorView
 
-/// 촬영한 사진을 컨셉 기록 카드로 꾸미는 편집 화면.
+/// 촬영·앨범 사진을 MODI 기록 카드로 꾸미는 편집 화면.
 struct PhotoEditorView: View {
 
     let image: UIImage
-    let concept: Concept
+    var concept: Concept?
+    var existingRecord: MODIRecord?
     var onSaved: () -> Void
     var onSaveFailed: ((Error) -> Void)?
 
@@ -22,8 +23,28 @@ struct PhotoEditorView: View {
     @State private var showTextInput = false
     @State private var draftText = ""
 
+    private var resolvedConcept: Concept? {
+        if let concept { return concept }
+        if let existingRecord {
+            return Concept.concept(for: existingRecord.missionId)
+        }
+        return nil
+    }
+
     private var themeColor: Color {
-        Color(hex: concept.themeColorHex)
+        if let resolvedConcept {
+            return Color(hex: resolvedConcept.themeColorHex)
+        }
+        return AppColor.Accent.soft
+    }
+
+    private var frameMetadata: EditorFrameMetadata {
+        EditorFrameMetadata(
+            showDate: true,
+            showConceptName: resolvedConcept != nil,
+            date: existingRecord?.createdAt ?? .now,
+            conceptTitle: resolvedConcept?.title
+        )
     }
 
     var body: some View {
@@ -77,8 +98,13 @@ struct PhotoEditorView: View {
                     recordCard(in: fittedFrame.size)
                         .frame(width: fittedFrame.width, height: fittedFrame.height)
 
-                    conceptInfoBar
-                        .frame(width: fittedFrame.width)
+                    if let resolvedConcept {
+                        conceptInfoBar(for: resolvedConcept)
+                            .frame(width: fittedFrame.width)
+                    } else if selectedFrame != .none {
+                        frameDateBar
+                            .frame(width: fittedFrame.width)
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onTapGesture {
@@ -147,7 +173,7 @@ struct PhotoEditorView: View {
         )
     }
 
-    private var conceptInfoBar: some View {
+    private func conceptInfoBar(for concept: Concept) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Text(concept.emoji)
                 .font(.system(size: 22))
@@ -165,6 +191,10 @@ struct PhotoEditorView: View {
             }
 
             Spacer(minLength: 0)
+
+            Text(frameMetadata.formattedDate)
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.Text.tertiary)
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.sm)
@@ -176,6 +206,22 @@ struct PhotoEditorView: View {
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                 .strokeBorder(themeColor.opacity(0.5), lineWidth: 1)
         }
+    }
+
+    private var frameDateBar: some View {
+        HStack {
+            Label(frameMetadata.formattedDate, systemImage: "calendar")
+                .font(AppFont.caption1)
+                .foregroundStyle(AppColor.Text.secondary)
+
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm)
+        .background(
+            AppColor.Background.secondary,
+            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+        )
     }
 
     // MARK: Toolbar
@@ -231,115 +277,19 @@ struct PhotoEditorView: View {
     private var toolPanel: some View {
         switch activeTool {
         case .sticker:
-            stickerPanel
+            StickerPickerView(onSelect: addSticker)
         case .text:
-            textPanel
+            TextPickerView(
+                onSelect: addText,
+                onRequestCustomInput: { showTextInput = true }
+            )
         case .frame:
-            framePanel
+            FramePickerView(
+                selectedFrame: $selectedFrame,
+                metadata: frameMetadata,
+                themeColor: themeColor
+            )
         }
-    }
-
-    private var stickerPanel: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.sm) {
-                ForEach(EditorSticker.catalog, id: \.self) { sticker in
-                    Button {
-                        addSticker(sticker)
-                    } label: {
-                        Text(sticker)
-                            .font(.system(size: 32))
-                            .frame(width: 56, height: 56)
-                            .background(
-                                AppColor.Background.secondary,
-                                in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                            )
-                            .overlay {
-                                RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                                    .strokeBorder(AppColor.Border.default, lineWidth: 1)
-                            }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
-
-    private var textPanel: some View {
-        VStack(spacing: AppSpacing.sm) {
-            Button {
-                showTextInput = true
-            } label: {
-                Label("텍스트 추가", systemImage: "plus")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.Text.primary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.md)
-                    .background(
-                        AppColor.Background.secondary,
-                        in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                    )
-            }
-            .buttonStyle(.plain)
-
-            Text("추가한 텍스트는 사진 위에서 드래그할 수 있어요")
-                .font(AppFont.footnote)
-                .foregroundStyle(AppColor.Text.tertiary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var framePanel: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: AppSpacing.sm) {
-                ForEach(EditorFrameStyle.allCases) { frame in
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            selectedFrame = frame
-                        }
-                    } label: {
-                        VStack(spacing: AppSpacing.xs) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                                    .fill(AppColor.Background.tertiary)
-                                    .frame(width: 52, height: 52)
-
-                                framePreview(for: frame)
-                            }
-                            .overlay {
-                                if selectedFrame == frame {
-                                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                                        .strokeBorder(AppColor.Accent.primary, lineWidth: 2)
-                                }
-                            }
-
-                            Text(frame.displayName)
-                                .font(AppFont.caption2)
-                                .foregroundStyle(
-                                    selectedFrame == frame
-                                        ? AppColor.Accent.primary
-                                        : AppColor.Text.secondary
-                                )
-                        }
-                    }
-                    .buttonStyle(.plain)
-                    .frame(width: 64)
-                }
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func framePreview(for frame: EditorFrameStyle) -> some View {
-        RoundedRectangle(cornerRadius: frame == .rounded ? 6 : 3, style: .continuous)
-            .fill(AppColor.Surface.muted)
-            .frame(width: 36, height: 36)
-            .padding(frame == .none ? 0 : 4)
-            .background {
-                if frame != .none {
-                    RoundedRectangle(cornerRadius: frame == .rounded ? 8 : 5, style: .continuous)
-                        .fill(frame.borderColor(themeColor: themeColor))
-                }
-            }
     }
 
     // MARK: Actions
@@ -383,13 +333,15 @@ struct PhotoEditorView: View {
     }
 
     private func saveEditedImage() {
-        let mission = DailyMission(from: concept)
+        let mission = saveMission
         let content = EditorRenderCanvas(
             image: image,
-            concept: concept,
+            concept: resolvedConcept,
+            frameMetadata: frameMetadata,
             elements: elements,
             canvasSize: canvasSize,
-            frameStyle: selectedFrame
+            frameStyle: selectedFrame,
+            themeColor: themeColor
         )
         let renderer = ImageRenderer(content: content)
         renderer.scale = UIScreen.main.scale
@@ -397,12 +349,33 @@ struct PhotoEditorView: View {
         let editedImage = renderer.uiImage ?? image
 
         do {
-            try repository.saveRecord(image: editedImage, mission: mission)
+            if let existingRecord {
+                try repository.updateRecord(existingRecord, image: editedImage)
+            } else {
+                try repository.saveRecord(image: editedImage, mission: mission)
+            }
             onSaved()
             dismiss()
         } catch {
             onSaveFailed?(error)
         }
+    }
+
+    private var saveMission: DailyMission {
+        if let resolvedConcept {
+            return DailyMission(from: resolvedConcept)
+        }
+        if let existingRecord {
+            return DailyMission(
+                title: existingRecord.missionTitle,
+                emoji: existingRecord.missionEmoji,
+                description: "",
+                category: .custom,
+                themeColorHex: "E8ECF0",
+                collectionID: existingRecord.missionId
+            )
+        }
+        return .mock
     }
 
     private func imageFrame(in containerSize: CGSize) -> CGRect {
@@ -412,7 +385,9 @@ struct PhotoEditorView: View {
 
         let imageAspect = image.size.width / image.size.height
         let horizontalPadding = AppSpacing.screenHorizontal * 2
-        let conceptBarHeight: CGFloat = 56 + AppSpacing.md
+        let conceptBarHeight: CGFloat = resolvedConcept != nil || selectedFrame != .none
+            ? 56 + AppSpacing.md
+            : 0
 
         let maxWidth = max(containerSize.width - horizontalPadding, 1)
         let maxHeight = max(containerSize.height - conceptBarHeight - AppSpacing.xl, 1)
@@ -549,17 +524,15 @@ private struct EditorElementOverlay: View {
 
 private struct EditorRenderCanvas: View {
     let image: UIImage
-    let concept: Concept
+    let concept: Concept?
+    let frameMetadata: EditorFrameMetadata
     let elements: [EditorElement]
     let canvasSize: CGSize
     let frameStyle: EditorFrameStyle
+    let themeColor: Color
 
     private let baseStickerSize: CGFloat = 48
     private let baseTextSize: CGFloat = 17
-
-    private var themeColor: Color {
-        Color(hex: concept.themeColorHex)
-    }
 
     var body: some View {
         VStack(spacing: AppSpacing.md) {
@@ -598,8 +571,13 @@ private struct EditorRenderCanvas: View {
             .frame(width: canvasSize.width, height: canvasSize.height)
             .clipShape(RoundedRectangle(cornerRadius: frameStyle.cornerRadius, style: .continuous))
 
-            conceptInfoBar
-                .frame(width: canvasSize.width)
+            if let concept {
+                conceptInfoBar(for: concept)
+                    .frame(width: canvasSize.width)
+            } else if frameStyle != .none {
+                frameDateBar
+                    .frame(width: canvasSize.width)
+            }
         }
         .frame(width: canvasSize.width)
     }
@@ -621,7 +599,7 @@ private struct EditorRenderCanvas: View {
         }
     }
 
-    private var conceptInfoBar: some View {
+    private func conceptInfoBar(for concept: Concept) -> some View {
         HStack(spacing: AppSpacing.sm) {
             Text(concept.emoji)
                 .font(.system(size: 22))
@@ -639,6 +617,10 @@ private struct EditorRenderCanvas: View {
             }
 
             Spacer(minLength: 0)
+
+            Text(frameMetadata.formattedDate)
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.Text.tertiary)
         }
         .padding(.horizontal, AppSpacing.md)
         .padding(.vertical, AppSpacing.sm)
@@ -651,11 +633,27 @@ private struct EditorRenderCanvas: View {
                 .strokeBorder(themeColor.opacity(0.5), lineWidth: 1)
         }
     }
+
+    private var frameDateBar: some View {
+        HStack {
+            Label(frameMetadata.formattedDate, systemImage: "calendar")
+                .font(AppFont.caption1)
+                .foregroundStyle(AppColor.Text.secondary)
+
+            Spacer()
+        }
+        .padding(.horizontal, AppSpacing.md)
+        .padding(.vertical, AppSpacing.sm)
+        .background(
+            AppColor.Background.secondary,
+            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+        )
+    }
 }
 
 // MARK: - Preview
 
-#Preview {
+#Preview("With Concept") {
     let (container, repository) = MODIPreviewData.makeRepository()
     let size = CGSize(width: 300, height: 400)
     let renderer = UIGraphicsImageRenderer(size: size)
@@ -670,4 +668,18 @@ private struct EditorRenderCanvas: View {
     ) {}
     .modelContainer(container)
     .environment(repository)
+}
+
+#Preview("Without Concept") {
+    let (container, repository) = MODIPreviewData.makeRepository()
+    let size = CGSize(width: 300, height: 400)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let sampleImage = renderer.image { context in
+        UIColor.systemPink.setFill()
+        context.fill(CGRect(origin: .zero, size: size))
+    }
+
+    return PhotoEditorView(image: sampleImage) {}
+        .modelContainer(container)
+        .environment(repository)
 }

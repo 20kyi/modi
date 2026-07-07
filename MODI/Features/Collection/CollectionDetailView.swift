@@ -1,6 +1,14 @@
 import SwiftData
 import SwiftUI
 
+// MARK: - Editor Presentation
+
+private struct CollectionEditorPresentation: Identifiable {
+    let id = UUID()
+    let image: UIImage
+    var existingRecord: MODIRecord?
+}
+
 struct CollectionDetailView: View {
 
     @Environment(MODIRepository.self) private var repository
@@ -8,6 +16,8 @@ struct CollectionDetailView: View {
     let collection: PhotoCollection
 
     @State private var recordPendingDeletion: MODIRecord?
+    @State private var showPhotoLibrary = false
+    @State private var editorPresentation: CollectionEditorPresentation?
 
     private var records: [MODIRecord] {
         repository.fetchRecords(missionId: collection.id)
@@ -32,6 +42,32 @@ struct CollectionDetailView: View {
         .appScreenBackground()
         .navigationTitle(collection.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showPhotoLibrary = true
+                } label: {
+                    Image(systemName: "photo.badge.plus")
+                        .font(.system(size: 16, weight: .semibold))
+                }
+                .accessibilityLabel("앨범에서 사진 추가")
+            }
+        }
+        .sheet(isPresented: $showPhotoLibrary) {
+            AlbumPhotoPickerSheet { image in
+                showPhotoLibrary = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    editorPresentation = CollectionEditorPresentation(image: image)
+                }
+            }
+        }
+        .fullScreenCover(item: $editorPresentation) { presentation in
+            PhotoEditorView(
+                image: presentation.image,
+                concept: conceptForCollection,
+                existingRecord: presentation.existingRecord
+            ) {}
+        }
         .alert("이 사진을 삭제할까요?", isPresented: deletionAlertIsPresented, presenting: recordPendingDeletion) { record in
             Button("삭제", role: .destructive) {
                 repository.deleteRecord(record)
@@ -49,6 +85,19 @@ struct CollectionDetailView: View {
         Binding(
             get: { recordPendingDeletion != nil },
             set: { if !$0 { recordPendingDeletion = nil } }
+        )
+    }
+
+    private var conceptForCollection: Concept {
+        let type: ConceptType = collection.category == .custom ? .custom : .system
+        return Concept(from: collection, type: type)
+    }
+
+    private func presentEditor(for record: MODIRecord) {
+        guard let image = UIImage(data: record.imageData) else { return }
+        editorPresentation = CollectionEditorPresentation(
+            image: image,
+            existingRecord: record
         )
     }
 
@@ -93,6 +142,9 @@ struct CollectionDetailView: View {
                     ForEach(records, id: \.id) { record in
                         MODIRecordTile(collection: collection, record: record)
                             .contextMenu {
+                                Button("사진 수정", systemImage: "pencil") {
+                                    presentEditor(for: record)
+                                }
                                 Button("사진 삭제", systemImage: "trash", role: .destructive) {
                                     recordPendingDeletion = record
                                 }
