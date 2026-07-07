@@ -1,15 +1,27 @@
+import SwiftData
 import SwiftUI
+
+// MARK: - Editor Presentation
+
+private struct EditorPresentation: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
 
 struct CreateView: View {
 
     @Environment(CollectionStore.self) private var store
+    @Environment(MODIRepository.self) private var repository
 
     @State private var showCompleted = false
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
-    @State private var showEditor = false
-    @State private var capturedImage: UIImage?
+    @State private var editorPresentation: EditorPresentation?
     @State private var saveErrorMessage: String?
+
+    private var isMissionCompleted: Bool {
+        showCompleted || repository.hasRecord(on: .now, missionId: store.todaysMission.collectionID)
+    }
 
     var body: some View {
         NavigationStack {
@@ -24,24 +36,29 @@ struct CreateView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showCamera) {
                 ImagePicker(source: .camera) { image in
-                    openEditor(with: image)
+                    presentEditor(with: image)
                 }
                 .ignoresSafeArea()
             }
             .sheet(isPresented: $showPhotoLibrary) {
                 ImagePicker(source: .photoLibrary) { image in
-                    openEditor(with: image)
+                    presentEditor(with: image)
                 }
                 .ignoresSafeArea()
             }
-            .fullScreenCover(isPresented: $showEditor, onDismiss: {
-                capturedImage = nil
-            }) {
-                if let capturedImage {
-                    PhotoEditorView(image: capturedImage) { editedImage in
-                        saveMissionPhoto(editedImage)
+            .fullScreenCover(item: $editorPresentation) { presentation in
+                PhotoEditorView(
+                    image: presentation.image,
+                    mission: store.todaysMission,
+                    onSaved: {
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                            showCompleted = true
+                        }
+                    },
+                    onSaveFailed: { _ in
+                        saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                     }
-                }
+                )
             }
             .alert("사진을 저장하지 못했어요", isPresented: saveErrorIsPresented) {
                 Button("확인", role: .cancel) {
@@ -62,7 +79,7 @@ struct CreateView: View {
 
     @ViewBuilder
     private func missionView(collection: PhotoCollection) -> some View {
-        if store.isTodaysMissionCompleted || showCompleted {
+        if isMissionCompleted {
             completedView(collection: collection)
         } else {
             activeMissionView(collection: collection)
@@ -75,7 +92,7 @@ struct CreateView: View {
 
             DailyMissionCard(
                 mission: store.todaysMission.with(
-                    isCompleted: store.isTodaysMissionCompleted
+                    isCompleted: isMissionCompleted
                 )
             )
 
@@ -115,8 +132,8 @@ struct CreateView: View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            if let entry = store.todaysEntry() {
-                MissionPhotoImage(fileName: entry.imageFileName)
+            if let record = repository.record(on: .now, missionId: store.todaysMission.collectionID) {
+                MODIRecordImage(record: record)
                     .aspectRatio(3.0 / 4.0, contentMode: .fill)
                     .frame(maxWidth: 240)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
@@ -138,7 +155,7 @@ struct CreateView: View {
             }
 
             VStack(spacing: AppSpacing.sm) {
-                Text("총 \(store.photoCount(for: collection.id))장")
+                Text("총 \(repository.photoCount(for: collection.id))장")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.Text.primary)
 
@@ -156,24 +173,21 @@ struct CreateView: View {
         .appScreenBackground()
     }
 
-    private func openEditor(with image: UIImage) {
-        capturedImage = image
-        showEditor = true
-    }
+    private func presentEditor(with image: UIImage) {
+        showCamera = false
+        showPhotoLibrary = false
 
-    private func saveMissionPhoto(_ image: UIImage) {
-        guard store.completeTodaysMission(image: image) else {
-            saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
-            return
-        }
-
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-            showCompleted = true
+        // 시트가 완전히 닫힌 뒤 편집 화면을 띄워 흰 화면을 방지합니다.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            editorPresentation = EditorPresentation(image: image)
         }
     }
 }
 
 #Preview {
-    CreateView()
+    let (container, repository) = MODIPreviewData.makeRepository()
+    return CreateView()
+        .modelContainer(container)
         .environment(CollectionStore())
+        .environment(repository)
 }

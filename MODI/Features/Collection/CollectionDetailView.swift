@@ -1,15 +1,16 @@
+import SwiftData
 import SwiftUI
 
 struct CollectionDetailView: View {
 
-    @Environment(CollectionStore.self) private var store
+    @Environment(MODIRepository.self) private var repository
 
     let collection: PhotoCollection
 
-    @State private var entryPendingDeletion: MissionEntry?
+    @State private var recordPendingDeletion: MODIRecord?
 
-    private var entries: [MissionEntry] {
-        store.entries(for: collection.id)
+    private var records: [MODIRecord] {
+        repository.fetchRecords(missionId: collection.id)
     }
 
     private let columns = [
@@ -31,13 +32,13 @@ struct CollectionDetailView: View {
         .appScreenBackground()
         .navigationTitle(collection.title)
         .navigationBarTitleDisplayMode(.inline)
-        .alert("이 사진을 삭제할까요?", isPresented: deletionAlertIsPresented, presenting: entryPendingDeletion) { entry in
+        .alert("이 사진을 삭제할까요?", isPresented: deletionAlertIsPresented, presenting: recordPendingDeletion) { record in
             Button("삭제", role: .destructive) {
-                store.removeEntry(id: entry.id)
-                entryPendingDeletion = nil
+                repository.deleteRecord(record)
+                recordPendingDeletion = nil
             }
             Button("취소", role: .cancel) {
-                entryPendingDeletion = nil
+                recordPendingDeletion = nil
             }
         } message: { _ in
             Text("삭제한 사진은 복구할 수 없어요.")
@@ -46,8 +47,8 @@ struct CollectionDetailView: View {
 
     private var deletionAlertIsPresented: Binding<Bool> {
         Binding(
-            get: { entryPendingDeletion != nil },
-            set: { if !$0 { entryPendingDeletion = nil } }
+            get: { recordPendingDeletion != nil },
+            set: { if !$0 { recordPendingDeletion = nil } }
         )
     }
 
@@ -73,7 +74,7 @@ struct CollectionDetailView: View {
                 }
             }
 
-            Text("\(entries.count)장의 사진")
+            Text("\(records.count)장의 사진")
                 .font(AppFont.caption1)
                 .foregroundStyle(AppColor.Text.tertiary)
         }
@@ -81,7 +82,7 @@ struct CollectionDetailView: View {
 
     private var photosSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            if entries.isEmpty {
+            if records.isEmpty {
                 EmptyStateView(
                     icon: "photo.on.rectangle.angled",
                     title: "아직 사진이 없어요",
@@ -89,11 +90,11 @@ struct CollectionDetailView: View {
                 )
             } else {
                 LazyVGrid(columns: columns, spacing: AppSpacing.gridGutter) {
-                    ForEach(entries) { entry in
-                        MissionPhotoTile(collection: collection, entry: entry)
+                    ForEach(records, id: \.id) { record in
+                        MODIRecordTile(collection: collection, record: record)
                             .contextMenu {
                                 Button("사진 삭제", systemImage: "trash", role: .destructive) {
-                                    entryPendingDeletion = entry
+                                    recordPendingDeletion = record
                                 }
                             }
                     }
@@ -103,23 +104,23 @@ struct CollectionDetailView: View {
     }
 }
 
-// MARK: - Mission Photo Tile
+// MARK: - MODI Record Tile
 
-private struct MissionPhotoTile: View {
+private struct MODIRecordTile: View {
 
     let collection: PhotoCollection
-    let entry: MissionEntry
+    let record: MODIRecord
 
     private var dateLabel: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
         formatter.dateFormat = "M.d"
-        return formatter.string(from: entry.missionDate)
+        return formatter.string(from: record.createdAt)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            MissionPhotoImage(fileName: entry.imageFileName)
+            MODIRecordImage(record: record)
                 .aspectRatio(1, contentMode: .fill)
                 .frame(maxWidth: .infinity)
                 .background(collection.themeColor, in: RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
@@ -133,8 +134,10 @@ private struct MissionPhotoTile: View {
 }
 
 #Preview {
-    NavigationStack {
-        CollectionDetailView(collection: PhotoCollection.builtIn[0])
+    let (container, repository) = MODIPreviewData.makeRepository(withSampleData: true)
+    return NavigationStack {
+        CollectionDetailView(collection: PhotoCollection.builtIn[6])
     }
-    .environment(CollectionStore())
+    .modelContainer(container)
+    .environment(repository)
 }

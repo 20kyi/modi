@@ -1,6 +1,5 @@
 import Foundation
 import SwiftUI
-import UIKit
 
 // MARK: - CollectionStore
 
@@ -8,11 +7,9 @@ import UIKit
 final class CollectionStore {
 
     private static let customCollectionsKey = "modi.customCollections"
-    private static let entriesKey = "modi.missionEntries"
     private static let missionsKey = "modi.dailyMissions"
 
     private(set) var customCollections: [PhotoCollection] = []
-    private(set) var entries: [MissionEntry] = []
     private var dailyMissions: [String: DailyMission] = [:]
 
     var allCollections: [PhotoCollection] {
@@ -25,10 +22,6 @@ final class CollectionStore {
 
     var todaysCollection: PhotoCollection? {
         collection(for: todaysMission.collectionID)
-    }
-
-    var isTodaysMissionCompleted: Bool {
-        hasCompletedMission(on: .now)
     }
 
     init() {
@@ -62,63 +55,10 @@ final class CollectionStore {
         return mission
     }
 
-    func hasCompletedMission(on date: Date) -> Bool {
-        let key = DailyMission.dayKey(for: date)
-        return entries.contains { DailyMission.dayKey(for: $0.missionDate) == key }
-    }
-
-    @discardableResult
-    func completeTodaysMission(image: UIImage) -> Bool {
-        let mission = todaysMission
-        guard !isTodaysMissionCompleted else { return false }
-
-        let entryID = UUID()
-        guard let fileName = PhotoStorage.save(image: image, entryID: entryID) else {
-            return false
-        }
-
-        let entry = MissionEntry(
-            id: entryID,
-            collectionID: mission.collectionID,
-            missionDate: mission.date,
-            prompt: mission.description,
-            imageFileName: fileName
-        )
-        entries.insert(entry, at: 0)
-        saveEntries()
-        return true
-    }
-
-    func todaysEntry() -> MissionEntry? {
-        let key = DailyMission.dayKey(for: .now)
-        return entries.first { DailyMission.dayKey(for: $0.missionDate) == key }
-    }
-
-    func latestEntry(for collectionID: UUID) -> MissionEntry? {
-        entries.first { $0.collectionID == collectionID }
-    }
-
     // MARK: - Collections
 
     func collection(for id: UUID) -> PhotoCollection? {
         PhotoCollection.collection(for: id, including: customCollections)
-    }
-
-    func photoCount(for collectionID: UUID) -> Int {
-        entries.filter { $0.collectionID == collectionID }.count
-    }
-
-    func entries(for collectionID: UUID) -> [MissionEntry] {
-        entries.filter { $0.collectionID == collectionID }
-    }
-
-    func removeEntry(id: UUID) {
-        if let entry = entries.first(where: { $0.id == id }),
-           let fileName = entry.imageFileName {
-            PhotoStorage.delete(fileName: fileName)
-        }
-        entries.removeAll { $0.id == id }
-        saveEntries()
     }
 
     func addCustomCollection(
@@ -173,11 +113,6 @@ final class CollectionStore {
             customCollections = decoded
         }
 
-        if let data = UserDefaults.standard.data(forKey: Self.entriesKey),
-           let decoded = try? JSONDecoder().decode([MissionEntry].self, from: data) {
-            entries = decoded
-        }
-
         if let data = UserDefaults.standard.data(forKey: Self.missionsKey),
            let decoded = try? JSONDecoder().decode([String: DailyMission].self, from: data) {
             dailyMissions = decoded
@@ -187,11 +122,6 @@ final class CollectionStore {
     private func saveCustomCollections() {
         guard let data = try? JSONEncoder().encode(customCollections) else { return }
         UserDefaults.standard.set(data, forKey: Self.customCollectionsKey)
-    }
-
-    private func saveEntries() {
-        guard let data = try? JSONEncoder().encode(entries) else { return }
-        UserDefaults.standard.set(data, forKey: Self.entriesKey)
     }
 
     private func saveMissions() {

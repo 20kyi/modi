@@ -51,10 +51,14 @@ struct ImagePicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
-            if let image = info[.originalImage] as? UIImage {
+            let image = info[.originalImage] as? UIImage
+            parent.dismiss()
+
+            guard let image else { return }
+
+            DispatchQueue.main.async { [parent] in
                 parent.onImagePicked(image)
             }
-            parent.dismiss()
         }
 
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {

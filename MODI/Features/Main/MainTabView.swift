@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 // MARK: - Tab
@@ -13,13 +14,31 @@ enum MainTab: Hashable {
 
 struct MainTabView: View {
 
+    @Environment(\.modelContext) private var modelContext
     @State private var collectionStore = CollectionStore()
+    @State private var repository: MODIRepository?
     @State private var selectedTab: MainTab = .home
 
     var body: some View {
+        Group {
+            if let repository {
+                tabView(repository: repository)
+            } else {
+                ProgressView()
+            }
+        }
+        .onAppear {
+            if repository == nil {
+                repository = MODIRepository(modelContext: modelContext)
+            }
+        }
+    }
+
+    private func tabView(repository: MODIRepository) -> some View {
         TabView(selection: $selectedTab) {
             HomeView(
                 collectionStore: collectionStore,
+                repository: repository,
                 onCreateTapped: { selectedTab = .create }
             )
             .tabItem {
@@ -47,11 +66,15 @@ struct MainTabView: View {
         }
         .tint(AppColor.Accent.primary)
         .environment(collectionStore)
+        .environment(repository)
     }
 }
 
 // MARK: - Preview
 
 #Preview {
-    MainTabView()
+    let (container, repository) = MODIPreviewData.makeRepository()
+    return MainTabView()
+        .modelContainer(container)
+        .environment(repository)
 }

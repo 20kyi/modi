@@ -3,13 +3,17 @@ import SwiftUI
 struct HomeView: View {
 
     var collectionStore: CollectionStore
+    var repository: MODIRepository
     var onCreateTapped: () -> Void = {}
 
     @State private var viewModel = HomeViewModel()
 
+    private var isTodaysMissionCompleted: Bool {
+        repository.hasRecord(on: .now, missionId: collectionStore.todaysMission.collectionID)
+    }
+
     private var todaysMission: DailyMission {
-        let mission = collectionStore.todaysMission
-        return mission.with(isCompleted: collectionStore.isTodaysMissionCompleted)
+        collectionStore.todaysMission.with(isCompleted: isTodaysMissionCompleted)
     }
 
     var body: some View {
@@ -22,7 +26,7 @@ struct HomeView: View {
 
                     DailyMissionCard(
                         mission: todaysMission,
-                        onRecordTapped: collectionStore.isTodaysMissionCompleted ? nil : onCreateTapped
+                        onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped
                     )
 
                     RecentDiscoveryView(discoveries: viewModel.recentDiscoveries)
@@ -68,10 +72,10 @@ struct HomeView: View {
                 .font(AppFont.title3)
                 .foregroundStyle(AppColor.Text.primary)
 
-            Text(viewModel.missionStatusMessage(isCompleted: collectionStore.isTodaysMissionCompleted))
+            Text(viewModel.missionStatusMessage(isCompleted: isTodaysMissionCompleted))
                 .font(AppFont.subheadline)
                 .foregroundStyle(
-                    collectionStore.isTodaysMissionCompleted
+                    isTodaysMissionCompleted
                         ? AppColor.Accent.primary
                         : AppColor.Text.secondary
                 )
@@ -80,5 +84,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(collectionStore: CollectionStore())
+    let (_, repository) = MODIPreviewData.makeRepository()
+    return HomeView(collectionStore: CollectionStore(), repository: repository)
 }

@@ -1,3 +1,4 @@
+import SwiftData
 import SwiftUI
 
 // MARK: - PhotoEditorView
@@ -6,9 +7,12 @@ import SwiftUI
 struct PhotoEditorView: View {
 
     let image: UIImage
-    var onSave: (UIImage) -> Void
+    let mission: DailyMission
+    var onSaved: () -> Void
+    var onSaveFailed: ((Error) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(MODIRepository.self) private var repository
 
     @State private var elements: [EditorElement] = []
     @State private var selectedElementID: UUID?
@@ -16,52 +20,40 @@ struct PhotoEditorView: View {
     @State private var canvasSize: CGSize = .zero
 
     var body: some View {
-        VStack(spacing: 0) {
-            editorToolbar
-            editorCanvas
-            editorBottomBar
-        }
-        .appScreenBackground()
-        .sheet(isPresented: $showStickerPicker) {
-            StickerPickerView { emoji in
-                addSticker(emoji)
+        NavigationStack {
+            VStack(spacing: 0) {
+                editorCanvas
+                editorBottomBar
+            }
+            .appScreenBackground()
+            .navigationTitle("꾸미기")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 17, weight: .semibold))
+                    }
+                }
+
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("저장") {
+                        saveEditedImage()
+                    }
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.Accent.primary)
+                }
+            }
+            .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .sheet(isPresented: $showStickerPicker) {
+                StickerPickerView { emoji in
+                    addSticker(emoji)
+                }
             }
         }
-    }
-
-    // MARK: Toolbar
-
-    private var editorToolbar: some View {
-        HStack {
-            Button {
-                dismiss()
-            } label: {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(AppColor.Text.primary)
-                    .frame(width: AppSpacing.minTouchTarget, height: AppSpacing.minTouchTarget)
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Text("꾸미기")
-                .font(AppFont.headline)
-                .foregroundStyle(AppColor.Text.primary)
-
-            Spacer()
-
-            Button("저장") {
-                saveEditedImage()
-            }
-            .font(AppFont.headline)
-            .foregroundStyle(AppColor.Accent.primary)
-            .frame(width: AppSpacing.minTouchTarget, height: AppSpacing.minTouchTarget)
-        }
-        .padding(.horizontal, AppSpacing.md)
-        .padding(.vertical, AppSpacing.sm)
-        .background(AppColor.Background.primary)
-        .appDivider()
     }
 
     // MARK: Canvas
@@ -108,11 +100,7 @@ struct PhotoEditorView: View {
     // MARK: Bottom Bar
 
     private var editorBottomBar: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(AppColor.Border.subtle)
-                .frame(height: 0.5)
-
+        VStack(spacing: AppSpacing.md) {
             Button {
                 showStickerPicker = true
             } label: {
@@ -120,11 +108,30 @@ struct PhotoEditorView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.Text.primary)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.lg)
+                    .padding(.vertical, AppSpacing.md)
+                    .background(
+                        AppColor.Background.secondary,
+                        in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    )
             }
             .buttonStyle(.plain)
+
+            Button {
+                saveEditedImage()
+            } label: {
+                Text("저장하기")
+            }
+            .buttonStyle(PrimaryButtonStyle())
         }
+        .padding(.horizontal, AppSpacing.screenHorizontal)
+        .padding(.top, AppSpacing.md)
+        .padding(.bottom, AppSpacing.lg)
         .background(AppColor.Background.primary)
+        .overlay(alignment: .top) {
+            Rectangle()
+                .fill(AppColor.Border.subtle)
+                .frame(height: 0.5)
+        }
     }
 
     // MARK: Actions
@@ -152,13 +159,15 @@ struct PhotoEditorView: View {
         let renderer = ImageRenderer(content: content)
         renderer.scale = UIScreen.main.scale
 
-        if let rendered = renderer.uiImage {
-            onSave(rendered)
-        } else {
-            onSave(image)
-        }
+        let editedImage = renderer.uiImage ?? image
 
-        dismiss()
+        do {
+            try repository.saveRecord(image: editedImage, mission: mission)
+            onSaved()
+            dismiss()
+        } catch {
+            onSaveFailed?(error)
+        }
     }
 
     private func imageFrame(in containerSize: CGSize) -> CGRect {
@@ -309,8 +318,12 @@ private struct EditorRenderCanvas: View {
 // MARK: - Preview
 
 #Preview {
-    PhotoEditorView(
+    let (container, repository) = MODIPreviewData.makeRepository()
+    return PhotoEditorView(
         image: UIImage(systemName: "photo")!
-            .withTintColor(.gray, renderingMode: .alwaysOriginal)
-    ) { _ in }
+            .withTintColor(.gray, renderingMode: .alwaysOriginal),
+        mission: .mock
+    ) {}
+    .modelContainer(container)
+    .environment(repository)
 }

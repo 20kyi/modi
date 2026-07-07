@@ -1,8 +1,10 @@
+import SwiftData
 import SwiftUI
 
 struct CollectionView: View {
 
     @Environment(CollectionStore.self) private var store
+    @Environment(MODIRepository.self) private var repository
 
     private let columns = [
         GridItem(.flexible(), spacing: AppSpacing.gridGutter),
@@ -110,7 +112,7 @@ struct CollectionView: View {
                         NavigationLink(value: collection) {
                             CollectionCard(
                                 collection: collection,
-                                photoCount: store.photoCount(for: collection.id)
+                                photoCount: repository.photoCount(for: collection.id)
                             )
                         }
                         .buttonStyle(.plain)
@@ -122,6 +124,9 @@ struct CollectionView: View {
 }
 
 #Preview {
-    CollectionView()
+    let (container, repository) = MODIPreviewData.makeRepository(withSampleData: true)
+    return CollectionView()
+        .modelContainer(container)
         .environment(CollectionStore())
+        .environment(repository)
 }
