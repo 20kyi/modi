@@ -38,40 +38,48 @@ extension Concept {
         // Color Collection
         Concept(
             id: UUID(uuidString: "A1000001-0000-0000-0000-000000000001")!,
+            title: "Pink Love",
+            emoji: "🩷",
+            category: .colorCollection,
+            description: "사랑스러운 분홍빛 순간을 모아요",
+            themeColor: Color(hex: "F8DDE8")
+        ),
+        Concept(
+            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000002")!,
             title: "Blue Mood",
-            emoji: "🔵",
+            emoji: "💙",
             category: .colorCollection,
             description: "차분한 파란 순간들을 모아보세요",
             themeColor: Color(hex: "D4E4F7")
         ),
         Concept(
-            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000002")!,
+            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000003")!,
             title: "Purple Dream",
-            emoji: "🟣",
+            emoji: "💜",
             category: .colorCollection,
             description: "몽환적인 보라빛 하루를 기록해요",
             themeColor: Color(hex: "E8DDF5")
         ),
         Concept(
-            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000003")!,
+            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000004")!,
             title: "Yellow Day",
-            emoji: "🟡",
+            emoji: "💛",
             category: .colorCollection,
             description: "밝고 따뜻한 노란 하루를 담아요",
             themeColor: Color(hex: "F9F0C8")
         ),
         Concept(
-            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000004")!,
+            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000005")!,
             title: "Green Life",
-            emoji: "🟢",
+            emoji: "💚",
             category: .colorCollection,
             description: "싱그러운 초록의 일상을 수집해요",
             themeColor: Color(hex: "D8EDDF")
         ),
         Concept(
-            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000005")!,
+            id: UUID(uuidString: "A1000001-0000-0000-0000-000000000006")!,
             title: "White Moment",
-            emoji: "⚪",
+            emoji: "🤍",
             category: .colorCollection,
             description: "고요하고 깨끗한 순간을 남겨요",
             themeColor: Color(hex: "F2F2F4")
