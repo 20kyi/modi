@@ -16,6 +16,7 @@ struct MainTabView: View {
 
     @Environment(\.modelContext) private var modelContext
     @State private var collectionStore = CollectionStore()
+    @State private var missionManager = MissionManager()
     @State private var repository: MODIRepository?
     @State private var selectedTab: MainTab = .home
 
@@ -37,7 +38,7 @@ struct MainTabView: View {
     private func tabView(repository: MODIRepository) -> some View {
         TabView(selection: $selectedTab) {
             HomeView(
-                collectionStore: collectionStore,
+                missionManager: missionManager,
                 repository: repository,
                 onCreateTapped: { selectedTab = .create }
             )
@@ -66,6 +67,7 @@ struct MainTabView: View {
         }
         .tint(AppColor.Accent.primary)
         .environment(collectionStore)
+        .environment(missionManager)
         .environment(repository)
     }
 }

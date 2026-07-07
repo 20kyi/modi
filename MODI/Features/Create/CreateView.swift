@@ -11,6 +11,7 @@ private struct EditorPresentation: Identifiable {
 struct CreateView: View {
 
     @Environment(CollectionStore.self) private var store
+    @Environment(MissionManager.self) private var missionManager
     @Environment(MODIRepository.self) private var repository
 
     @State private var showCompleted = false
@@ -19,15 +20,22 @@ struct CreateView: View {
     @State private var editorPresentation: EditorPresentation?
     @State private var saveErrorMessage: String?
 
+    private var todaysMission: DailyMission {
+        missionManager.dailyMission(
+            for: .now,
+            isCompleted: isMissionCompleted
+        ) ?? .mock
+    }
+
     private var isMissionCompleted: Bool {
-        showCompleted || repository.hasRecord(on: .now, missionId: store.todaysMission.collectionID)
+        showCompleted || missionManager.isTodaysMissionCompleted(repository: repository)
     }
 
     var body: some View {
         NavigationStack {
             Group {
-                if let collection = store.todaysCollection {
-                    missionView(collection: collection)
+                if let concept = missionManager.todaysConcept {
+                    missionView(concept: concept)
                 } else {
                     ProgressView()
                 }
@@ -49,7 +57,7 @@ struct CreateView: View {
             .fullScreenCover(item: $editorPresentation) { presentation in
                 PhotoEditorView(
                     image: presentation.image,
-                    mission: store.todaysMission,
+                    mission: todaysMission,
                     onSaved: {
                         withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
                             showCompleted = true
@@ -78,23 +86,19 @@ struct CreateView: View {
     }
 
     @ViewBuilder
-    private func missionView(collection: PhotoCollection) -> some View {
+    private func missionView(concept: Concept) -> some View {
         if isMissionCompleted {
-            completedView(collection: collection)
+            completedView(concept: concept)
         } else {
-            activeMissionView(collection: collection)
+            activeMissionView(concept: concept)
         }
     }
 
-    private func activeMissionView(collection: PhotoCollection) -> some View {
+    private func activeMissionView(concept: Concept) -> some View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            DailyMissionCard(
-                mission: store.todaysMission.with(
-                    isCompleted: isMissionCompleted
-                )
-            )
+            DailyMissionCard(mission: todaysMission)
 
             VStack(spacing: AppSpacing.sm) {
                 Text("미션에 맞는 순간을 찾아보세요")
@@ -102,7 +106,7 @@ struct CreateView: View {
                     .foregroundStyle(AppColor.Text.secondary)
                     .multilineTextAlignment(.center)
 
-                Text("사진은 「\(collection.title)」 컬렉션에 저장돼요")
+                Text("사진은 「\(concept.title)」 컨셉에 저장돼요")
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.Text.tertiary)
             }
@@ -128,11 +132,11 @@ struct CreateView: View {
         .appScreenBackground()
     }
 
-    private func completedView(collection: PhotoCollection) -> some View {
+    private func completedView(concept: Concept) -> some View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            if let record = repository.record(on: .now, missionId: store.todaysMission.collectionID) {
+            if let record = repository.record(on: .now, missionId: missionManager.todaysMission.conceptId) {
                 MODIRecordImage(record: record)
                     .aspectRatio(3.0 / 4.0, contentMode: .fill)
                     .frame(maxWidth: 240)
@@ -149,23 +153,23 @@ struct CreateView: View {
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.Text.primary)
 
-                Text("「\(collection.title)」 컬렉션에 추가됐어요")
+                Text("「\(concept.title)」 컨셉에 추가됐어요")
                     .font(AppFont.callout)
                     .foregroundStyle(AppColor.Text.secondary)
             }
 
             VStack(spacing: AppSpacing.sm) {
-                Text("총 \(repository.photoCount(for: collection.id))장")
+                Text("총 \(repository.photoCount(for: concept.id))장")
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.Text.primary)
 
-                Text(store.todaysMission.description)
+                Text(todaysMission.description)
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.Text.tertiary)
             }
             .padding(AppSpacing.lg)
             .frame(maxWidth: .infinity)
-            .background(collection.themeColor.opacity(0.35), in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+            .background(Color(hex: concept.themeColorHex).opacity(0.35), in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
 
             Spacer()
         }
@@ -189,5 +193,6 @@ struct CreateView: View {
     return CreateView()
         .modelContainer(container)
         .environment(CollectionStore())
+        .environment(MissionManager.mock)
         .environment(repository)
 }

@@ -2,18 +2,19 @@ import SwiftUI
 
 struct HomeView: View {
 
-    var collectionStore: CollectionStore
+    var missionManager: MissionManager
     var repository: MODIRepository
     var onCreateTapped: () -> Void = {}
 
     @State private var viewModel = HomeViewModel()
 
     private var isTodaysMissionCompleted: Bool {
-        repository.hasRecord(on: .now, missionId: collectionStore.todaysMission.collectionID)
+        missionManager.isTodaysMissionCompleted(repository: repository)
     }
 
     private var todaysMission: DailyMission {
-        collectionStore.todaysMission.with(isCompleted: isTodaysMissionCompleted)
+        missionManager.dailyMission(for: .now, isCompleted: isTodaysMissionCompleted)
+            ?? .mock
     }
 
     var body: some View {
@@ -85,5 +86,5 @@ struct HomeView: View {
 
 #Preview {
     let (_, repository) = MODIPreviewData.makeRepository()
-    return HomeView(collectionStore: CollectionStore(), repository: repository)
+    return HomeView(missionManager: .mock, repository: repository)
 }

@@ -56,6 +56,19 @@ struct DailyMission: Codable, Equatable, Identifiable {
         )
     }
 
+    init(from concept: Concept, date: Date = .now, isCompleted: Bool = false) {
+        self.init(
+            title: concept.title,
+            emoji: concept.emoji,
+            description: concept.description,
+            category: concept.category,
+            themeColorHex: concept.themeColorHex,
+            collectionID: concept.id,
+            date: date,
+            isCompleted: isCompleted
+        )
+    }
+
     func with(isCompleted: Bool) -> DailyMission {
         var copy = self
         copy.isCompleted = isCompleted
