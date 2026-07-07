@@ -3,9 +3,11 @@ import SwiftUI
 struct CreateView: View {
 
     @Environment(CollectionStore.self) private var store
-    @Environment(\.dismiss) private var dismiss
 
     @State private var showCompleted = false
+    @State private var showCamera = false
+    @State private var showPhotoLibrary = false
+    @State private var saveErrorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -18,7 +20,33 @@ struct CreateView: View {
             }
             .navigationTitle("오늘의 미션")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showCamera) {
+                ImagePicker(source: .camera) { image in
+                    handleCapturedImage(image)
+                }
+                .ignoresSafeArea()
+            }
+            .sheet(isPresented: $showPhotoLibrary) {
+                ImagePicker(source: .photoLibrary) { image in
+                    handleCapturedImage(image)
+                }
+                .ignoresSafeArea()
+            }
+            .alert("사진을 저장하지 못했어요", isPresented: saveErrorIsPresented) {
+                Button("확인", role: .cancel) {
+                    saveErrorMessage = nil
+                }
+            } message: {
+                Text(saveErrorMessage ?? "다시 시도해 주세요.")
+            }
         }
+    }
+
+    private var saveErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { saveErrorMessage != nil },
+            set: { if !$0 { saveErrorMessage = nil } }
+        )
     }
 
     @ViewBuilder
@@ -50,20 +78,20 @@ struct CreateView: View {
                     .foregroundStyle(AppColor.Text.tertiary)
             }
 
-            Button {
-                store.completeTodaysMission()
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                    showCompleted = true
+            VStack(spacing: AppSpacing.md) {
+                Button {
+                    showCamera = true
+                } label: {
+                    Label("사진 찍기", systemImage: "camera.fill")
                 }
-            } label: {
-                Label("사진 찍기", systemImage: "camera.fill")
-            }
-            .buttonStyle(PrimaryButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
 
-            Text("카메라 연동은 곧 추가될 예정이에요.\n지금은 미션 완료를 눌러 테스트해보세요.")
-                .font(AppFont.caption1)
-                .foregroundStyle(AppColor.Text.tertiary)
-                .multilineTextAlignment(.center)
+                Button("앨범에서 선택") {
+                    showPhotoLibrary = true
+                }
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.Text.secondary)
+            }
 
             Spacer()
         }
@@ -75,9 +103,17 @@ struct CreateView: View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 64))
-                .foregroundStyle(AppColor.Semantic.success)
+            if let entry = store.todaysEntry() {
+                MissionPhotoImage(fileName: entry.imageFileName)
+                    .aspectRatio(1, contentMode: .fill)
+                    .frame(maxWidth: 240)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
+                    .appShadow(.medium)
+            } else {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 64))
+                    .foregroundStyle(AppColor.Semantic.success)
+            }
 
             VStack(spacing: AppSpacing.sm) {
                 Text("오늘의 미션 완료!")
@@ -106,6 +142,17 @@ struct CreateView: View {
         }
         .appScreenPadding()
         .appScreenBackground()
+    }
+
+    private func handleCapturedImage(_ image: UIImage) {
+        guard store.completeTodaysMission(image: image) else {
+            saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
+            return
+        }
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            showCompleted = true
+        }
     }
 }
 

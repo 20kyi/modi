@@ -35,12 +35,31 @@ struct MissionEntry: Codable, Equatable, Identifiable {
     let missionDate: Date
     let completedAt: Date
     let prompt: String
+    let imageFileName: String?
 
-    init(collectionID: UUID, missionDate: Date, prompt: String, completedAt: Date = .now) {
-        self.id = UUID()
+    init(
+        id: UUID = UUID(),
+        collectionID: UUID,
+        missionDate: Date,
+        prompt: String,
+        imageFileName: String,
+        completedAt: Date = .now
+    ) {
+        self.id = id
         self.collectionID = collectionID
         self.missionDate = Calendar.current.startOfDay(for: missionDate)
         self.completedAt = completedAt
         self.prompt = prompt
+        self.imageFileName = imageFileName
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        collectionID = try container.decode(UUID.self, forKey: .collectionID)
+        missionDate = try container.decode(Date.self, forKey: .missionDate)
+        completedAt = try container.decode(Date.self, forKey: .completedAt)
+        prompt = try container.decode(String.self, forKey: .prompt)
+        imageFileName = try container.decodeIfPresent(String.self, forKey: .imageFileName)
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import UIKit
 
 // MARK: - CollectionStore
 
@@ -66,17 +67,35 @@ final class CollectionStore {
         return entries.contains { DailyMission.dayKey(for: $0.missionDate) == key }
     }
 
-    func completeTodaysMission() {
+    @discardableResult
+    func completeTodaysMission(image: UIImage) -> Bool {
         let mission = todaysMission
-        guard !isTodaysMissionCompleted else { return }
+        guard !isTodaysMissionCompleted else { return false }
+
+        let entryID = UUID()
+        guard let fileName = PhotoStorage.save(image: image, entryID: entryID) else {
+            return false
+        }
 
         let entry = MissionEntry(
+            id: entryID,
             collectionID: mission.collectionID,
             missionDate: mission.date,
-            prompt: mission.prompt
+            prompt: mission.prompt,
+            imageFileName: fileName
         )
         entries.insert(entry, at: 0)
         saveEntries()
+        return true
+    }
+
+    func todaysEntry() -> MissionEntry? {
+        let key = DailyMission.dayKey(for: .now)
+        return entries.first { DailyMission.dayKey(for: $0.missionDate) == key }
+    }
+
+    func latestEntry(for collectionID: UUID) -> MissionEntry? {
+        entries.first { $0.collectionID == collectionID }
     }
 
     // MARK: - Collections
@@ -94,6 +113,10 @@ final class CollectionStore {
     }
 
     func removeEntry(id: UUID) {
+        if let entry = entries.first(where: { $0.id == id }),
+           let fileName = entry.imageFileName {
+            PhotoStorage.delete(fileName: fileName)
+        }
         entries.removeAll { $0.id == id }
         saveEntries()
     }

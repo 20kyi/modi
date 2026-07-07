@@ -130,7 +130,8 @@ struct HomeView: View {
                         ForEach(activeCollections.prefix(6)) { collection in
                             ActiveCollectionCard(
                                 collection: collection,
-                                photoCount: collectionStore.photoCount(for: collection.id)
+                                photoCount: collectionStore.photoCount(for: collection.id),
+                                thumbnailFileName: collectionStore.latestEntry(for: collection.id)?.imageFileName
                             )
                         }
                     }
@@ -232,16 +233,25 @@ private struct ActiveCollectionCard: View {
 
     let collection: PhotoCollection
     let photoCount: Int
+    let thumbnailFileName: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
-                .fill(collection.themeColor)
-                .frame(width: 140, height: 100)
-                .overlay {
-                    Text(collection.emoji)
-                        .font(.system(size: 32))
+            ZStack {
+                if thumbnailFileName != nil {
+                    MissionPhotoImage(fileName: thumbnailFileName)
+                        .frame(width: 140, height: 100)
+                        .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
+                } else {
+                    RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
+                        .fill(collection.themeColor)
+                        .frame(width: 140, height: 100)
+                        .overlay {
+                            Text(collection.emoji)
+                                .font(.system(size: 32))
+                        }
                 }
+            }
                 .overlay(alignment: .bottomTrailing) {
                     Text("\(photoCount)장")
                         .font(AppFont.caption2)

@@ -119,14 +119,11 @@ private struct MissionPhotoTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
-                .fill(collection.themeColor)
-                .aspectRatio(1, contentMode: .fit)
-                .overlay {
-                    Image(systemName: "photo")
-                        .font(.system(size: 20, weight: .light))
-                        .foregroundStyle(AppColor.Accent.primary.opacity(0.5))
-                }
+            MissionPhotoImage(fileName: entry.imageFileName)
+                .aspectRatio(1, contentMode: .fill)
+                .frame(maxWidth: .infinity)
+                .background(collection.themeColor, in: RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
 
             Text(dateLabel)
                 .font(AppFont.caption2)
