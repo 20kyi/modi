@@ -7,6 +7,8 @@ struct CreateView: View {
     @State private var showCompleted = false
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
+    @State private var showEditor = false
+    @State private var capturedImage: UIImage?
     @State private var saveErrorMessage: String?
 
     var body: some View {
@@ -22,15 +24,24 @@ struct CreateView: View {
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $showCamera) {
                 ImagePicker(source: .camera) { image in
-                    handleCapturedImage(image)
+                    openEditor(with: image)
                 }
                 .ignoresSafeArea()
             }
             .sheet(isPresented: $showPhotoLibrary) {
                 ImagePicker(source: .photoLibrary) { image in
-                    handleCapturedImage(image)
+                    openEditor(with: image)
                 }
                 .ignoresSafeArea()
+            }
+            .fullScreenCover(isPresented: $showEditor, onDismiss: {
+                capturedImage = nil
+            }) {
+                if let capturedImage {
+                    PhotoEditorView(image: capturedImage) { editedImage in
+                        saveMissionPhoto(editedImage)
+                    }
+                }
             }
             .alert("사진을 저장하지 못했어요", isPresented: saveErrorIsPresented) {
                 Button("확인", role: .cancel) {
@@ -145,7 +156,12 @@ struct CreateView: View {
         .appScreenBackground()
     }
 
-    private func handleCapturedImage(_ image: UIImage) {
+    private func openEditor(with image: UIImage) {
+        capturedImage = image
+        showEditor = true
+    }
+
+    private func saveMissionPhoto(_ image: UIImage) {
         guard store.completeTodaysMission(image: image) else {
             saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
             return
