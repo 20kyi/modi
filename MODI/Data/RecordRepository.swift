@@ -3,24 +3,27 @@ import Observation
 import SwiftData
 import UIKit
 
-// MARK: - MODIRepositoryError
+// MARK: - RecordRepositoryError
 
-enum MODIRepositoryError: LocalizedError {
+enum RecordRepositoryError: LocalizedError {
     case imageEncodingFailed
+    case missingConcept
 
     var errorDescription: String? {
         switch self {
         case .imageEncodingFailed:
             "사진 데이터를 변환하지 못했어요."
+        case .missingConcept:
+            "저장할 Concept 정보가 없어요."
         }
     }
 }
 
-// MARK: - MODIRepository
+// MARK: - RecordRepository
 
 @MainActor
 @Observable
-final class MODIRepository {
+final class RecordRepository {
 
     private let modelContext: ModelContext
     private(set) var records: [MODIRecord] = []
@@ -33,16 +36,17 @@ final class MODIRepository {
     // MARK: - Save
 
     @discardableResult
-    func saveRecord(image: UIImage, mission: DailyMission) throws -> MODIRecord {
+    func saveRecord(image: UIImage, concept: Concept, isEdited: Bool = false) throws -> MODIRecord {
         guard let imageData = image.jpegData(compressionQuality: 0.85) else {
-            throw MODIRepositoryError.imageEncodingFailed
+            throw RecordRepositoryError.imageEncodingFailed
         }
 
         let record = MODIRecord(
             imageData: imageData,
-            missionId: mission.collectionID,
-            missionTitle: mission.title,
-            missionEmoji: mission.emoji
+            conceptId: concept.id,
+            conceptTitle: concept.title,
+            conceptEmoji: concept.emoji,
+            isEdited: isEdited
         )
 
         modelContext.insert(record)
@@ -51,12 +55,13 @@ final class MODIRepository {
         return record
     }
 
-    func updateRecord(_ record: MODIRecord, image: UIImage) throws {
+    func updateRecord(_ record: MODIRecord, image: UIImage, isEdited: Bool = true) throws {
         guard let imageData = image.jpegData(compressionQuality: 0.85) else {
-            throw MODIRepositoryError.imageEncodingFailed
+            throw RecordRepositoryError.imageEncodingFailed
         }
 
         record.imageData = imageData
+        record.isEdited = isEdited
         try modelContext.save()
         reload()
     }
@@ -74,26 +79,26 @@ final class MODIRepository {
         records
     }
 
-    func fetchRecords(missionId: UUID) -> [MODIRecord] {
-        records.filter { $0.missionId == missionId }
+    func fetchRecords(conceptId: UUID) -> [MODIRecord] {
+        records.filter { $0.conceptId == conceptId }
     }
 
-    func photoCount(for missionId: UUID) -> Int {
-        fetchRecords(missionId: missionId).count
+    func photoCount(for conceptId: UUID) -> Int {
+        fetchRecords(conceptId: conceptId).count
     }
 
-    func hasRecord(on date: Date, missionId: UUID) -> Bool {
+    func hasRecord(on date: Date, conceptId: UUID) -> Bool {
         let dayKey = DailyMission.dayKey(for: date)
         return records.contains {
-            $0.missionId == missionId &&
+            $0.conceptId == conceptId &&
             DailyMission.dayKey(for: $0.createdAt) == dayKey
         }
     }
 
-    func record(on date: Date, missionId: UUID) -> MODIRecord? {
+    func record(on date: Date, conceptId: UUID) -> MODIRecord? {
         let dayKey = DailyMission.dayKey(for: date)
         return records.first {
-            $0.missionId == missionId &&
+            $0.conceptId == conceptId &&
             DailyMission.dayKey(for: $0.createdAt) == dayKey
         }
     }
@@ -109,16 +114,16 @@ final class MODIRepository {
 
 // MARK: - Preview Support
 
-enum MODIPreviewData {
+enum RecordPreviewData {
 
     @MainActor
-    static func makeRepository(withSampleData: Bool = false) -> (ModelContainer, MODIRepository) {
+    static func makeRepository(withSampleData: Bool = false) -> (ModelContainer, RecordRepository) {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let container = try! ModelContainer(for: MODIRecord.self, configurations: configuration)
-        let repository = MODIRepository(modelContext: container.mainContext)
+        let repository = RecordRepository(modelContext: container.mainContext)
 
         if withSampleData {
-            seedSampleRecords(in: container.mainContext, mission: .mock)
+            seedSampleRecords(in: container.mainContext, concept: .mock)
             repository.reload()
         }
 
@@ -126,7 +131,7 @@ enum MODIPreviewData {
     }
 
     @MainActor
-    private static func seedSampleRecords(in context: ModelContext, mission: DailyMission) {
+    private static func seedSampleRecords(in context: ModelContext, concept: Concept) {
         let colors: [UIColor] = [.systemPink, .systemBlue, .systemTeal]
         for (index, color) in colors.enumerated() {
             let size = CGSize(width: 200, height: 200)
@@ -140,10 +145,11 @@ enum MODIPreviewData {
 
             let record = MODIRecord(
                 imageData: imageData,
-                missionId: mission.collectionID,
-                missionTitle: mission.title,
-                missionEmoji: mission.emoji,
-                createdAt: Calendar.current.date(byAdding: .day, value: -index, to: .now)!
+                conceptId: concept.id,
+                conceptTitle: concept.title,
+                conceptEmoji: concept.emoji,
+                createdAt: Calendar.current.date(byAdding: .day, value: -index, to: .now)!,
+                isEdited: index == 0
             )
             context.insert(record)
         }

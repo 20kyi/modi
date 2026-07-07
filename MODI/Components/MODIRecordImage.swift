@@ -24,7 +24,7 @@ struct MODIRecordImage: View {
 }
 
 #Preview {
-    let (_, repository) = MODIPreviewData.makeRepository(withSampleData: true)
+    let (_, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     return MODIRecordImage(record: repository.fetchAllRecords()[0])
         .frame(width: 120, height: 120)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))

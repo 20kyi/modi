@@ -12,7 +12,7 @@ struct CreateView: View {
 
     @Environment(CollectionStore.self) private var store
     @Environment(MissionManager.self) private var missionManager
-    @Environment(MODIRepository.self) private var repository
+    @Environment(RecordRepository.self) private var repository
 
     @State private var showCompleted = false
     @State private var showCamera = false
@@ -57,6 +57,7 @@ struct CreateView: View {
                             saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                         }
                     )
+                    .environment(repository)
                 }
             }
             .sheet(isPresented: $showPhotoLibrary) {
@@ -78,6 +79,7 @@ struct CreateView: View {
                             saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                         }
                     )
+                    .environment(repository)
                 }
             }
             .alert("사진을 저장하지 못했어요", isPresented: saveErrorIsPresented) {
@@ -148,7 +150,7 @@ struct CreateView: View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            if let record = repository.record(on: .now, missionId: missionManager.todaysMission.conceptId) {
+            if let record = repository.record(on: .now, conceptId: missionManager.todaysMission.conceptId) {
                 MODIRecordImage(record: record)
                     .aspectRatio(3.0 / 4.0, contentMode: .fill)
                     .frame(maxWidth: 240)
@@ -200,7 +202,7 @@ struct CreateView: View {
 }
 
 #Preview {
-    let (container, repository) = MODIPreviewData.makeRepository()
+    let (container, repository) = RecordPreviewData.makeRepository()
     return CreateView()
         .modelContainer(container)
         .environment(CollectionStore())

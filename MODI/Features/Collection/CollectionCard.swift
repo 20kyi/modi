@@ -32,10 +32,10 @@ struct CollectionCard: View {
                     .foregroundStyle(AppColor.Text.primary)
                     .lineLimit(1)
 
-                Text(collection.missionPrompt)
+                Text(photoCount > 0 ? "사진 \(photoCount)장" : collection.missionPrompt)
                     .font(AppFont.caption1)
                     .foregroundStyle(AppColor.Text.secondary)
-                    .lineLimit(2)
+                    .lineLimit(photoCount > 0 ? 1 : 2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

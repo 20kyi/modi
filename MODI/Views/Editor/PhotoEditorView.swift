@@ -13,7 +13,7 @@ struct PhotoEditorView: View {
     var onSaveFailed: ((Error) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(MODIRepository.self) private var repository
+    @Environment(RecordRepository.self) private var repository
 
     @State private var elements: [EditorElement] = []
     @State private var selectedElementID: UUID?
@@ -26,7 +26,7 @@ struct PhotoEditorView: View {
     private var resolvedConcept: Concept? {
         if let concept { return concept }
         if let existingRecord {
-            return Concept.concept(for: existingRecord.missionId)
+            return Concept.concept(for: existingRecord.conceptId)
         }
         return nil
     }
@@ -346,10 +346,14 @@ struct PhotoEditorView: View {
     }
 
     private func saveEditedImage() {
-        let mission = saveMission
+        guard let concept = resolvedConcept else {
+            onSaveFailed?(RecordRepositoryError.missingConcept)
+            return
+        }
+
         let content = EditorRenderCanvas(
             image: image,
-            concept: resolvedConcept,
+            concept: concept,
             frameMetadata: frameMetadata,
             elements: elements,
             canvasSize: canvasSize,
@@ -360,35 +364,19 @@ struct PhotoEditorView: View {
         renderer.scale = UIScreen.main.scale
 
         let editedImage = renderer.uiImage ?? image
+        let wasEdited = !elements.isEmpty || selectedFrame != .none
 
         do {
             if let existingRecord {
-                try repository.updateRecord(existingRecord, image: editedImage)
+                try repository.updateRecord(existingRecord, image: editedImage, isEdited: true)
             } else {
-                try repository.saveRecord(image: editedImage, mission: mission)
+                try repository.saveRecord(image: editedImage, concept: concept, isEdited: wasEdited)
             }
             onSaved()
             dismiss()
         } catch {
             onSaveFailed?(error)
         }
-    }
-
-    private var saveMission: DailyMission {
-        if let resolvedConcept {
-            return DailyMission(from: resolvedConcept)
-        }
-        if let existingRecord {
-            return DailyMission(
-                title: existingRecord.missionTitle,
-                emoji: existingRecord.missionEmoji,
-                description: "",
-                category: .custom,
-                themeColorHex: "E8ECF0",
-                collectionID: existingRecord.missionId
-            )
-        }
-        return .mock
     }
 
     private func imageFrame(in containerSize: CGSize) -> CGRect {
@@ -697,7 +685,7 @@ private struct EditorRenderCanvas: View {
 // MARK: - Preview
 
 #Preview("With Concept") {
-    let (container, repository) = MODIPreviewData.makeRepository()
+    let (container, repository) = RecordPreviewData.makeRepository()
     let size = CGSize(width: 300, height: 400)
     let renderer = UIGraphicsImageRenderer(size: size)
     let sampleImage = renderer.image { context in
@@ -714,7 +702,7 @@ private struct EditorRenderCanvas: View {
 }
 
 #Preview("Without Concept") {
-    let (container, repository) = MODIPreviewData.makeRepository()
+    let (container, repository) = RecordPreviewData.makeRepository()
     let size = CGSize(width: 300, height: 400)
     let renderer = UIGraphicsImageRenderer(size: size)
     let sampleImage = renderer.image { context in

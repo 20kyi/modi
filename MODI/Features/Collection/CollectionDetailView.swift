@@ -11,7 +11,7 @@ private struct CollectionEditorPresentation: Identifiable {
 
 struct CollectionDetailView: View {
 
-    @Environment(MODIRepository.self) private var repository
+    @Environment(RecordRepository.self) private var repository
 
     let collection: PhotoCollection
 
@@ -20,7 +20,7 @@ struct CollectionDetailView: View {
     @State private var editorPresentation: CollectionEditorPresentation?
 
     private var records: [MODIRecord] {
-        repository.fetchRecords(missionId: collection.id)
+        repository.fetchRecords(conceptId: collection.id)
     }
 
     private let columns = [
@@ -67,6 +67,7 @@ struct CollectionDetailView: View {
                 concept: conceptForCollection,
                 existingRecord: presentation.existingRecord
             ) {}
+            .environment(repository)
         }
         .alert("이 사진을 삭제할까요?", isPresented: deletionAlertIsPresented, presenting: recordPendingDeletion) { record in
             Button("삭제", role: .destructive) {
@@ -140,15 +141,20 @@ struct CollectionDetailView: View {
             } else {
                 LazyVGrid(columns: columns, spacing: AppSpacing.gridGutter) {
                     ForEach(records, id: \.id) { record in
-                        MODIRecordTile(collection: collection, record: record)
-                            .contextMenu {
-                                Button("사진 수정", systemImage: "pencil") {
-                                    presentEditor(for: record)
-                                }
-                                Button("사진 삭제", systemImage: "trash", role: .destructive) {
-                                    recordPendingDeletion = record
-                                }
+                        Button {
+                            presentEditor(for: record)
+                        } label: {
+                            MODIRecordTile(collection: collection, record: record)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("사진 수정", systemImage: "pencil") {
+                                presentEditor(for: record)
                             }
+                            Button("사진 삭제", systemImage: "trash", role: .destructive) {
+                                recordPendingDeletion = record
+                            }
+                        }
                     }
                 }
             }
@@ -186,7 +192,7 @@ private struct MODIRecordTile: View {
 }
 
 #Preview {
-    let (container, repository) = MODIPreviewData.makeRepository(withSampleData: true)
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     return NavigationStack {
         CollectionDetailView(collection: PhotoCollection.builtIn[6])
     }

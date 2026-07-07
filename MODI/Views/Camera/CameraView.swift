@@ -22,6 +22,8 @@ struct CameraView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
 
+    @Environment(RecordRepository.self) private var repository
+
     @State private var cameraManager = CameraManager()
     @State private var editorPresentation: CameraEditorPresentation?
     @State private var captureErrorMessage: String?
@@ -80,6 +82,7 @@ struct CameraView: View {
                     onSaveFailed?(error)
                 }
             )
+            .environment(repository)
         }
         .alert("사진을 촬영하지 못했어요", isPresented: captureErrorIsPresented) {
             Button("확인", role: .cancel) {
@@ -305,7 +308,7 @@ struct CameraView: View {
 // MARK: - Preview
 
 #Preview {
-    let (container, repository) = MODIPreviewData.makeRepository()
+    let (container, repository) = RecordPreviewData.makeRepository()
     return CameraView(
         todayMission: .mock,
         concept: .mock,

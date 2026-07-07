@@ -4,7 +4,7 @@ import SwiftUI
 struct CollectionView: View {
 
     @Environment(CollectionStore.self) private var store
-    @Environment(MODIRepository.self) private var repository
+    @Environment(RecordRepository.self) private var repository
 
     private let columns = [
         GridItem(.flexible(), spacing: AppSpacing.gridGutter),
@@ -124,7 +124,7 @@ struct CollectionView: View {
 }
 
 #Preview {
-    let (container, repository) = MODIPreviewData.makeRepository(withSampleData: true)
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     return CollectionView()
         .modelContainer(container)
         .environment(CollectionStore())

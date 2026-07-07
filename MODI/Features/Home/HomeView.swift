@@ -3,7 +3,7 @@ import SwiftUI
 struct HomeView: View {
 
     var missionManager: MissionManager
-    var repository: MODIRepository
+    var repository: RecordRepository
     var onCreateTapped: () -> Void = {}
 
     @State private var viewModel = HomeViewModel()
@@ -85,6 +85,6 @@ struct HomeView: View {
 }
 
 #Preview {
-    let (_, repository) = MODIPreviewData.makeRepository()
+    let (_, repository) = RecordPreviewData.makeRepository()
     return HomeView(missionManager: .mock, repository: repository)
 }

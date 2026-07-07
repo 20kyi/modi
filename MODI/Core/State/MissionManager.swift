@@ -99,12 +99,12 @@ final class MissionManager {
 
     // MARK: - Completion
 
-    func isMissionCompleted(on date: Date = .now, repository: MODIRepository) -> Bool {
+    func isMissionCompleted(on date: Date = .now, repository: RecordRepository) -> Bool {
         let todayMission = mission(for: date)
-        return repository.hasRecord(on: date, missionId: todayMission.conceptId)
+        return repository.hasRecord(on: date, conceptId: todayMission.conceptId)
     }
 
-    func isTodaysMissionCompleted(repository: MODIRepository) -> Bool {
+    func isTodaysMissionCompleted(repository: RecordRepository) -> Bool {
         isMissionCompleted(on: .now, repository: repository)
     }
 

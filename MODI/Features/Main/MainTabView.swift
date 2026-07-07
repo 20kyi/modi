@@ -17,7 +17,7 @@ struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var collectionStore = CollectionStore()
     @State private var missionManager = MissionManager()
-    @State private var repository: MODIRepository?
+    @State private var repository: RecordRepository?
     @State private var selectedTab: MainTab = .home
 
     var body: some View {
@@ -30,12 +30,12 @@ struct MainTabView: View {
         }
         .onAppear {
             if repository == nil {
-                repository = MODIRepository(modelContext: modelContext)
+                repository = RecordRepository(modelContext: modelContext)
             }
         }
     }
 
-    private func tabView(repository: MODIRepository) -> some View {
+    private func tabView(repository: RecordRepository) -> some View {
         TabView(selection: $selectedTab) {
             HomeView(
                 missionManager: missionManager,
@@ -75,7 +75,7 @@ struct MainTabView: View {
 // MARK: - Preview
 
 #Preview {
-    let (container, repository) = MODIPreviewData.makeRepository()
+    let (container, repository) = RecordPreviewData.makeRepository()
     return MainTabView()
         .modelContainer(container)
         .environment(repository)
