@@ -27,6 +27,8 @@
 		7C4092362FFD4F1B009164B8 /* MODI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MODI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7C4092452FFD4F1D009164B8 /* MODITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MODITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7C40924F2FFD4F1D009164B8 /* MODIUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MODIUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		7C4092652FFD4FB2009164B8 /* MODI.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = MODI.xcodeproj; sourceTree = "<group>"; };
+		7CBD18FA2FFD56E300A35058 /* MODI.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = MODI.xcodeproj; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -89,6 +91,16 @@
 				7C4092452FFD4F1D009164B8 /* MODITests.xctest */,
 				7C40924F2FFD4F1D009164B8 /* MODIUITests.xctest */,
 			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7C4092672FFD4FB2009164B8 /* Products */ = {
+			isa = PBXGroup;
+			name = Products;
+			sourceTree = "<group>";
+		};
+		7CBD18FB2FFD56E300A35058 /* Products */ = {
+			isa = PBXGroup;
 			name = Products;
 			sourceTree = "<group>";
 		};
@@ -198,6 +210,16 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7C4092372FFD4F1B009164B8 /* Products */;
 			projectDirPath = "";
+			projectReferences = (
+				{
+					ProductGroup = 7CBD18FB2FFD56E300A35058 /* Products */;
+					ProjectRef = 7CBD18FA2FFD56E300A35058 /* MODI.xcodeproj */;
+				},
+				{
+					ProductGroup = 7C4092672FFD4FB2009164B8 /* Products */;
+					ProjectRef = 7C4092652FFD4FB2009164B8 /* MODI.xcodeproj */;
+				},
+			);
 			projectRoot = "";
 			targets = (
 				7C4092352FFD4F1B009164B8 /* MODI */,
@@ -390,6 +412,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCVAY2Q9W9;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
@@ -432,6 +455,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCVAY2Q9W9;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
