@@ -105,7 +105,7 @@ struct CreateView: View {
 
             if let entry = store.todaysEntry() {
                 MissionPhotoImage(fileName: entry.imageFileName)
-                    .aspectRatio(1, contentMode: .fill)
+                    .aspectRatio(3.0 / 4.0, contentMode: .fill)
                     .frame(maxWidth: 240)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
                     .appShadow(.medium)
