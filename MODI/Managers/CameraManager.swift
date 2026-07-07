@@ -28,15 +28,58 @@ final class CameraManager: NSObject {
         }
     }
 
+    enum FlashMode: CaseIterable {
+        case off
+        case auto
+        case on
+
+        var avFlashMode: AVCaptureDevice.FlashMode {
+            switch self {
+            case .off: .off
+            case .auto: .auto
+            case .on: .on
+            }
+        }
+
+        var iconName: String {
+            switch self {
+            case .off: "bolt.slash.fill"
+            case .auto: "bolt.badge.automatic.fill"
+            case .on: "bolt.fill"
+            }
+        }
+
+        var accessibilityLabel: String {
+            switch self {
+            case .off: "플래시 끔"
+            case .auto: "플래시 자동"
+            case .on: "플래시 켬"
+            }
+        }
+
+        func next() -> FlashMode {
+            let all = Self.allCases
+            let index = all.firstIndex(of: self) ?? 0
+            return all[(index + 1) % all.count]
+        }
+    }
+
     private(set) var authorizationStatus = AVCaptureDevice.authorizationStatus(for: .video)
     private(set) var isSessionRunning = false
     private(set) var isCapturing = false
     private(set) var setupError: CameraError?
+    private(set) var zoomFactor: CGFloat = 1.0
+    private(set) var minZoomFactor: CGFloat = 1.0
+    private(set) var maxZoomFactor: CGFloat = 1.0
+    private(set) var isFlashAvailable = false
+
+    var flashMode: FlashMode = .auto
 
     let session = AVCaptureSession()
 
     private let sessionQueue = DispatchQueue(label: "com.modi.camera.session")
     private let photoOutput = AVCapturePhotoOutput()
+    private var captureDevice: AVCaptureDevice?
     private var photoContinuation: CheckedContinuation<UIImage, Error>?
 
     var isAuthorized: Bool {
@@ -92,6 +135,8 @@ final class CameraManager: NSObject {
                     self.isSessionRunning = self.session.isRunning
                     if !self.session.isRunning {
                         self.setupError = .configurationFailed
+                    } else {
+                        self.refreshDeviceCapabilities()
                     }
                     continuation.resume()
                 }
@@ -107,6 +152,41 @@ final class CameraManager: NSObject {
             Task { @MainActor in
                 self.isSessionRunning = false
             }
+        }
+    }
+
+    // MARK: - Zoom
+
+    func setZoomFactor(_ factor: CGFloat) {
+        let clamped = min(max(factor, minZoomFactor), maxZoomFactor)
+        zoomFactor = clamped
+
+        sessionQueue.async { [weak self] in
+            guard let device = self?.captureDevice else { return }
+
+            do {
+                try device.lockForConfiguration()
+                device.videoZoomFactor = clamped
+                device.unlockForConfiguration()
+            } catch {
+                // 줌 적용 실패 시 UI 상태는 유지합니다.
+            }
+        }
+    }
+
+    // MARK: - Flash
+
+    func cycleFlashMode() {
+        guard isFlashAvailable else { return }
+
+        var nextMode = flashMode.next()
+        while !photoOutput.supportedFlashModes.contains(nextMode.avFlashMode) {
+            nextMode = nextMode.next()
+            if nextMode == flashMode { break }
+        }
+
+        if photoOutput.supportedFlashModes.contains(nextMode.avFlashMode) {
+            flashMode = nextMode
         }
     }
 
@@ -130,8 +210,8 @@ final class CameraManager: NSObject {
                 }
 
                 let settings = AVCapturePhotoSettings()
-                if self.photoOutput.supportedFlashModes.contains(.auto) {
-                    settings.flashMode = .auto
+                if self.photoOutput.supportedFlashModes.contains(self.flashMode.avFlashMode) {
+                    settings.flashMode = self.flashMode.avFlashMode
                 }
                 self.photoOutput.capturePhoto(with: settings, delegate: self)
             }
@@ -155,11 +235,27 @@ final class CameraManager: NSObject {
         else { return }
 
         session.addInput(input)
+        captureDevice = device
 
         guard session.canAddOutput(photoOutput) else { return }
 
         photoOutput.isHighResolutionCaptureEnabled = true
         session.addOutput(photoOutput)
+    }
+
+    private func refreshDeviceCapabilities() {
+        guard let device = captureDevice else { return }
+
+        minZoomFactor = device.minAvailableVideoZoomFactor
+        maxZoomFactor = device.maxAvailableVideoZoomFactor
+        zoomFactor = device.videoZoomFactor
+
+        isFlashAvailable = device.hasFlash
+            && photoOutput.supportedFlashModes.contains(.off)
+
+        if isFlashAvailable, !photoOutput.supportedFlashModes.contains(flashMode.avFlashMode) {
+            flashMode = photoOutput.supportedFlashModes.contains(.auto) ? .auto : .off
+        }
     }
 }
 
