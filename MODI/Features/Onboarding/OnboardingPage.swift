@@ -128,7 +128,7 @@ struct OnboardingHeroPlaceholder: View {
 }
 
 struct OnboardingPhotoGridPlaceholder: View {
-    private let tiles: [CGFloat] = [1.0, 1.35, 0.85, 1.2, 1.1, 0.9]
+    private let tiles: [CGFloat] = [1.25, 1.6, 1.05, 1.45, 1.3, 1.1]
     private let tileColors: [Color] = [
         Color(hex: "E8ECF0"),
         Color(hex: "DDE8F0"),

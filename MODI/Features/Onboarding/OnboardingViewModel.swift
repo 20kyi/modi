@@ -22,7 +22,7 @@ final class OnboardingViewModel {
         ),
         OnboardingPageData(
             id: 2,
-            title: "한 달이 지나면\n하나의\n컬렉션이 됩니다.",
+            title: "한 달 후,\n하나의 컬렉션이 됩니다",
             subtitle: "평범했던 순간들이 특별한 기록이 됩니다.",
             visual: .photoGrid
         ),

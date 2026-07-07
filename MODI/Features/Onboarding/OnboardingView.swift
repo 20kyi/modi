@@ -46,11 +46,6 @@ struct OnboardingView: View {
 
     private var footer: some View {
         VStack(spacing: AppSpacing.xxl) {
-            OnboardingPageIndicator(
-                pageCount: viewModel.pages.count,
-                currentIndex: viewModel.currentPageIndex
-            )
-
             if viewModel.isLastPage {
                 OnboardingPrimaryButton(title: "시작하기", action: onComplete)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -58,6 +53,11 @@ struct OnboardingView: View {
                 Color.clear
                     .frame(height: AppSpacing.minTouchTarget + AppSpacing.sm)
             }
+
+            OnboardingPageIndicator(
+                pageCount: viewModel.pages.count,
+                currentIndex: viewModel.currentPageIndex
+            )
         }
         .appScreenPadding()
         .padding(.bottom, AppSpacing.xl)
