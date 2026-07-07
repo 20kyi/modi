@@ -63,8 +63,9 @@ struct CreateView: View {
             Spacer()
 
             DailyMissionCard(
-                mission: store.todaysMission,
-                collection: collection
+                mission: store.todaysMission.with(
+                    isCompleted: store.isTodaysMissionCompleted
+                )
             )
 
             VStack(spacing: AppSpacing.sm) {
@@ -130,7 +131,7 @@ struct CreateView: View {
                     .font(AppFont.headline)
                     .foregroundStyle(AppColor.Text.primary)
 
-                Text(store.todaysMission.prompt)
+                Text(store.todaysMission.description)
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.Text.tertiary)
             }

@@ -47,7 +47,7 @@ final class CollectionStore {
         let collections = allCollections
         guard !collections.isEmpty else {
             let fallback = PhotoCollection.builtIn[0]
-            let mission = DailyMission(collectionID: fallback.id, prompt: fallback.missionPrompt, date: date)
+            let mission = DailyMission(from: fallback, date: date)
             dailyMissions[key] = mission
             saveMissions()
             return mission
@@ -56,7 +56,7 @@ final class CollectionStore {
         let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
         let index = (dayOfYear - 1) % collections.count
         let collection = collections[index]
-        let mission = DailyMission(collectionID: collection.id, prompt: collection.missionPrompt, date: date)
+        let mission = DailyMission(from: collection, date: date)
         dailyMissions[key] = mission
         saveMissions()
         return mission
@@ -81,7 +81,7 @@ final class CollectionStore {
             id: entryID,
             collectionID: mission.collectionID,
             missionDate: mission.date,
-            prompt: mission.prompt,
+            prompt: mission.description,
             imageFileName: fileName
         )
         entries.insert(entry, at: 0)

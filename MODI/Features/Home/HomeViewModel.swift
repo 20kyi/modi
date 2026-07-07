@@ -6,8 +6,8 @@ import SwiftUI
 final class HomeViewModel {
 
     let userName = "영임"
-
-    let recommendedTemplates = RecommendedCollectionTemplate.all
+    let recentDiscoveries = RecentDiscovery.mockList
+    let collectionPreviews = CollectionPreviewItem.mockList
 
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -17,5 +17,9 @@ final class HomeViewModel {
         case 18..<22: return "좋은 저녁이에요"
         default: return "편안한 밤 되세요"
         }
+    }
+
+    func missionStatusMessage(isCompleted: Bool) -> String {
+        isCompleted ? "오늘의 미션 완료 ✨" : "오늘의 발견을 시작해보세요"
     }
 }
