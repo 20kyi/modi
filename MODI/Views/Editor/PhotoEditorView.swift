@@ -129,11 +129,24 @@ struct PhotoEditorView: View {
                 EditorElementOverlay(
                     element: $element,
                     isSelected: selectedElementID == element.id,
-                    onSelect: { selectedElementID = element.id }
+                    onSelect: {
+                        guard selectedElementID != element.id else { return }
+                        selectedElementID = element.id
+                    },
+                    onDelete: { deleteElement(id: element.id) }
                 )
             }
         }
         .appShadow(.medium)
+    }
+
+    private func deleteElement(id: UUID) {
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            elements.removeAll { $0.id == id }
+            if selectedElementID == id {
+                selectedElementID = nil
+            }
+        }
     }
 
     private func framedPhoto(size: CGSize) -> some View {
@@ -419,31 +432,59 @@ private struct EditorElementOverlay: View {
     @Binding var element: EditorElement
     let isSelected: Bool
     var onSelect: () -> Void
+    var onDelete: () -> Void
 
-    @State private var dragOffset: CGSize = .zero
     @GestureState private var magnifyBy: CGFloat = 1.0
     @GestureState private var rotateBy: Angle = .zero
+    @State private var dragOffset: CGSize = .zero
+    @State private var didBeginDrag = false
 
     private let baseStickerSize: CGFloat = 48
     private let baseTextSize: CGFloat = 17
 
     var body: some View {
         elementContent
+            .overlay {
+                if isSelected {
+                    selectionBorder
+                        .allowsHitTesting(false)
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                if isSelected {
+                    deleteButton
+                        .offset(x: 8, y: -8)
+                }
+            }
+            .animation(.none, value: isSelected)
             .position(
                 x: element.position.x + dragOffset.width,
                 y: element.position.y + dragOffset.height
             )
-            .overlay {
-                if isSelected {
-                    selectionBorder
-                }
-            }
             .gesture(dragGesture)
             .simultaneousGesture(magnificationGesture)
             .simultaneousGesture(rotationGesture)
             .onTapGesture {
                 onSelect()
             }
+    }
+
+    private var deleteButton: some View {
+        Button {
+            onDelete()
+        } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 16, height: 16)
+                .background(Color.black.opacity(0.6), in: Circle())
+                .overlay {
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.85), lineWidth: 1)
+                }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("삭제")
     }
 
     @ViewBuilder
@@ -470,10 +511,6 @@ private struct EditorElementOverlay: View {
                 width: selectionSize.width + AppSpacing.lg,
                 height: selectionSize.height + AppSpacing.lg
             )
-            .position(
-                x: element.position.x + dragOffset.width,
-                y: element.position.y + dragOffset.height
-            )
             .allowsHitTesting(false)
     }
 
@@ -486,15 +523,21 @@ private struct EditorElementOverlay: View {
     }
 
     private var dragGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 1)
             .onChanged { value in
-                onSelect()
+                if !didBeginDrag {
+                    didBeginDrag = true
+                    if !isSelected {
+                        onSelect()
+                    }
+                }
                 dragOffset = value.translation
             }
             .onEnded { value in
                 element.position.x += value.translation.width
                 element.position.y += value.translation.height
                 dragOffset = .zero
+                didBeginDrag = false
             }
     }
 
