@@ -71,7 +71,7 @@ struct CameraView: View {
         .fullScreenCover(item: $editorPresentation) { presentation in
             PhotoEditorView(
                 image: presentation.image,
-                mission: mission,
+                concept: concept,
                 onSaved: {
                     onSaved()
                     dismiss()

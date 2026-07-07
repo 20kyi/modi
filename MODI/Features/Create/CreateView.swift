@@ -66,18 +66,20 @@ struct CreateView: View {
                 .ignoresSafeArea()
             }
             .fullScreenCover(item: $editorPresentation) { presentation in
-                PhotoEditorView(
-                    image: presentation.image,
-                    mission: todaysMission,
-                    onSaved: {
-                        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                            showCompleted = true
+                if let concept = missionManager.todaysConcept {
+                    PhotoEditorView(
+                        image: presentation.image,
+                        concept: concept,
+                        onSaved: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                showCompleted = true
+                            }
+                        },
+                        onSaveFailed: { _ in
+                            saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                         }
-                    },
-                    onSaveFailed: { _ in
-                        saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
-                    }
-                )
+                    )
+                }
             }
             .alert("사진을 저장하지 못했어요", isPresented: saveErrorIsPresented) {
                 Button("확인", role: .cancel) {
