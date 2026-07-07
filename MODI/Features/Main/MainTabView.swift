@@ -13,15 +13,19 @@ enum MainTab: Hashable {
 
 struct MainTabView: View {
 
+    @State private var collectionStore = CollectionStore()
     @State private var selectedTab: MainTab = .home
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            HomeView(onCreateTapped: { selectedTab = .create })
-                .tabItem {
-                    Label("홈", systemImage: "house.fill")
-                }
-                .tag(MainTab.home)
+            HomeView(
+                collectionStore: collectionStore,
+                onCreateTapped: { selectedTab = .create }
+            )
+            .tabItem {
+                Label("홈", systemImage: "house.fill")
+            }
+            .tag(MainTab.home)
 
             CreateView()
                 .tabItem {
@@ -42,6 +46,7 @@ struct MainTabView: View {
                 .tag(MainTab.profile)
         }
         .tint(AppColor.Accent.primary)
+        .environment(collectionStore)
     }
 }
 
