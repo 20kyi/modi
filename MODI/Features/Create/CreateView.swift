@@ -42,11 +42,22 @@ struct CreateView: View {
             }
             .navigationTitle("오늘의 미션")
             .navigationBarTitleDisplayMode(.inline)
-            .sheet(isPresented: $showCamera) {
-                ImagePicker(source: .camera) { image in
-                    presentEditor(with: image)
+            .fullScreenCover(isPresented: $showCamera) {
+                if let concept = missionManager.todaysConcept {
+                    CameraView(
+                        todayMission: missionManager.todaysMission,
+                        concept: concept,
+                        mission: todaysMission,
+                        onSaved: {
+                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+                                showCompleted = true
+                            }
+                        },
+                        onSaveFailed: { _ in
+                            saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
+                        }
+                    )
                 }
-                .ignoresSafeArea()
             }
             .sheet(isPresented: $showPhotoLibrary) {
                 ImagePicker(source: .photoLibrary) { image in
@@ -178,7 +189,6 @@ struct CreateView: View {
     }
 
     private func presentEditor(with image: UIImage) {
-        showCamera = false
         showPhotoLibrary = false
 
         // 시트가 완전히 닫힌 뒤 편집 화면을 띄워 흰 화면을 방지합니다.
