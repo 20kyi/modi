@@ -151,9 +151,13 @@ struct CreateView: View {
             Spacer()
 
             if let record = repository.record(on: .now, conceptId: missionManager.todaysMission.conceptId) {
-                MODIRecordImage(record: record)
-                    .aspectRatio(3.0 / 4.0, contentMode: .fill)
+                RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
+                    .fill(AppColor.Background.secondary)
+                    .aspectRatio(3.0 / 4.0, contentMode: .fit)
                     .frame(maxWidth: 240)
+                    .overlay {
+                        MODIRecordImage(record: record, contentMode: .fill)
+                    }
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
                     .appShadow(.medium)
             } else {

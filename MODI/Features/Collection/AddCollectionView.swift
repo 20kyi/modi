@@ -1,8 +1,10 @@
+import SwiftData
 import SwiftUI
 
 struct AddCollectionView: View {
 
-    @Environment(CollectionStore.self) private var store
+    @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(MissionManager.self) private var missionManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var title = ""
@@ -40,7 +42,7 @@ struct AddCollectionView: View {
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.Text.primary)
 
-            Text("미션 문구를 정하면, 그날의 사진이 이 컬렉션에 쌓여요.")
+            Text("Custom Concept를 만들면, 그 Concept로 찍은 사진이 이 컬렉션에 쌓여요.")
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.Text.secondary)
         }
@@ -126,7 +128,7 @@ struct AddCollectionView: View {
 
     private var saveButton: some View {
         Button("컬렉션 만들기") {
-            store.addCustomCollection(
+            let collection = collectionRepository.addCustomCollection(
                 title: title.trimmingCharacters(in: .whitespaces),
                 emoji: emoji,
                 missionPrompt: missionPrompt.trimmingCharacters(in: .whitespaces),
@@ -135,6 +137,7 @@ struct AddCollectionView: View {
                     : description.trimmingCharacters(in: .whitespaces),
                 themeColorHex: selectedColorHex
             )
+            missionManager.registerCustomConcept(collection.concept)
             dismiss()
         }
         .buttonStyle(PrimaryButtonStyle())
@@ -144,8 +147,15 @@ struct AddCollectionView: View {
 }
 
 #Preview {
-    NavigationStack {
+    let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+    let schema = Schema([MODIRecord.self, MODICollection.self])
+    let container = try! ModelContainer(for: schema, configurations: configuration)
+    let collectionRepository = CollectionPreviewData.makeRepository(modelContext: container.mainContext)
+
+    return NavigationStack {
         AddCollectionView()
     }
-    .environment(CollectionStore())
+    .modelContainer(container)
+    .environment(collectionRepository)
+    .environment(MissionManager())
 }

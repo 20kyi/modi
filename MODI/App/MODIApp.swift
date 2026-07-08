@@ -12,7 +12,7 @@ import SwiftUI
 struct MODIApp: App {
 
     private var sharedModelContainer: ModelContainer = {
-        let schema = Schema([MODIRecord.self])
+        let schema = Schema([MODIRecord.self, MODICollection.self])
         let configuration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {

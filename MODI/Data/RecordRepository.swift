@@ -36,8 +36,17 @@ final class RecordRepository {
     // MARK: - Save
 
     @discardableResult
-    func saveRecord(image: UIImage, concept: Concept, isEdited: Bool = false) throws -> MODIRecord {
-        guard let imageData = image.jpegData(compressionQuality: 0.85) else {
+    func saveRecord(
+        image: UIImage,
+        originalImage: UIImage,
+        concept: Concept,
+        collection: MODICollection? = nil,
+        editorState: EditorState? = nil,
+        isEdited: Bool = false
+    ) throws -> MODIRecord {
+        guard let imageData = image.jpegData(compressionQuality: 0.85),
+              let originalData = originalImage.jpegData(compressionQuality: 0.85)
+        else {
             throw RecordRepositoryError.imageEncodingFailed
         }
 
@@ -48,6 +57,9 @@ final class RecordRepository {
             conceptEmoji: concept.emoji,
             isEdited: isEdited
         )
+        record.originalImageData = originalData
+        record.editorStateData = encodedEditorState(editorState)
+        record.collection = collection
 
         modelContext.insert(record)
         try modelContext.save()
@@ -55,15 +67,34 @@ final class RecordRepository {
         return record
     }
 
-    func updateRecord(_ record: MODIRecord, image: UIImage, isEdited: Bool = true) throws {
+    func updateRecord(
+        _ record: MODIRecord,
+        image: UIImage,
+        originalImage: UIImage? = nil,
+        editorState: EditorState? = nil,
+        isEdited: Bool = true
+    ) throws {
         guard let imageData = image.jpegData(compressionQuality: 0.85) else {
             throw RecordRepositoryError.imageEncodingFailed
         }
 
         record.imageData = imageData
         record.isEdited = isEdited
+
+        if let originalImage,
+           let originalData = originalImage.jpegData(compressionQuality: 0.85) {
+            record.originalImageData = originalData
+        }
+
+        record.editorStateData = encodedEditorState(editorState)
+
         try modelContext.save()
         reload()
+    }
+
+    private func encodedEditorState(_ editorState: EditorState?) -> Data? {
+        guard let editorState else { return nil }
+        return try? JSONEncoder().encode(editorState)
     }
 
     // MARK: - Fetch
@@ -83,8 +114,21 @@ final class RecordRepository {
         records.filter { $0.conceptId == conceptId }
     }
 
+    func fetchRecords(for collection: MODICollection) -> [MODIRecord] {
+        records.filter { $0.collection?.id == collection.id || $0.conceptId == collection.id }
+            .sorted { $0.createdAt > $1.createdAt }
+    }
+
     func photoCount(for conceptId: UUID) -> Int {
         fetchRecords(conceptId: conceptId).count
+    }
+
+    func photoCount(for collection: MODICollection) -> Int {
+        fetchRecords(for: collection).count
+    }
+
+    func latestRecordDate(for collection: MODICollection) -> Date? {
+        fetchRecords(for: collection).first?.createdAt
     }
 
     func hasRecord(on date: Date, conceptId: UUID) -> Bool {
@@ -119,11 +163,16 @@ enum RecordPreviewData {
     @MainActor
     static func makeRepository(withSampleData: Bool = false) -> (ModelContainer, RecordRepository) {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
-        let container = try! ModelContainer(for: MODIRecord.self, configurations: configuration)
+        let schema = Schema([MODIRecord.self, MODICollection.self])
+        let container = try! ModelContainer(for: schema, configurations: configuration)
+        let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+        collectionRepository.bootstrap()
         let repository = RecordRepository(modelContext: container.mainContext)
 
         if withSampleData {
-            seedSampleRecords(in: container.mainContext, concept: .mock)
+            let collection = collectionRepository.collection(for: Concept.mock.id)
+                ?? collectionRepository.ensureCollection(for: Concept.mock)
+            seedSampleRecords(in: container.mainContext, concept: .mock, collection: collection)
             repository.reload()
         }
 
@@ -131,7 +180,11 @@ enum RecordPreviewData {
     }
 
     @MainActor
-    private static func seedSampleRecords(in context: ModelContext, concept: Concept) {
+    private static func seedSampleRecords(
+        in context: ModelContext,
+        concept: Concept,
+        collection: MODICollection
+    ) {
         let colors: [UIColor] = [.systemPink, .systemBlue, .systemTeal]
         for (index, color) in colors.enumerated() {
             let size = CGSize(width: 200, height: 200)
@@ -151,6 +204,7 @@ enum RecordPreviewData {
                 createdAt: Calendar.current.date(byAdding: .day, value: -index, to: .now)!,
                 isEdited: index == 0
             )
+            record.collection = collection
             context.insert(record)
         }
         try? context.save()

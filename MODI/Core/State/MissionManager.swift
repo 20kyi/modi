@@ -58,6 +58,14 @@ final class MissionManager {
             category: .custom,
             type: .custom
         )
+        registerCustomConcept(concept)
+    }
+
+    func registerCustomConcept(_ concept: Concept) {
+        guard concept.type == .custom,
+              !customConcepts.contains(where: { $0.id == concept.id })
+        else { return }
+
         customConcepts.append(concept)
         saveCustomConcepts()
     }

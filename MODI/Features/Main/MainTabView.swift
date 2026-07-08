@@ -18,24 +18,33 @@ struct MainTabView: View {
     @State private var collectionStore = CollectionStore()
     @State private var missionManager = MissionManager()
     @State private var repository: RecordRepository?
+    @State private var collectionRepository: CollectionRepository?
     @State private var selectedTab: MainTab = .home
 
     var body: some View {
         Group {
-            if let repository {
-                tabView(repository: repository)
+            if let repository, let collectionRepository {
+                tabView(repository: repository, collectionRepository: collectionRepository)
             } else {
                 ProgressView()
             }
         }
         .onAppear {
             if repository == nil {
-                repository = RecordRepository(modelContext: modelContext)
+                let recordRepository = RecordRepository(modelContext: modelContext)
+                let collectionRepo = CollectionRepository(modelContext: modelContext)
+                collectionRepo.bootstrap()
+                collectionStore.configure(collectionRepository: collectionRepo)
+                repository = recordRepository
+                collectionRepository = collectionRepo
             }
         }
     }
 
-    private func tabView(repository: RecordRepository) -> some View {
+    private func tabView(
+        repository: RecordRepository,
+        collectionRepository: CollectionRepository
+    ) -> some View {
         TabView(selection: $selectedTab) {
             HomeView(
                 missionManager: missionManager,
@@ -69,6 +78,7 @@ struct MainTabView: View {
         .environment(collectionStore)
         .environment(missionManager)
         .environment(repository)
+        .environment(collectionRepository)
     }
 }
 
@@ -76,7 +86,11 @@ struct MainTabView: View {
 
 #Preview {
     let (container, repository) = RecordPreviewData.makeRepository()
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
+
     return MainTabView()
         .modelContainer(container)
         .environment(repository)
+        .environment(collectionRepository)
 }

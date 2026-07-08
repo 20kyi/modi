@@ -10,6 +10,9 @@ final class MODIRecord {
     var id: UUID
     @Attribute(.externalStorage)
     var imageData: Data
+    @Attribute(.externalStorage)
+    var originalImageData: Data?
+    var editorStateData: Data?
     /// Concept 식별자. `Concept.id` 및 `PhotoCollection.id`와 동일.
     @Attribute(originalName: "missionId")
     var conceptId: UUID
@@ -20,6 +23,7 @@ final class MODIRecord {
     var createdAt: Date
     /// 기존 데이터 마이그레이션 호환을 위해 optional. nil이면 false로 취급.
     var isEdited: Bool?
+    var collection: MODICollection?
 
     init(
         id: UUID = UUID(),

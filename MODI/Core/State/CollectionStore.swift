@@ -3,17 +3,25 @@ import SwiftUI
 
 // MARK: - CollectionStore
 
+/// 일일 미션 로테이션을 관리합니다. 컬렉션 데이터는 `CollectionRepository`가 담당합니다.
 @Observable
 final class CollectionStore {
 
-    private static let customCollectionsKey = "modi.customCollections"
     private static let missionsKey = "modi.dailyMissions"
 
-    private(set) var customCollections: [PhotoCollection] = []
+    private var collectionRepository: CollectionRepository?
     private var dailyMissions: [String: DailyMission] = [:]
 
     var allCollections: [PhotoCollection] {
-        PhotoCollection.builtIn + customCollections
+        guard let collectionRepository else {
+            return PhotoCollection.builtIn
+        }
+
+        return collectionRepository.collections.map { $0.asPhotoCollection }
+    }
+
+    var customCollections: [PhotoCollection] {
+        collectionRepository?.customCollections.map { $0.asPhotoCollection } ?? []
     }
 
     var todaysMission: DailyMission {
@@ -26,6 +34,10 @@ final class CollectionStore {
 
     init() {
         load()
+    }
+
+    func configure(collectionRepository: CollectionRepository) {
+        self.collectionRepository = collectionRepository
     }
 
     // MARK: - Mission
@@ -58,7 +70,10 @@ final class CollectionStore {
     // MARK: - Collections
 
     func collection(for id: UUID) -> PhotoCollection? {
-        PhotoCollection.collection(for: id, including: customCollections)
+        if let modiCollection = collectionRepository?.collection(for: id) {
+            return modiCollection.asPhotoCollection
+        }
+        return PhotoCollection.collection(for: id, including: customCollections)
     }
 
     func addCustomCollection(
@@ -69,36 +84,22 @@ final class CollectionStore {
         themeColorHex: String,
         sourceTemplateID: String? = nil
     ) {
-        let collection = PhotoCollection(
-            id: UUID(),
+        collectionRepository?.addCustomCollection(
             title: title,
             emoji: emoji,
-            category: .custom,
-            description: description,
             missionPrompt: missionPrompt,
+            description: description,
             themeColorHex: themeColorHex,
-            isBuiltIn: false,
             sourceTemplateID: sourceTemplateID
         )
-        customCollections.append(collection)
-        saveCustomCollections()
     }
 
     func addCustomCollection(from template: RecommendedCollectionTemplate) {
-        guard !hasAddedTemplate(template.id) else { return }
-
-        addCustomCollection(
-            title: template.title,
-            emoji: template.emoji,
-            missionPrompt: template.missionPrompt,
-            description: template.subtitle,
-            themeColorHex: template.themeColorHex,
-            sourceTemplateID: template.id
-        )
+        collectionRepository?.addCustomCollection(from: template)
     }
 
     func hasAddedTemplate(_ templateID: String) -> Bool {
-        customCollections.contains { $0.sourceTemplateID == templateID }
+        collectionRepository?.hasAddedTemplate(templateID) ?? false
     }
 
     func availableRecommendedTemplates() -> [RecommendedCollectionTemplate] {
@@ -108,24 +109,32 @@ final class CollectionStore {
     // MARK: - Persistence
 
     private func load() {
-        if let data = UserDefaults.standard.data(forKey: Self.customCollectionsKey),
-           let decoded = try? JSONDecoder().decode([PhotoCollection].self, from: data) {
-            customCollections = decoded
-        }
-
         if let data = UserDefaults.standard.data(forKey: Self.missionsKey),
            let decoded = try? JSONDecoder().decode([String: DailyMission].self, from: data) {
             dailyMissions = decoded
         }
     }
 
-    private func saveCustomCollections() {
-        guard let data = try? JSONEncoder().encode(customCollections) else { return }
-        UserDefaults.standard.set(data, forKey: Self.customCollectionsKey)
-    }
-
     private func saveMissions() {
         guard let data = try? JSONEncoder().encode(dailyMissions) else { return }
         UserDefaults.standard.set(data, forKey: Self.missionsKey)
+    }
+}
+
+// MARK: - PhotoCollection Bridge
+
+extension MODICollection {
+    var asPhotoCollection: PhotoCollection {
+        PhotoCollection(
+            id: id,
+            title: title,
+            emoji: emoji,
+            category: collectionCategory,
+            description: collectionDescription,
+            missionPrompt: missionPrompt,
+            themeColorHex: themeColorHex,
+            isBuiltIn: collectionType == .system,
+            sourceTemplateID: sourceTemplateID
+        )
     }
 }

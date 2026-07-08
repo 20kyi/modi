@@ -8,12 +8,14 @@ struct PhotoEditorView: View {
 
     let image: UIImage
     var concept: Concept?
+    var collection: MODICollection?
     var existingRecord: MODIRecord?
     var onSaved: () -> Void
     var onSaveFailed: ((Error) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(RecordRepository.self) private var repository
+    @Environment(CollectionRepository.self) private var collectionRepository
 
     @State private var elements: [EditorElement] = []
     @State private var selectedElementID: UUID?
@@ -22,6 +24,22 @@ struct PhotoEditorView: View {
     @State private var canvasSize: CGSize = .zero
     @State private var showTextInput = false
     @State private var draftText = ""
+    @State private var savedEditorState: EditorState?
+    @State private var shouldSyncFromSavedState = true
+    @State private var showRevertAlert = false
+
+    private var originalPhoto: UIImage {
+        if let existingRecord,
+           let data = existingRecord.originalImageData,
+           let original = UIImage(data: data) {
+            return original
+        }
+        return image
+    }
+
+    private var canRevertToOriginal: Bool {
+        !elements.isEmpty || selectedFrame != .none || existingRecord?.editorState != nil
+    }
 
     private var resolvedConcept: Concept? {
         if let concept { return concept }
@@ -82,6 +100,14 @@ struct PhotoEditorView: View {
                     addText(content)
                 }
             }
+            .alert("원본으로 되돌릴까요?", isPresented: $showRevertAlert) {
+                Button("되돌리기", role: .destructive) {
+                    revertToOriginal()
+                }
+                Button("취소", role: .cancel) {}
+            } message: {
+                Text("추가한 스티커, 텍스트, 프레임이 모두 제거돼요.")
+            }
         }
     }
 
@@ -97,24 +123,17 @@ struct PhotoEditorView: View {
                 VStack(spacing: AppSpacing.md) {
                     recordCard(in: fittedFrame.size)
                         .frame(width: fittedFrame.width, height: fittedFrame.height)
-
-                    if let resolvedConcept {
-                        conceptInfoBar(for: resolvedConcept)
-                            .frame(width: fittedFrame.width)
-                    } else if selectedFrame != .none {
-                        frameDateBar
-                            .frame(width: fittedFrame.width)
-                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .onTapGesture {
                     selectedElementID = nil
                 }
                 .onAppear {
-                    canvasSize = fittedFrame.size
+                    prepareEditorState()
+                    updateCanvasSize(fittedFrame.size)
                 }
                 .onChange(of: geometry.size) { _, newSize in
-                    canvasSize = imageFrame(in: newSize).size
+                    updateCanvasSize(imageFrame(in: newSize).size)
                 }
             }
         }
@@ -130,10 +149,12 @@ struct PhotoEditorView: View {
                     element: $element,
                     isSelected: selectedElementID == element.id,
                     onSelect: {
+                        markEditorStateAsModified()
                         guard selectedElementID != element.id else { return }
                         selectedElementID = element.id
                     },
-                    onDelete: { deleteElement(id: element.id) }
+                    onDelete: { deleteElement(id: element.id) },
+                    onInteraction: markEditorStateAsModified
                 )
             }
         }
@@ -141,6 +162,7 @@ struct PhotoEditorView: View {
     }
 
     private func deleteElement(id: UUID) {
+        markEditorStateAsModified()
         withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
             elements.removeAll { $0.id == id }
             if selectedElementID == id {
@@ -159,7 +181,7 @@ struct PhotoEditorView: View {
                     .frame(width: size.width, height: size.height)
             }
 
-            Image(uiImage: image)
+            Image(uiImage: originalPhoto)
                 .resizable()
                 .scaledToFill()
                 .frame(width: photoSize.width, height: photoSize.height)
@@ -186,57 +208,6 @@ struct PhotoEditorView: View {
         )
     }
 
-    private func conceptInfoBar(for concept: Concept) -> some View {
-        HStack(spacing: AppSpacing.sm) {
-            Text(concept.emoji)
-                .font(.system(size: 22))
-
-            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                Text(concept.title)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.Text.primary)
-                    .lineLimit(1)
-
-                Text(concept.description)
-                    .font(AppFont.caption1)
-                    .foregroundStyle(AppColor.Text.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-
-            Text(frameMetadata.formattedDate)
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.Text.tertiary)
-        }
-        .padding(.horizontal, AppSpacing.md)
-        .padding(.vertical, AppSpacing.sm)
-        .background(
-            themeColor.opacity(0.35),
-            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .strokeBorder(themeColor.opacity(0.5), lineWidth: 1)
-        }
-    }
-
-    private var frameDateBar: some View {
-        HStack {
-            Label(frameMetadata.formattedDate, systemImage: "calendar")
-                .font(AppFont.caption1)
-                .foregroundStyle(AppColor.Text.secondary)
-
-            Spacer()
-        }
-        .padding(.horizontal, AppSpacing.md)
-        .padding(.vertical, AppSpacing.sm)
-        .background(
-            AppColor.Background.secondary,
-            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-        )
-    }
-
     // MARK: Toolbar
 
     private var editorToolbar: some View {
@@ -244,6 +215,20 @@ struct PhotoEditorView: View {
             Rectangle()
                 .fill(AppColor.Border.subtle)
                 .frame(height: 0.5)
+
+            if canRevertToOriginal {
+                Button {
+                    showRevertAlert = true
+                } label: {
+                    Label("원본으로 되돌리기", systemImage: "arrow.uturn.backward")
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.Text.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, AppSpacing.screenHorizontal)
+                .padding(.top, AppSpacing.md)
+            }
 
             HStack(spacing: AppSpacing.sm) {
                 ForEach(EditorTool.allCases) { tool in
@@ -302,12 +287,16 @@ struct PhotoEditorView: View {
                 metadata: frameMetadata,
                 themeColor: themeColor
             )
+            .onChange(of: selectedFrame) { _, _ in
+                markEditorStateAsModified()
+            }
         }
     }
 
     // MARK: Actions
 
     private func addSticker(_ emoji: String) {
+        markEditorStateAsModified()
         let center = defaultElementPosition()
 
         let element = EditorElement(
@@ -323,6 +312,7 @@ struct PhotoEditorView: View {
     }
 
     private func addText(_ content: String) {
+        markEditorStateAsModified()
         let center = defaultElementPosition()
 
         let element = EditorElement(
@@ -345,33 +335,107 @@ struct PhotoEditorView: View {
         )
     }
 
+    private func prepareEditorState() {
+        guard savedEditorState == nil,
+              let existingRecord,
+              let state = existingRecord.editorState else { return }
+
+        savedEditorState = state
+        shouldSyncFromSavedState = true
+        selectedFrame = state.resolvedFrameStyle
+    }
+
+    private func markEditorStateAsModified() {
+        shouldSyncFromSavedState = false
+    }
+
+    private func updateCanvasSize(_ newSize: CGSize) {
+        guard newSize.width > 0, newSize.height > 0 else { return }
+
+        let previousSize = canvasSize
+
+        if shouldSyncFromSavedState, let savedEditorState {
+            elements = savedEditorState.elements(for: newSize)
+            selectedFrame = savedEditorState.resolvedFrameStyle
+        } else if previousSize.width > 0,
+                  previousSize.height > 0,
+                  previousSize != newSize,
+                  !elements.isEmpty {
+            let scaleX = newSize.width / previousSize.width
+            let scaleY = newSize.height / previousSize.height
+            elements = elements.map { element in
+                var updated = element
+                updated.position = CGPoint(
+                    x: element.position.x * scaleX,
+                    y: element.position.y * scaleY
+                )
+                return updated
+            }
+        }
+
+        canvasSize = newSize
+    }
+
+    private func revertToOriginal() {
+        markEditorStateAsModified()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+            elements.removeAll()
+            selectedFrame = .none
+            selectedElementID = nil
+        }
+    }
+
     private func saveEditedImage() {
         guard let concept = resolvedConcept else {
             onSaveFailed?(RecordRepositoryError.missingConcept)
             return
         }
 
-        let content = EditorRenderCanvas(
-            image: image,
-            concept: concept,
-            frameMetadata: frameMetadata,
-            elements: elements,
-            canvasSize: canvasSize,
-            frameStyle: selectedFrame,
-            themeColor: themeColor
-        )
-        let renderer = ImageRenderer(content: content)
-        renderer.scale = UIScreen.main.scale
-
-        let editedImage = renderer.uiImage ?? image
         let wasEdited = !elements.isEmpty || selectedFrame != .none
+        let renderedImage: UIImage
+
+        if wasEdited {
+            let content = EditorRenderCanvas(
+                image: originalPhoto,
+                elements: elements,
+                canvasSize: canvasSize,
+                frameStyle: selectedFrame,
+                themeColor: themeColor
+            )
+            let renderer = ImageRenderer(content: content)
+            renderer.scale = UIScreen.main.scale
+            renderedImage = renderer.uiImage ?? originalPhoto
+        } else {
+            renderedImage = originalPhoto
+        }
+
+        let editorState = wasEdited
+            ? EditorState.from(elements: elements, frameStyle: selectedFrame, canvasSize: canvasSize)
+            : nil
 
         do {
+            let linkedCollection = collection ?? collectionRepository.ensureCollection(for: concept)
+
             if let existingRecord {
-                try repository.updateRecord(existingRecord, image: editedImage, isEdited: true)
+                try repository.updateRecord(
+                    existingRecord,
+                    image: renderedImage,
+                    originalImage: originalPhoto,
+                    editorState: editorState,
+                    isEdited: wasEdited
+                )
+                collectionRepository.linkRecord(existingRecord, to: linkedCollection)
             } else {
-                try repository.saveRecord(image: editedImage, concept: concept, isEdited: wasEdited)
+                _ = try repository.saveRecord(
+                    image: renderedImage,
+                    originalImage: originalPhoto,
+                    concept: concept,
+                    collection: linkedCollection,
+                    editorState: editorState,
+                    isEdited: wasEdited
+                )
             }
+            collectionRepository.reload()
             onSaved()
             dismiss()
         } catch {
@@ -380,18 +444,15 @@ struct PhotoEditorView: View {
     }
 
     private func imageFrame(in containerSize: CGSize) -> CGRect {
-        guard image.size.width > 0, image.size.height > 0 else {
+        guard originalPhoto.size.width > 0, originalPhoto.size.height > 0 else {
             return CGRect(origin: .zero, size: containerSize)
         }
 
-        let imageAspect = image.size.width / image.size.height
+        let imageAspect = originalPhoto.size.width / originalPhoto.size.height
         let horizontalPadding = AppSpacing.screenHorizontal * 2
-        let conceptBarHeight: CGFloat = resolvedConcept != nil || selectedFrame != .none
-            ? 56 + AppSpacing.md
-            : 0
 
         let maxWidth = max(containerSize.width - horizontalPadding, 1)
-        let maxHeight = max(containerSize.height - conceptBarHeight - AppSpacing.xl, 1)
+        let maxHeight = max(containerSize.height - AppSpacing.xl, 1)
 
         let width: CGFloat
         let height: CGFloat
@@ -406,7 +467,7 @@ struct PhotoEditorView: View {
 
         let origin = CGPoint(
             x: (containerSize.width - width) / 2,
-            y: (containerSize.height - height - conceptBarHeight) / 2
+            y: (containerSize.height - height) / 2
         )
 
         return CGRect(origin: origin, size: CGSize(width: width, height: height))
@@ -421,6 +482,7 @@ private struct EditorElementOverlay: View {
     let isSelected: Bool
     var onSelect: () -> Void
     var onDelete: () -> Void
+    var onInteraction: () -> Void
 
     @GestureState private var magnifyBy: CGFloat = 1.0
     @GestureState private var rotateBy: Angle = .zero
@@ -526,6 +588,7 @@ private struct EditorElementOverlay: View {
                 element.position.y += value.translation.height
                 dragOffset = .zero
                 didBeginDrag = false
+                onInteraction()
             }
     }
 
@@ -537,6 +600,7 @@ private struct EditorElementOverlay: View {
             .onEnded { value in
                 let newScale = element.scale * value
                 element.scale = min(max(newScale, 0.4), 3.0)
+                onInteraction()
             }
     }
 
@@ -547,6 +611,7 @@ private struct EditorElementOverlay: View {
             }
             .onEnded { value in
                 element.rotation += value
+                onInteraction()
             }
     }
 }
@@ -555,8 +620,6 @@ private struct EditorElementOverlay: View {
 
 private struct EditorRenderCanvas: View {
     let image: UIImage
-    let concept: Concept?
-    let frameMetadata: EditorFrameMetadata
     let elements: [EditorElement]
     let canvasSize: CGSize
     let frameStyle: EditorFrameStyle
@@ -566,51 +629,40 @@ private struct EditorRenderCanvas: View {
     private let baseTextSize: CGFloat = 17
 
     var body: some View {
-        VStack(spacing: AppSpacing.md) {
-            ZStack {
-                if frameStyle != .none {
-                    RoundedRectangle(cornerRadius: frameStyle.cornerRadius, style: .continuous)
-                        .fill(frameStyle.borderColor(themeColor: themeColor))
-                        .frame(width: canvasSize.width, height: canvasSize.height)
-                }
-
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(
-                        width: photoContentSize.width,
-                        height: photoContentSize.height
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: innerPhotoRadius, style: .continuous))
-
-                ForEach(elements) { element in
-                    if let emoji = element.emoji {
-                        Text(emoji)
-                            .font(.system(size: baseStickerSize * element.scale))
-                            .rotationEffect(element.rotation)
-                            .position(element.position)
-                    } else if let content = element.textContent, let color = element.textColor {
-                        Text(content)
-                            .font(.system(size: baseTextSize * element.scale, weight: .semibold))
-                            .foregroundStyle(color)
-                            .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
-                            .rotationEffect(element.rotation)
-                            .position(element.position)
-                    }
-                }
+        ZStack {
+            if frameStyle != .none {
+                RoundedRectangle(cornerRadius: frameStyle.cornerRadius, style: .continuous)
+                    .fill(frameStyle.borderColor(themeColor: themeColor))
+                    .frame(width: canvasSize.width, height: canvasSize.height)
             }
-            .frame(width: canvasSize.width, height: canvasSize.height)
-            .clipShape(RoundedRectangle(cornerRadius: frameStyle.cornerRadius, style: .continuous))
 
-            if let concept {
-                conceptInfoBar(for: concept)
-                    .frame(width: canvasSize.width)
-            } else if frameStyle != .none {
-                frameDateBar
-                    .frame(width: canvasSize.width)
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(
+                    width: photoContentSize.width,
+                    height: photoContentSize.height
+                )
+                .clipShape(RoundedRectangle(cornerRadius: innerPhotoRadius, style: .continuous))
+
+            ForEach(elements) { element in
+                if let emoji = element.emoji {
+                    Text(emoji)
+                        .font(.system(size: baseStickerSize * element.scale))
+                        .rotationEffect(element.rotation)
+                        .position(element.position)
+                } else if let content = element.textContent, let color = element.textColor {
+                    Text(content)
+                        .font(.system(size: baseTextSize * element.scale, weight: .semibold))
+                        .foregroundStyle(color)
+                        .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
+                        .rotationEffect(element.rotation)
+                        .position(element.position)
+                }
             }
         }
-        .frame(width: canvasSize.width)
+        .frame(width: canvasSize.width, height: canvasSize.height)
+        .clipShape(RoundedRectangle(cornerRadius: frameStyle.cornerRadius, style: .continuous))
     }
 
     private var photoContentSize: CGSize {
@@ -628,57 +680,6 @@ private struct EditorRenderCanvas: View {
         case .rounded: AppRadius.lg
         case .accent: AppRadius.md
         }
-    }
-
-    private func conceptInfoBar(for concept: Concept) -> some View {
-        HStack(spacing: AppSpacing.sm) {
-            Text(concept.emoji)
-                .font(.system(size: 22))
-
-            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                Text(concept.title)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.Text.primary)
-                    .lineLimit(1)
-
-                Text(concept.description)
-                    .font(AppFont.caption1)
-                    .foregroundStyle(AppColor.Text.secondary)
-                    .lineLimit(1)
-            }
-
-            Spacer(minLength: 0)
-
-            Text(frameMetadata.formattedDate)
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.Text.tertiary)
-        }
-        .padding(.horizontal, AppSpacing.md)
-        .padding(.vertical, AppSpacing.sm)
-        .background(
-            themeColor.opacity(0.35),
-            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .strokeBorder(themeColor.opacity(0.5), lineWidth: 1)
-        }
-    }
-
-    private var frameDateBar: some View {
-        HStack {
-            Label(frameMetadata.formattedDate, systemImage: "calendar")
-                .font(AppFont.caption1)
-                .foregroundStyle(AppColor.Text.secondary)
-
-            Spacer()
-        }
-        .padding(.horizontal, AppSpacing.md)
-        .padding(.vertical, AppSpacing.sm)
-        .background(
-            AppColor.Background.secondary,
-            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-        )
     }
 }
 
@@ -699,6 +700,7 @@ private struct EditorRenderCanvas: View {
     ) {}
     .modelContainer(container)
     .environment(repository)
+    .environment(CollectionRepository(modelContext: container.mainContext))
 }
 
 #Preview("Without Concept") {
@@ -713,4 +715,5 @@ private struct EditorRenderCanvas: View {
     return PhotoEditorView(image: sampleImage) {}
         .modelContainer(container)
         .environment(repository)
+        .environment(CollectionRepository(modelContext: container.mainContext))
 }

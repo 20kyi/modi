@@ -2,8 +2,17 @@ import SwiftUI
 
 struct CollectionCard: View {
 
-    let collection: PhotoCollection
+    let collection: MODICollection
     let photoCount: Int
+    var latestRecordDate: Date?
+
+    private var latestDateLabel: String? {
+        guard let latestRecordDate else { return nil }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M월 d일"
+        return formatter.string(from: latestRecordDate)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -32,20 +41,55 @@ struct CollectionCard: View {
                     .foregroundStyle(AppColor.Text.primary)
                     .lineLimit(1)
 
-                Text(photoCount > 0 ? "사진 \(photoCount)장" : collection.missionPrompt)
-                    .font(AppFont.caption1)
-                    .foregroundStyle(AppColor.Text.secondary)
-                    .lineLimit(photoCount > 0 ? 1 : 2)
-                    .fixedSize(horizontal: false, vertical: true)
+                if photoCount > 0 {
+                    Text("사진 \(photoCount)장")
+                        .font(AppFont.caption1)
+                        .foregroundStyle(AppColor.Text.secondary)
+                        .lineLimit(1)
+
+                    if let latestDateLabel {
+                        Text("최근 \(latestDateLabel)")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.Text.tertiary)
+                            .lineLimit(1)
+                    }
+                } else {
+                    Text(collection.missionPrompt)
+                        .font(AppFont.caption1)
+                        .foregroundStyle(AppColor.Text.secondary)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .appCardStyle(padding: AppSpacing.md)
     }
 }
 
+extension CollectionCard {
+    init(collection: PhotoCollection, photoCount: Int) {
+        self.init(
+            collection: MODICollection.from(
+                photoCollection: collection,
+                type: collection.category == .custom ? .custom : .system
+            ),
+            photoCount: photoCount
+        )
+    }
+}
+
 #Preview {
-    CollectionCard(collection: PhotoCollection.builtIn[0], photoCount: 3)
-        .frame(width: 170)
-        .appScreenPadding()
-        .appScreenBackground()
+    let collection = MODICollection.from(
+        photoCollection: PhotoCollection.builtIn[0],
+        type: .system
+    )
+
+    return CollectionCard(
+        collection: collection,
+        photoCount: 3,
+        latestRecordDate: .now
+    )
+    .frame(width: 170)
+    .appScreenPadding()
+    .appScreenBackground()
 }

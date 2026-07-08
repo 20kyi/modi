@@ -1,14 +1,16 @@
+import SwiftData
 import SwiftUI
 
 struct RecommendedCollectionAddSheet: View {
 
-    @Environment(CollectionStore.self) private var store
+    @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(MissionManager.self) private var missionManager
     @Environment(\.dismiss) private var dismiss
 
     let template: RecommendedCollectionTemplate
 
     private var isAlreadyAdded: Bool {
-        store.hasAddedTemplate(template.id)
+        collectionRepository.hasAddedTemplate(template.id)
     }
 
     var body: some View {
@@ -64,7 +66,10 @@ struct RecommendedCollectionAddSheet: View {
                         )
                 } else {
                     Button("컬렉션에 추가하기") {
-                        store.addCustomCollection(from: template)
+                        collectionRepository.addCustomCollection(from: template)
+                        if let collection = collectionRepository.customCollections.first(where: { $0.sourceTemplateID == template.id }) {
+                            missionManager.registerCustomConcept(collection.concept)
+                        }
                         dismiss()
                     }
                     .buttonStyle(PrimaryButtonStyle())
@@ -87,6 +92,12 @@ struct RecommendedCollectionAddSheet: View {
 }
 
 #Preview {
-    RecommendedCollectionAddSheet(template: RecommendedCollectionTemplate.all[0])
-        .environment(CollectionStore())
+    let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+    let schema = Schema([MODIRecord.self, MODICollection.self])
+    let container = try! ModelContainer(for: schema, configurations: configuration)
+    let collectionRepository = CollectionPreviewData.makeRepository(modelContext: container.mainContext)
+
+    return RecommendedCollectionAddSheet(template: RecommendedCollectionTemplate.all[0])
+        .modelContainer(container)
+        .environment(collectionRepository)
 }

@@ -11,16 +11,44 @@ private struct CollectionEditorPresentation: Identifiable {
 
 struct CollectionDetailView: View {
 
+    @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(RecordRepository.self) private var repository
 
-    let collection: PhotoCollection
+    private let photoCollection: PhotoCollection?
+    private let modiCollection: MODICollection?
 
     @State private var recordPendingDeletion: MODIRecord?
     @State private var showPhotoLibrary = false
     @State private var editorPresentation: CollectionEditorPresentation?
 
+    init(collection: MODICollection) {
+        self.modiCollection = collection
+        self.photoCollection = nil
+    }
+
+    init(collection: PhotoCollection) {
+        self.photoCollection = collection
+        self.modiCollection = nil
+    }
+
+    private var collection: MODICollection {
+        if let modiCollection {
+            return modiCollection
+        }
+
+        if let photoCollection {
+            return collectionRepository.collection(for: photoCollection.id)
+                ?? MODICollection.from(
+                    photoCollection: photoCollection,
+                    type: photoCollection.category == .custom ? .custom : .system
+                )
+        }
+
+        fatalError("CollectionDetailView requires a collection")
+    }
+
     private var records: [MODIRecord] {
-        repository.fetchRecords(conceptId: collection.id)
+        repository.fetchRecords(for: collection)
     }
 
     private let columns = [
@@ -53,6 +81,11 @@ struct CollectionDetailView: View {
                 .accessibilityLabel("앨범에서 사진 추가")
             }
         }
+        .navigationDestination(for: RecordNavigationValue.self) { navigationValue in
+            if let record = records.first(where: { $0.id == navigationValue.id }) {
+                RecordDetailView(record: record, collection: collection)
+            }
+        }
         .sheet(isPresented: $showPhotoLibrary) {
             AlbumPhotoPickerSheet { image in
                 showPhotoLibrary = false
@@ -64,14 +97,17 @@ struct CollectionDetailView: View {
         .fullScreenCover(item: $editorPresentation) { presentation in
             PhotoEditorView(
                 image: presentation.image,
-                concept: conceptForCollection,
+                concept: collection.concept,
+                collection: collection,
                 existingRecord: presentation.existingRecord
             ) {}
             .environment(repository)
+            .environment(collectionRepository)
         }
         .alert("이 사진을 삭제할까요?", isPresented: deletionAlertIsPresented, presenting: recordPendingDeletion) { record in
             Button("삭제", role: .destructive) {
                 repository.deleteRecord(record)
+                collectionRepository.reload()
                 recordPendingDeletion = nil
             }
             Button("취소", role: .cancel) {
@@ -86,19 +122,6 @@ struct CollectionDetailView: View {
         Binding(
             get: { recordPendingDeletion != nil },
             set: { if !$0 { recordPendingDeletion = nil } }
-        )
-    }
-
-    private var conceptForCollection: Concept {
-        let type: ConceptType = collection.category == .custom ? .custom : .system
-        return Concept(from: collection, type: type)
-    }
-
-    private func presentEditor(for record: MODIRecord) {
-        guard let image = UIImage(data: record.imageData) else { return }
-        editorPresentation = CollectionEditorPresentation(
-            image: image,
-            existingRecord: record
         )
     }
 
@@ -118,7 +141,7 @@ struct CollectionDetailView: View {
                         .font(AppFont.headline)
                         .foregroundStyle(AppColor.Text.primary)
 
-                    Text(collection.description)
+                    Text(collection.collectionDescription)
                         .font(AppFont.footnote)
                         .foregroundStyle(AppColor.Text.secondary)
                 }
@@ -136,14 +159,12 @@ struct CollectionDetailView: View {
                 EmptyStateView(
                     icon: "photo.on.rectangle.angled",
                     title: "아직 사진이 없어요",
-                    message: "이 컬렉션 미션이 나오는 날 사진을 찍으면 여기에 모여요."
+                    message: "이 컬렉션 Concept로 사진을 찍으면 여기에 모여요."
                 )
             } else {
                 LazyVGrid(columns: columns, spacing: AppSpacing.gridGutter) {
                     ForEach(records, id: \.id) { record in
-                        Button {
-                            presentEditor(for: record)
-                        } label: {
+                        NavigationLink(value: RecordNavigationValue(id: record.id)) {
                             MODIRecordTile(collection: collection, record: record)
                         }
                         .buttonStyle(.plain)
@@ -160,13 +181,21 @@ struct CollectionDetailView: View {
             }
         }
     }
+
+    private func presentEditor(for record: MODIRecord) {
+        guard let image = record.editingImage else { return }
+        editorPresentation = CollectionEditorPresentation(
+            image: image,
+            existingRecord: record
+        )
+    }
 }
 
 // MARK: - MODI Record Tile
 
 private struct MODIRecordTile: View {
 
-    let collection: PhotoCollection
+    let collection: MODICollection
     let record: MODIRecord
 
     private var dateLabel: String {
@@ -193,9 +222,14 @@ private struct MODIRecordTile: View {
 
 #Preview {
     let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
+    let collection = collectionRepository.collection(for: Concept.mock.id)!
+
     return NavigationStack {
-        CollectionDetailView(collection: PhotoCollection.builtIn[6])
+        CollectionDetailView(collection: collection)
     }
     .modelContainer(container)
     .environment(repository)
+    .environment(collectionRepository)
 }
