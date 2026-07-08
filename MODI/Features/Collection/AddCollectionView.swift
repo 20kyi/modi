@@ -38,7 +38,7 @@ struct AddCollectionView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            Text("나만의 컬렉션")
+            Text("Custom Collection")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.Text.primary)
 

@@ -11,7 +11,7 @@ enum CollectionType: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .system: "자동 컬렉션"
-        case .custom: "나만의 컬렉션"
+        case .custom: "Custom Collection"
         }
     }
 }

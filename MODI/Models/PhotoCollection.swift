@@ -11,9 +11,9 @@ enum CollectionCategory: String, CaseIterable, Identifiable, Codable {
 
     var displayName: String {
         switch self {
-        case .color: "컬러 컬렉션"
-        case .nature: "네이처 컬렉션"
-        case .custom: "나만의 컬렉션"
+        case .color: "Color Collection"
+        case .nature: "Nature Collection"
+        case .custom: "Custom Collection"
         }
     }
 }
