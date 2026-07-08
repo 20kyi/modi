@@ -52,7 +52,6 @@ struct ProfileView: View {
 
                     discoveryCalendarSection
                     monthlyConceptSection
-                    collectionSummarySection
                     settingsSection
                 }
                 .appScreenPadding()
@@ -98,6 +97,13 @@ struct ProfileView: View {
         }
     }
 
+    // MARK: - Monthly Concept Title
+
+    private var monthlyConceptTitle: String {
+        let month = Calendar.current.component(.month, from: Date())
+        return "\(month)월의 MODI"
+    }
+
     // MARK: - Discovery Calendar
 
     private var discoveryCalendarSection: some View {
@@ -118,8 +124,7 @@ struct ProfileView: View {
 
     private var monthlyConceptSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            sectionHeader(title: viewModel.monthlyConcept.monthLabel)
-
+            sectionHeader(title: monthlyConceptTitle)
             VStack(alignment: .leading, spacing: AppSpacing.lg) {
                 HStack(spacing: AppSpacing.md) {
                     RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
@@ -147,34 +152,6 @@ struct ProfileView: View {
                 .buttonStyle(SecondaryButtonStyle())
             }
             .appCardStyle()
-        }
-    }
-
-    // MARK: - Collection Summary
-
-    private var collectionSummarySection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            sectionHeader(title: "나의 발견")
-
-            if viewModel.collectionSummaries.isEmpty {
-                EmptyStateView(
-                    icon: "camera.fill",
-                    title: "아직 발견이 없어요",
-                    message: "오늘의 컨셉으로 첫 기록을 남겨보세요"
-                )
-                .appCardStyle()
-            } else {
-                VStack(spacing: AppSpacing.sm) {
-                    ForEach(viewModel.collectionSummaries) { summary in
-                        Button {
-                            // TODO: 컬렉션 상세로 이동
-                        } label: {
-                            CollectionSummaryCard(summary: summary)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
         }
     }
 
