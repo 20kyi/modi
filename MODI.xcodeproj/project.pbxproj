@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		A1B2C3D42FFD4F1E0091640C /* MODIWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1B2C3D42FFD4F1E00916401 /* MODIWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		7C4092462FFD4F1D009164B8 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -21,7 +25,28 @@
 			remoteGlobalIDString = 7C4092352FFD4F1B009164B8;
 			remoteInfo = MODI;
 		};
+		A1B2C3D42FFD4F1E00916402 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 7C40922E2FFD4F1B009164B8 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A1B2C3D42FFD4F1E00916403;
+			remoteInfo = MODIWidget;
+		};
 /* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A1B2C3D42FFD4F1E00916407 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1B2C3D42FFD4F1E0091640C /* MODIWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		7C4092362FFD4F1B009164B8 /* MODI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MODI.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -29,6 +54,7 @@
 		7C40924F2FFD4F1D009164B8 /* MODIUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MODIUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		7C4092652FFD4FB2009164B8 /* MODI.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = MODI.xcodeproj; sourceTree = "<group>"; };
 		7CBD18FA2FFD56E300A35058 /* MODI.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; path = MODI.xcodeproj; sourceTree = "<group>"; };
+		A1B2C3D42FFD4F1E00916401 /* MODIWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MODIWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -47,7 +73,31 @@
 			path = MODIUITests;
 			sourceTree = "<group>";
 		};
+		A1B2C3D42FFD4F1E00916404 /* MODIShared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = MODIShared;
+			sourceTree = "<group>";
+		};
+		A1B2C3D42FFD4F1E00916405 /* MODIWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A1B2C3D42FFD4F1E0091640F /* Exceptions for "MODIWidget" folder in "MODIWidget" target */,
+			);
+			path = MODIWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1B2C3D42FFD4F1E0091640F /* Exceptions for "MODIWidget" folder in "MODIWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				MODIWidget.entitlements,
+			);
+			target = A1B2C3D42FFD4F1E00916403 /* MODIWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		7C4092332FFD4F1B009164B8 /* Frameworks */ = {
@@ -71,6 +121,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D42FFD4F1E00916406 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -78,6 +135,8 @@
 			isa = PBXGroup;
 			children = (
 				7C4092382FFD4F1B009164B8 /* MODI */,
+				A1B2C3D42FFD4F1E00916404 /* MODIShared */,
+				A1B2C3D42FFD4F1E00916405 /* MODIWidget */,
 				7C4092482FFD4F1D009164B8 /* MODITests */,
 				7C4092522FFD4F1D009164B8 /* MODIUITests */,
 				7C4092372FFD4F1B009164B8 /* Products */,
@@ -88,6 +147,7 @@
 			isa = PBXGroup;
 			children = (
 				7C4092362FFD4F1B009164B8 /* MODI.app */,
+				A1B2C3D42FFD4F1E00916401 /* MODIWidget.appex */,
 				7C4092452FFD4F1D009164B8 /* MODITests.xctest */,
 				7C40924F2FFD4F1D009164B8 /* MODIUITests.xctest */,
 			);
@@ -114,13 +174,16 @@
 				7C4092322FFD4F1B009164B8 /* Sources */,
 				7C4092332FFD4F1B009164B8 /* Frameworks */,
 				7C4092342FFD4F1B009164B8 /* Resources */,
+				A1B2C3D42FFD4F1E00916407 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A1B2C3D42FFD4F1E00916408 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				7C4092382FFD4F1B009164B8 /* MODI */,
+				A1B2C3D42FFD4F1E00916404 /* MODIShared */,
 			);
 			name = MODI;
 			packageProductDependencies = (
@@ -175,6 +238,29 @@
 			productReference = 7C40924F2FFD4F1D009164B8 /* MODIUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		A1B2C3D42FFD4F1E00916403 /* MODIWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D42FFD4F1E00916409 /* Build configuration list for PBXNativeTarget "MODIWidget" */;
+			buildPhases = (
+				A1B2C3D42FFD4F1E0091640A /* Sources */,
+				A1B2C3D42FFD4F1E00916406 /* Frameworks */,
+				A1B2C3D42FFD4F1E0091640B /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				A1B2C3D42FFD4F1E00916404 /* MODIShared */,
+				A1B2C3D42FFD4F1E00916405 /* MODIWidget */,
+			);
+			name = MODIWidget;
+			packageProductDependencies = (
+			);
+			productName = MODIWidget;
+			productReference = A1B2C3D42FFD4F1E00916401 /* MODIWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -195,6 +281,9 @@
 					7C40924E2FFD4F1D009164B8 = {
 						CreatedOnToolsVersion = 26.6;
 						TestTargetID = 7C4092352FFD4F1B009164B8;
+					};
+					A1B2C3D42FFD4F1E00916403 = {
+						CreatedOnToolsVersion = 26.6;
 					};
 				};
 			};
@@ -223,6 +312,7 @@
 			projectRoot = "";
 			targets = (
 				7C4092352FFD4F1B009164B8 /* MODI */,
+				A1B2C3D42FFD4F1E00916403 /* MODIWidget */,
 				7C4092442FFD4F1D009164B8 /* MODITests */,
 				7C40924E2FFD4F1D009164B8 /* MODIUITests */,
 			);
@@ -245,6 +335,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		7C40924D2FFD4F1D009164B8 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A1B2C3D42FFD4F1E0091640B /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -275,6 +372,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		A1B2C3D42FFD4F1E0091640A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -287,6 +391,11 @@
 			isa = PBXTargetDependency;
 			target = 7C4092352FFD4F1B009164B8 /* MODI */;
 			targetProxy = 7C4092502FFD4F1D009164B8 /* PBXContainerItemProxy */;
+		};
+		A1B2C3D42FFD4F1E00916408 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A1B2C3D42FFD4F1E00916403 /* MODIWidget */;
+			targetProxy = A1B2C3D42FFD4F1E00916402 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -410,6 +519,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MODI/MODI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZCVAY2Q9W9;
@@ -417,6 +527,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"com.storybuild.MODI\";\n    CFBundleURLSchemes =     (\n        modi\n    );\n}";
 				INFOPLIST_KEY_NSCameraUsageDescription = "오늘의 미션 사진을 촬영하기 위해 카메라 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "컬렉션 공유 카드를 사진 앱에 저장하기 위해 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앨범에서 미션 사진을 선택하기 위해 사진 라이브러리 접근이 필요해요.";
@@ -456,6 +567,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MODI/MODI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = ZCVAY2Q9W9;
@@ -463,6 +575,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"com.storybuild.MODI\";\n    CFBundleURLSchemes =     (\n        modi\n    );\n}";
 				INFOPLIST_KEY_NSCameraUsageDescription = "오늘의 미션 사진을 촬영하기 위해 카메라 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "컬렉션 공유 카드를 사진 앱에 저장하기 위해 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앨범에서 미션 사진을 선택하기 위해 사진 라이브러리 접근이 필요해요.";
@@ -595,6 +708,68 @@
 			};
 			name = Release;
 		};
+		A1B2C3D42FFD4F1E0091640D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MODIWidget/MODIWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCVAY2Q9W9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MODIWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MODI;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.storybuild.MODI.MODIWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A1B2C3D42FFD4F1E0091640E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = MODIWidget/MODIWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = ZCVAY2Q9W9;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = MODIWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MODI;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.storybuild.MODI.MODIWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -630,6 +805,15 @@
 			buildConfigurations = (
 				7C4092602FFD4F1D009164B8 /* Debug */,
 				7C4092612FFD4F1D009164B8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1B2C3D42FFD4F1E00916409 /* Build configuration list for PBXNativeTarget "MODIWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D42FFD4F1E0091640D /* Debug */,
+				A1B2C3D42FFD4F1E0091640E /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

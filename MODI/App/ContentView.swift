@@ -7,6 +7,7 @@ struct ContentView: View {
     @State private var notificationManager = NotificationManager()
     @State private var missionManager = MissionManager()
     @State private var authManager = AuthManager(loadFromStorage: true)
+    @State private var deepLinkCoordinator = DeepLinkCoordinator()
     @State private var isShowingLoginChoice = false
 
     var body: some View {
@@ -26,6 +27,10 @@ struct ContentView: View {
         .environment(notificationManager)
         .environment(missionManager)
         .environment(authManager)
+        .environment(deepLinkCoordinator)
+        .onOpenURL { url in
+            deepLinkCoordinator.handle(url)
+        }
         .fullScreenCover(isPresented: $isShowingLoginChoice) {
             LoginView {
                 isShowingLoginChoice = false

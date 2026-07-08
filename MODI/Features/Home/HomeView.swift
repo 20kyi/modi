@@ -8,6 +8,8 @@ struct HomeView: View {
 
     @Environment(RecordRepository.self) private var recordRepository
     @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(StreakManager.self) private var streakManager
+    @Environment(DeepLinkCoordinator.self) private var deepLinkCoordinator
     @State private var viewModel = HomeViewModel()
 
     private var isTodaysMissionCompleted: Bool {
@@ -25,26 +27,36 @@ struct HomeView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
-                    headerSection
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
+                        headerSection
 
-                    todaysModiSection
+                        todaysModiSection
 
-                    DailyMissionCard(
-                        mission: todaysMission,
-                        onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
-                        canChangeMission: canChangeMission,
-                        onChangeMissionTapped: rerollMission
-                    )
+                        DailyMissionCard(
+                            mission: todaysMission,
+                            onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
+                            canChangeMission: canChangeMission,
+                            onChangeMissionTapped: rerollMission
+                        )
+                        .id(HomeScrollAnchor.todayMission)
 
-                    recentDiscoverySection
+                        recentDiscoverySection
 
-                    collectionPreviewSection
+                        collectionPreviewSection
+                    }
+                    .appScreenPadding()
+                    .padding(.top, AppSpacing.md)
+                    .padding(.bottom, AppSpacing.xxxl)
                 }
-                .appScreenPadding()
-                .padding(.top, AppSpacing.md)
-                .padding(.bottom, AppSpacing.xxxl)
+                .onChange(of: deepLinkCoordinator.pendingDestination) { _, destination in
+                    guard destination == .todayMission else { return }
+                    withAnimation(.easeInOut(duration: 0.45)) {
+                        proxy.scrollTo(HomeScrollAnchor.todayMission, anchor: .center)
+                    }
+                    deepLinkCoordinator.consume(.todayMission)
+                }
             }
             .appScreenBackground()
             .navigationBarTitleDisplayMode(.inline)
@@ -158,7 +170,16 @@ struct HomeView: View {
     private func rerollMission() {
         guard missionManager.rerollMission(repository: recordRepository) != nil else { return }
         refreshData()
+        WidgetSyncService.sync(
+            missionManager: missionManager,
+            recordRepository: recordRepository,
+            streakManager: streakManager
+        )
     }
+}
+
+private enum HomeScrollAnchor {
+    static let todayMission = "todayMission"
 }
 
 #Preview("Light") {

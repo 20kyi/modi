@@ -17,6 +17,7 @@ struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(MissionManager.self) private var missionManager
+    @Environment(DeepLinkCoordinator.self) private var deepLinkCoordinator
     @State private var collectionStore = CollectionStore()
     @State private var repository: RecordRepository?
     @State private var collectionRepository: CollectionRepository?
@@ -92,6 +93,31 @@ struct MainTabView: View {
                 await notificationManager.scheduleDailyNotifications(missionManager: missionManager)
             }
         }
+        .onAppear {
+            syncWidgetData(repository: repository, collectionRepository: collectionRepository)
+        }
+        .onChange(of: repository.records.count) {
+            syncWidgetData(repository: repository, collectionRepository: collectionRepository)
+        }
+        .onChange(of: deepLinkCoordinator.pendingDestination) { _, destination in
+            guard destination == .todayMission else { return }
+            selectedTab = .home
+        }
+    }
+
+    private func syncWidgetData(
+        repository: RecordRepository,
+        collectionRepository: CollectionRepository
+    ) {
+        streakManager.refresh(
+            recordRepository: repository,
+            collectionRepository: collectionRepository
+        )
+        WidgetSyncService.sync(
+            missionManager: missionManager,
+            recordRepository: repository,
+            streakManager: streakManager
+        )
     }
 }
 
