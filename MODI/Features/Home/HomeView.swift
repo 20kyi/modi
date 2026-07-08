@@ -48,6 +48,8 @@ struct HomeView: View {
             }
             .appScreenBackground()
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text("MODI")
@@ -62,9 +64,8 @@ struct HomeView: View {
                 refreshData()
             }
             .navigationDestination(for: RecordNavigationValue.self) { navigationValue in
-                if let gallery = viewModel.todaysMissionGallery,
-                   let record = gallery.records.first(where: { $0.id == navigationValue.id }),
-                   let collection = collectionRepository.collection(for: gallery.collectionID) {
+                if let record = recordRepository.records.first(where: { $0.id == navigationValue.id }),
+                   let collection = record.collection ?? collectionRepository.collection(for: record.conceptId) {
                     RecordDetailView(record: record, collection: collection)
                 }
             }
@@ -160,7 +161,7 @@ struct HomeView: View {
     }
 }
 
-#Preview {
+#Preview("Light") {
     let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     let collectionRepository = CollectionRepository(modelContext: container.mainContext)
     collectionRepository.bootstrap()
@@ -169,4 +170,17 @@ struct HomeView: View {
         .modelContainer(container)
         .environment(repository)
         .environment(collectionRepository)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
+
+    return HomeView(missionManager: .mock)
+        .modelContainer(container)
+        .environment(repository)
+        .environment(collectionRepository)
+        .preferredColorScheme(.dark)
 }

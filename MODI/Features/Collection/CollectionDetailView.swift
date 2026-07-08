@@ -70,6 +70,8 @@ struct CollectionDetailView: View {
         .appScreenBackground()
         .navigationTitle(collection.title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -79,11 +81,6 @@ struct CollectionDetailView: View {
                         .font(.system(size: 16, weight: .semibold))
                 }
                 .accessibilityLabel("공유하기")
-            }
-        }
-        .navigationDestination(for: RecordNavigationValue.self) { navigationValue in
-            if let record = records.first(where: { $0.id == navigationValue.id }) {
-                RecordDetailView(record: record, collection: collection)
             }
         }
         .fullScreenCover(item: $editorPresentation) { presentation in
@@ -221,7 +218,7 @@ private struct MODIRecordTile: View {
     }
 }
 
-#Preview {
+#Preview("Light") {
     let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     let collectionRepository = CollectionRepository(modelContext: container.mainContext)
     collectionRepository.bootstrap()
@@ -234,4 +231,21 @@ private struct MODIRecordTile: View {
     .environment(repository)
     .environment(collectionRepository)
     .environment(StreakManager.mock)
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
+    let collection = collectionRepository.collection(for: Concept.mock.id)!
+
+    return NavigationStack {
+        CollectionDetailView(collection: collection)
+    }
+    .modelContainer(container)
+    .environment(repository)
+    .environment(collectionRepository)
+    .environment(StreakManager.mock)
+    .preferredColorScheme(.dark)
 }
