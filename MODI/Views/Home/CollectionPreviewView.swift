@@ -2,54 +2,89 @@ import SwiftUI
 
 struct CollectionPreviewView: View {
 
-    let collections: [CollectionPreviewItem]
+    let gallery: TodaysMissionCollectionGallery
+    var onCreateTapped: (() -> Void)?
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            Text("내 컬렉션")
-                .font(AppFont.title3)
-                .foregroundStyle(AppColor.Text.primary)
+            header
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: AppSpacing.itemGap) {
-                    ForEach(collections) { collection in
-                        collectionCard(collection)
+            if gallery.records.isEmpty {
+                EmptyStateView(
+                    icon: "photo.on.rectangle.angled",
+                    title: "아직 \(gallery.title) 사진이 없어요",
+                    message: gallery.missionPrompt,
+                    actionTitle: onCreateTapped == nil ? nil : "기록하기",
+                    action: onCreateTapped
+                )
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: AppSpacing.itemGap) {
+                        ForEach(gallery.records, id: \.id) { record in
+                            NavigationLink(value: RecordNavigationValue(id: record.id)) {
+                                photoThumbnail(record)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
                 }
             }
         }
     }
 
-    private func collectionCard(_ collection: CollectionPreviewItem) -> some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
-                .fill(collection.themeColor)
-                .frame(width: 120, height: 100)
-                .overlay {
-                    Text(collection.emoji)
-                        .font(.system(size: 36))
-                }
-                .overlay(alignment: .bottomTrailing) {
-                    Text("\(collection.photoCount)장")
-                        .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.Text.onAccent)
-                        .padding(.horizontal, AppSpacing.sm)
-                        .padding(.vertical, AppSpacing.xxs)
-                        .background(AppColor.Accent.primary.opacity(0.85), in: Capsule())
-                        .padding(AppSpacing.sm)
-                }
-
-            Text(collection.title)
-                .font(AppFont.subheadline)
+    private var header: some View {
+        HStack(alignment: .center, spacing: AppSpacing.md) {
+            Text("내 컬렉션")
+                .font(AppFont.title3)
                 .foregroundStyle(AppColor.Text.primary)
-                .lineLimit(1)
+
+            Spacer()
+
+            if gallery.photoCount > 0 {
+                NavigationLink(value: CollectionNavigationValue(id: gallery.collectionID)) {
+                    HStack(spacing: AppSpacing.xxs) {
+                        Text("\(gallery.photoCount)장")
+                            .font(AppFont.caption1)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(AppColor.Text.tertiary)
+                }
+                .buttonStyle(.plain)
+            }
         }
-        .frame(width: 120)
+    }
+
+    private func photoThumbnail(_ record: MODIRecord) -> some View {
+        Color.clear
+            .frame(width: 108, height: 108)
+            .background(gallery.themeColor)
+            .overlay {
+                MODIRecordImage(record: record, contentMode: .fill)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
     }
 }
 
-#Preview {
-    CollectionPreviewView(collections: CollectionPreviewItem.mockList)
+#Preview("Empty") {
+    CollectionPreviewView(gallery: .mockBlue)
         .appScreenPadding()
         .appScreenBackground()
+}
+
+#Preview("With Photos") {
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+
+    return CollectionPreviewView(
+        gallery: TodaysMissionCollectionGallery(
+            collectionID: Concept.mock.id,
+            title: Concept.mock.title,
+            emoji: Concept.mock.emoji,
+            themeColorHex: Concept.mock.themeColorHex,
+            missionPrompt: "구름을 찾아보세요",
+            records: repository.fetchAllRecords()
+        )
+    )
+    .appScreenPadding()
+    .appScreenBackground()
 }

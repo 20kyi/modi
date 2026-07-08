@@ -54,7 +54,6 @@ struct MainTabView: View {
         TabView(selection: $selectedTab) {
             HomeView(
                 missionManager: missionManager,
-                repository: repository,
                 onCreateTapped: { selectedTab = .create }
             )
             .tabItem {

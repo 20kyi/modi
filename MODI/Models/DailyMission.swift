@@ -235,7 +235,32 @@ extension RecentDiscovery {
     ]
 }
 
-// MARK: - CollectionPreviewItem
+// MARK: - TodaysMissionCollectionGallery
+
+struct TodaysMissionCollectionGallery {
+    let collectionID: UUID
+    let title: String
+    let emoji: String
+    let themeColorHex: String
+    let missionPrompt: String
+    let records: [MODIRecord]
+
+    var photoCount: Int { records.count }
+    var themeColor: Color { Color(hex: themeColorHex) }
+}
+
+extension TodaysMissionCollectionGallery {
+    static let mockBlue = TodaysMissionCollectionGallery(
+        collectionID: PhotoCollection.builtIn[1].id,
+        title: PhotoCollection.builtIn[1].title,
+        emoji: PhotoCollection.builtIn[1].emoji,
+        themeColorHex: PhotoCollection.builtIn[1].themeColorHex,
+        missionPrompt: PhotoCollection.builtIn[1].missionPrompt,
+        records: []
+    )
+}
+
+// MARK: - CollectionPreviewItem (legacy preview)
 
 struct CollectionPreviewItem: Identifiable, Equatable {
     let id: UUID
