@@ -10,7 +10,7 @@ struct ConceptPickerView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(alignment: .leading, spacing: AppSpacing.lg) {
+            LazyVStack(alignment: .leading, spacing: AppSpacing.md) {
                 ForEach(CollectionCategory.allCases) { category in
                     let categoryConcepts = concepts.filter { $0.category == category }
                     if !categoryConcepts.isEmpty {
@@ -19,7 +19,7 @@ struct ConceptPickerView: View {
                 }
             }
             .appScreenPadding()
-            .padding(.vertical, AppSpacing.md)
+            .padding(.vertical, AppSpacing.sm)
         }
         .appScreenBackground()
     }
