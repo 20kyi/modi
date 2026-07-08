@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SwiftData
+import SwiftUI
 import UIKit
 
 // MARK: - RecordRepositoryError
@@ -161,7 +162,10 @@ final class RecordRepository {
 enum RecordPreviewData {
 
     @MainActor
-    static func makeRepository(withSampleData: Bool = false) -> (ModelContainer, RecordRepository) {
+    static func makeRepository(
+        withSampleData: Bool = false,
+        includeUserText: Bool = false
+    ) -> (ModelContainer, RecordRepository) {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let schema = Schema([MODIRecord.self, MODICollection.self])
         let container = try! ModelContainer(for: schema, configurations: configuration)
@@ -172,7 +176,12 @@ enum RecordPreviewData {
         if withSampleData {
             let collection = collectionRepository.collection(for: Concept.mock.id)
                 ?? collectionRepository.ensureCollection(for: Concept.mock)
-            seedSampleRecords(in: container.mainContext, concept: .mock, collection: collection)
+            seedSampleRecords(
+                in: container.mainContext,
+                concept: .mock,
+                collection: collection,
+                includeUserText: includeUserText
+            )
             repository.reload()
         }
 
@@ -183,7 +192,8 @@ enum RecordPreviewData {
     private static func seedSampleRecords(
         in context: ModelContext,
         concept: Concept,
-        collection: MODICollection
+        collection: MODICollection,
+        includeUserText: Bool = false
     ) {
         let colors: [UIColor] = [.systemPink, .systemBlue, .systemTeal]
         for (index, color) in colors.enumerated() {
@@ -205,6 +215,22 @@ enum RecordPreviewData {
                 isEdited: index == 0
             )
             record.collection = collection
+
+            if includeUserText, index == 0 {
+                let canvasSize = CGSize(width: 300, height: 400)
+                let editorState = EditorState.from(
+                    elements: [
+                        EditorElement(
+                            type: .text(content: "오늘 하늘이 정말 예뻤어요", color: .white),
+                            position: CGPoint(x: canvasSize.width / 2, y: canvasSize.height * 0.42)
+                        )
+                    ],
+                    frameStyle: .none,
+                    canvasSize: canvasSize
+                )
+                record.editorStateData = try? JSONEncoder().encode(editorState)
+            }
+
             context.insert(record)
         }
         try? context.save()

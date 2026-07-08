@@ -157,6 +157,25 @@ extension MODIRecord {
     var displayImage: UIImage? {
         UIImage(data: imageData)
     }
+
+    /// 편집기에 추가한 텍스트 요소 내용.
+    var userWrittenTexts: [String] {
+        guard let editorState else { return [] }
+
+        return editorState.elements.compactMap { element in
+            guard case .text(let content, _) = element.elementType else { return nil }
+            let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+    }
+
+    /// 발견 날짜 표시 (예: 2026.07.08)
+    var discoveryDateLabel: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy.MM.dd"
+        return formatter.string(from: createdAt)
+    }
 }
 
 // MARK: - Color Persistence
