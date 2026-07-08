@@ -24,6 +24,17 @@ struct PhotoEditorView: View {
     @State private var activeTool: EditorTool = .sticker
     @State private var selectedFrame: EditorFrameStyle = .none
     @State private var canvasSize: CGSize = .zero
+
+    // MARK: - Photo Crop Transform
+    // 기록 카드의 내부 사진 영역(사각 크롭 뷰포트)을 기준으로 확대/이동해 크롭되도록 동작합니다.
+    @State private var hasInitializedPhotoCrop = false
+    @State private var defaultPhotoScale: CGFloat = 1
+    @State private var photoScale: CGFloat = 1
+    @State private var lastPhotoScale: CGFloat = 1
+    @State private var photoOffset: CGSize = .zero
+    @State private var lastPhotoOffset: CGSize = .zero
+    @State private var photoImageSize: CGSize = .zero
+
     @State private var showTextInput = false
     @State private var draftText = ""
     @State private var savedEditorState: EditorState?
@@ -40,7 +51,15 @@ struct PhotoEditorView: View {
     }
 
     private var canRevertToOriginal: Bool {
-        !elements.isEmpty || selectedFrame != .none || existingRecord?.editorState != nil
+        !elements.isEmpty
+            || selectedFrame != .none
+            || existingRecord?.editorState != nil
+            || isPhotoCroppedFromDefault
+    }
+
+    private var isPhotoCroppedFromDefault: Bool {
+        let scaleDiff = abs(photoScale - defaultPhotoScale)
+        return scaleDiff > 0.001 || photoOffset != .zero
     }
 
     private var resolvedConcept: Concept? {
@@ -65,6 +84,46 @@ struct PhotoEditorView: View {
             date: recordDate ?? existingRecord?.discoveryDate ?? .now,
             conceptTitle: resolvedConcept?.title
         )
+    }
+
+    private var stickerSuggestions: [String] {
+        var items: [String] = []
+
+        let collectionEmoji = collection?.emoji?.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let collectionEmoji, !collectionEmoji.isEmpty {
+            items.append(collectionEmoji)
+        }
+
+        // 컬렉션 대표 이모지가 이미 있으면 중복 없이 기본 카탈로그를 뒤에 붙입니다.
+        let catalog = EditorSticker.catalog.filter { $0 != collectionEmoji }
+        items.append(contentsOf: catalog)
+
+        return items
+    }
+
+    private var textSuggestions: [String] {
+        var items: [String] = []
+
+        if let title = collection?.title ?? resolvedConcept?.title {
+            items.append(title)
+        }
+
+        if let missionPrompt = collection?.missionPrompt?
+            .trimmingCharacters(in: .whitespacesAndNewlines),
+           !missionPrompt.isEmpty {
+            items.append(missionPrompt)
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy.MM.dd"
+
+        let baseDate = recordDate ?? existingRecord?.discoveryDate ?? .now
+        items.append(formatter.string(from: baseDate))
+
+        items.append("오늘 발견한 순간")
+
+        return items
     }
 
     var body: some View {
@@ -108,7 +167,7 @@ struct PhotoEditorView: View {
                 }
                 Button("취소", role: .cancel) {}
             } message: {
-                Text("추가한 스티커, 텍스트, 프레임이 모두 제거돼요.")
+                Text("추가한 스티커, 텍스트, 프레임은 물론 사진 크롭 설정도 초기화돼요.")
             }
         }
     }
@@ -133,6 +192,7 @@ struct PhotoEditorView: View {
                 .onAppear {
                     prepareEditorState()
                     updateCanvasSize(fittedFrame.size)
+                    initializePhotoCropTransformIfNeeded(for: fittedFrame.size)
                 }
                 .onChange(of: geometry.size) { _, newSize in
                     updateCanvasSize(imageFrame(in: newSize).size)
@@ -183,11 +243,18 @@ struct PhotoEditorView: View {
                     .frame(width: size.width, height: size.height)
             }
 
-            Image(uiImage: originalPhoto)
-                .resizable()
-                .scaledToFill()
-                .frame(width: photoSize.width, height: photoSize.height)
-                .clipShape(RoundedRectangle(cornerRadius: innerPhotoRadius, style: .continuous))
+            ZStack {
+                Image(uiImage: originalPhoto)
+                    .resizable()
+                    .scaledToFill()
+                    .scaleEffect(photoScale)
+                    .offset(photoOffset)
+            }
+            .frame(width: photoSize.width, height: photoSize.height)
+            .clipShape(RoundedRectangle(cornerRadius: innerPhotoRadius, style: .continuous))
+            .contentShape(Rectangle())
+            .gesture(photoDragGesture(viewportSize: photoSize))
+            .simultaneousGesture(photoMagnificationGesture(viewportSize: photoSize))
         }
         .frame(width: size.width, height: size.height)
         .clipShape(RoundedRectangle(cornerRadius: selectedFrame.cornerRadius, style: .continuous))
@@ -208,6 +275,130 @@ struct PhotoEditorView: View {
             width: max(canvasSize.width - inset, 1),
             height: max(canvasSize.height - inset, 1)
         )
+    }
+
+    private func initializePhotoCropTransformIfNeeded(for canvasSize: CGSize) {
+        guard !hasInitializedPhotoCrop else { return }
+
+        let viewport = photoContentSize(for: canvasSize)
+        photoImageSize = originalPhoto.normalizedOrientation().size
+
+        defaultPhotoScale = ImageCropUtility.minimumScale(
+            imageSize: photoImageSize,
+            viewportSize: viewport
+        )
+
+        if let savedEditorState {
+            photoScale = savedEditorState.photoCropScale
+            photoOffset = CGSize(
+                width: savedEditorState.photoCropOffsetX,
+                height: savedEditorState.photoCropOffsetY
+            )
+        } else {
+            photoScale = defaultPhotoScale
+            photoOffset = .zero
+        }
+
+        lastPhotoScale = photoScale
+        lastPhotoOffset = photoOffset
+
+        hasInitializedPhotoCrop = true
+
+        // 로드한 크롭값이 현재 뷰포트에 대해 유효 범위 밖이면 안전하게 보정합니다.
+        clampPhotoTransform(for: canvasSize)
+    }
+
+    private func clampPhotoTransform(for canvasSize: CGSize) {
+        let viewport = photoContentSize(for: canvasSize)
+
+        let baseImageSize = photoImageSize.width > 0 && photoImageSize.height > 0
+            ? photoImageSize
+            : originalPhoto.normalizedOrientation().size
+
+        let minimum = ImageCropUtility.minimumScale(
+            imageSize: baseImageSize,
+            viewportSize: viewport
+        )
+        let maximum = ImageCropUtility.maximumScale(
+            imageSize: baseImageSize,
+            viewportSize: viewport,
+            minimumScale: minimum
+        )
+
+        photoScale = min(max(photoScale, minimum), maximum)
+        photoOffset = ImageCropUtility.clampedOffset(
+            imageSize: baseImageSize,
+            viewportSize: viewport,
+            scale: photoScale,
+            proposedOffset: photoOffset
+        )
+
+        lastPhotoScale = photoScale
+        lastPhotoOffset = photoOffset
+    }
+
+    private func resetPhotoCropTransformToDefault() {
+        photoScale = defaultPhotoScale
+        lastPhotoScale = defaultPhotoScale
+        photoOffset = .zero
+        lastPhotoOffset = .zero
+    }
+
+    private func photoDragGesture(viewportSize: CGSize) -> some Gesture {
+        DragGesture(minimumDistance: 1)
+            .onChanged { value in
+                let baseImageSize = photoImageSize.width > 0 && photoImageSize.height > 0
+                    ? photoImageSize
+                    : originalPhoto.normalizedOrientation().size
+
+                let proposed = CGSize(
+                    width: lastPhotoOffset.width + value.translation.width,
+                    height: lastPhotoOffset.height + value.translation.height
+                )
+
+                photoOffset = ImageCropUtility.clampedOffset(
+                    imageSize: baseImageSize,
+                    viewportSize: viewportSize,
+                    scale: photoScale,
+                    proposedOffset: proposed
+                )
+            }
+            .onEnded { _ in
+                lastPhotoOffset = photoOffset
+            }
+    }
+
+    private func photoMagnificationGesture(viewportSize: CGSize) -> some Gesture {
+        MagnificationGesture()
+            .onChanged { value in
+                let baseImageSize = photoImageSize.width > 0 && photoImageSize.height > 0
+                    ? photoImageSize
+                    : originalPhoto.normalizedOrientation().size
+
+                let minimum = ImageCropUtility.minimumScale(
+                    imageSize: baseImageSize,
+                    viewportSize: viewportSize
+                )
+                let maximum = ImageCropUtility.maximumScale(
+                    imageSize: baseImageSize,
+                    viewportSize: viewportSize,
+                    minimumScale: minimum
+                )
+
+                let proposed = lastPhotoScale * value
+                photoScale = min(max(proposed, minimum), maximum)
+
+                photoOffset = ImageCropUtility.clampedOffset(
+                    imageSize: baseImageSize,
+                    viewportSize: viewportSize,
+                    scale: photoScale,
+                    proposedOffset: photoOffset
+                )
+            }
+            .onEnded { _ in
+                lastPhotoScale = photoScale
+                lastPhotoOffset = photoOffset
+            }
     }
 
     // MARK: Toolbar
@@ -277,9 +468,13 @@ struct PhotoEditorView: View {
     private var toolPanel: some View {
         switch activeTool {
         case .sticker:
-            StickerPickerView(onSelect: addSticker)
+            StickerPickerView(
+                stickers: stickerSuggestions,
+                onSelect: addSticker
+            )
         case .text:
             TextPickerView(
+                suggestions: textSuggestions,
                 onSelect: addText,
                 onRequestCustomInput: { showTextInput = true }
             )
@@ -291,6 +486,9 @@ struct PhotoEditorView: View {
             )
             .onChange(of: selectedFrame) { _, _ in
                 markEditorStateAsModified()
+                if hasInitializedPhotoCrop {
+                    clampPhotoTransform(for: canvasSize)
+                }
             }
         }
     }
@@ -376,6 +574,10 @@ struct PhotoEditorView: View {
         }
 
         canvasSize = newSize
+
+        if hasInitializedPhotoCrop {
+            clampPhotoTransform(for: newSize)
+        }
     }
 
     private func revertToOriginal() {
@@ -384,6 +586,7 @@ struct PhotoEditorView: View {
             elements.removeAll()
             selectedFrame = .none
             selectedElementID = nil
+            resetPhotoCropTransformToDefault()
         }
     }
 
@@ -393,7 +596,7 @@ struct PhotoEditorView: View {
             return
         }
 
-        let wasEdited = !elements.isEmpty || selectedFrame != .none
+        let wasEdited = !elements.isEmpty || selectedFrame != .none || isPhotoCroppedFromDefault
         let renderedImage: UIImage
 
         if wasEdited {
@@ -402,7 +605,9 @@ struct PhotoEditorView: View {
                 elements: elements,
                 canvasSize: canvasSize,
                 frameStyle: selectedFrame,
-                themeColor: themeColor
+                themeColor: themeColor,
+                photoScale: photoScale,
+                photoOffset: photoOffset
             )
             let renderer = ImageRenderer(content: content)
             renderer.scale = UIScreen.main.scale
@@ -412,7 +617,13 @@ struct PhotoEditorView: View {
         }
 
         let editorState = wasEdited
-            ? EditorState.from(elements: elements, frameStyle: selectedFrame, canvasSize: canvasSize)
+            ? EditorState.from(
+                elements: elements,
+                frameStyle: selectedFrame,
+                canvasSize: canvasSize,
+                photoCropScale: photoScale,
+                photoCropOffset: photoOffset
+            )
             : nil
 
         do {
@@ -616,6 +827,8 @@ private struct EditorRenderCanvas: View {
     let canvasSize: CGSize
     let frameStyle: EditorFrameStyle
     let themeColor: Color
+    let photoScale: CGFloat
+    let photoOffset: CGSize
 
     private let baseStickerSize: CGFloat = 48
     private let baseTextSize: CGFloat = 17
@@ -631,6 +844,8 @@ private struct EditorRenderCanvas: View {
             Image(uiImage: image)
                 .resizable()
                 .scaledToFill()
+                .scaleEffect(photoScale)
+                .offset(photoOffset)
                 .frame(
                     width: photoContentSize.width,
                     height: photoContentSize.height

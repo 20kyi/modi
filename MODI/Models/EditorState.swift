@@ -72,19 +72,28 @@ struct EditorState: Codable, Equatable {
     var frameStyle: String
     var canvasWidth: Double
     var canvasHeight: Double
+    var photoCropScale: Double
+    var photoCropOffsetX: Double
+    var photoCropOffsetY: Double
 
     init(
-        version: Int = 2,
+        version: Int = 3,
         elements: [PersistedEditorElement],
         frameStyle: String,
         canvasWidth: Double,
-        canvasHeight: Double
+        canvasHeight: Double,
+        photoCropScale: Double = 1,
+        photoCropOffsetX: Double = 0,
+        photoCropOffsetY: Double = 0
     ) {
         self.version = version
         self.elements = elements
         self.frameStyle = frameStyle
         self.canvasWidth = canvasWidth
         self.canvasHeight = canvasHeight
+        self.photoCropScale = photoCropScale
+        self.photoCropOffsetX = photoCropOffsetX
+        self.photoCropOffsetY = photoCropOffsetY
     }
 
     init(from decoder: Decoder) throws {
@@ -94,19 +103,27 @@ struct EditorState: Codable, Equatable {
         frameStyle = try container.decode(String.self, forKey: .frameStyle)
         canvasWidth = try container.decode(Double.self, forKey: .canvasWidth)
         canvasHeight = try container.decode(Double.self, forKey: .canvasHeight)
+        photoCropScale = try container.decodeIfPresent(Double.self, forKey: .photoCropScale) ?? 1
+        photoCropOffsetX = try container.decodeIfPresent(Double.self, forKey: .photoCropOffsetX) ?? 0
+        photoCropOffsetY = try container.decodeIfPresent(Double.self, forKey: .photoCropOffsetY) ?? 0
     }
 
     static func from(
         elements: [EditorElement],
         frameStyle: EditorFrameStyle,
-        canvasSize: CGSize
+        canvasSize: CGSize,
+        photoCropScale: Double = 1,
+        photoCropOffset: CGSize = .zero
     ) -> EditorState {
         EditorState(
-            version: 2,
+            version: 3,
             elements: elements.map { PersistedEditorElement(from: $0, canvasSize: canvasSize) },
             frameStyle: frameStyle.rawValue,
             canvasWidth: canvasSize.width,
-            canvasHeight: canvasSize.height
+            canvasHeight: canvasSize.height,
+            photoCropScale: photoCropScale,
+            photoCropOffsetX: photoCropOffset.width,
+            photoCropOffsetY: photoCropOffset.height
         )
     }
 
