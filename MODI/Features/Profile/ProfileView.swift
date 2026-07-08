@@ -130,7 +130,7 @@ struct ProfileView: View {
             VStack(alignment: .leading, spacing: AppSpacing.lg) {
                 HStack(spacing: AppSpacing.md) {
                     RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                        .fill(Color(hex: viewModel.monthlyConcept.themeColorHex))
+                        .fill(AppColor.emojiBackground(from: viewModel.monthlyConcept.themeColorHex))
                         .frame(width: 56, height: 56)
                         .overlay {
                             Text(viewModel.monthlyConcept.emoji)

@@ -18,6 +18,21 @@ enum AppColor {
         )
     }
 
+    /// Theme color 기반 이모지 배경(컬렉션 카드)을 다크모드에서 더 차분하게 보정합니다.
+    /// - Light: 원본 테마 컬러
+    /// - Dark: 테마 컬러를 다크 배경과 블렌딩해 채도/명도를 낮춤
+    static func emojiBackground(from themeColorHex: String) -> Color {
+        let lightUI = UIColor(hex: themeColorHex)
+        let darkBaseUI = UIColor(hex: "111316") // AppColor.Background.primary dark hex
+        let darkUI = lightUI.blended(with: darkBaseUI, t: 0.62)
+
+        return Color(
+            uiColor: UIColor { trait in
+                trait.userInterfaceStyle == .dark ? darkUI : lightUI
+            }
+        )
+    }
+
     // MARK: Background
 
     enum Background {
@@ -165,5 +180,31 @@ private extension UIColor {
         let blue = CGFloat(value & 0xFF) / 255
 
         self.init(red: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    func blended(with other: UIColor, t: CGFloat) -> UIColor {
+        var r1: CGFloat = 0
+        var g1: CGFloat = 0
+        var b1: CGFloat = 0
+        var a1: CGFloat = 0
+        var r2: CGFloat = 0
+        var g2: CGFloat = 0
+        var b2: CGFloat = 0
+        var a2: CGFloat = 0
+
+        guard
+            self.getRed(&r1, green: &g1, blue: &b1, alpha: &a1),
+            other.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        else {
+            return self
+        }
+
+        let clampedT = min(max(t, 0), 1)
+        return UIColor(
+            red: r1 * (1 - clampedT) + r2 * clampedT,
+            green: g1 * (1 - clampedT) + g2 * clampedT,
+            blue: b1 * (1 - clampedT) + b2 * clampedT,
+            alpha: a1 * (1 - clampedT) + a2 * clampedT
+        )
     }
 }

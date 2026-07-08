@@ -17,7 +17,7 @@ struct CollectionCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
             RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
-                .fill(collection.themeColor)
+                .fill(AppColor.emojiBackground(from: collection.themeColorHex))
                 .aspectRatio(1.0, contentMode: .fit)
                 .overlay {
                     Text(collection.emoji)
