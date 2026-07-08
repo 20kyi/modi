@@ -451,33 +451,18 @@ struct PhotoEditorView: View {
     }
 
     private func imageFrame(in containerSize: CGSize) -> CGRect {
-        guard originalPhoto.size.width > 0, originalPhoto.size.height > 0 else {
-            return CGRect(origin: .zero, size: containerSize)
-        }
-
-        let imageAspect = originalPhoto.size.width / originalPhoto.size.height
         let horizontalPadding = AppSpacing.screenHorizontal * 2
 
         let maxWidth = max(containerSize.width - horizontalPadding, 1)
         let maxHeight = max(containerSize.height - AppSpacing.xl, 1)
-
-        let width: CGFloat
-        let height: CGFloat
-
-        if imageAspect > maxWidth / maxHeight {
-            width = maxWidth
-            height = width / imageAspect
-        } else {
-            height = maxHeight
-            width = height * imageAspect
-        }
+        let side = min(maxWidth, maxHeight)
 
         let origin = CGPoint(
-            x: (containerSize.width - width) / 2,
-            y: (containerSize.height - height) / 2
+            x: (containerSize.width - side) / 2,
+            y: (containerSize.height - side) / 2
         )
 
-        return CGRect(origin: origin, size: CGSize(width: width, height: height))
+        return CGRect(origin: origin, size: CGSize(width: side, height: side))
     }
 }
 

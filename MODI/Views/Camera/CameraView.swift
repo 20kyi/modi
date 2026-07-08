@@ -29,37 +29,47 @@ struct CameraView: View {
     @State private var editorPresentation: CameraEditorPresentation?
     @State private var captureErrorMessage: String?
     @State private var pinchBaseZoom: CGFloat = 1.0
+    @State private var viewfinderSide: CGFloat = 0
 
     var body: some View {
-        ZStack {
-            cameraBackground
-                .ignoresSafeArea()
+        GeometryReader { geometry in
+            let side = viewfinderDimension(in: geometry.size)
 
-            cameraScrim
-                .ignoresSafeArea()
+            ZStack {
+                Color.black
+                    .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                topBar
+                VStack(spacing: AppSpacing.lg) {
+                    topBar
 
-                Spacer(minLength: AppSpacing.xxxl)
+                    Spacer(minLength: AppSpacing.md)
 
-                missionOverlay
+                    squareViewfinder(side: side)
 
-                Spacer(minLength: AppSpacing.xxxl)
+                    missionOverlay
+                        .padding(.horizontal, AppSpacing.sm)
 
-                VStack(spacing: AppSpacing.md) {
-                    if cameraManager.zoomFactor > 1.05 {
-                        zoomIndicator
+                    Spacer(minLength: AppSpacing.md)
+
+                    VStack(spacing: AppSpacing.md) {
+                        if cameraManager.zoomFactor > 1.05 {
+                            zoomIndicator
+                        }
+
+                        captureControls
                     }
-
-                    captureControls
+                    .padding(.bottom, AppSpacing.huge)
                 }
-                .padding(.bottom, AppSpacing.huge)
+                .padding(.horizontal, AppSpacing.screenHorizontal)
             }
-            .padding(.horizontal, AppSpacing.screenHorizontal)
+            .onAppear {
+                viewfinderSide = side
+            }
+            .onChange(of: geometry.size) { _, newSize in
+                viewfinderSide = viewfinderDimension(in: newSize)
+            }
         }
         .background(Color.black)
-        .simultaneousGesture(zoomGesture)
         .task {
             await cameraManager.setup()
         }
@@ -95,47 +105,37 @@ struct CameraView: View {
         }
     }
 
-    // MARK: - Camera Background
+    // MARK: - Square Viewfinder
 
-    @ViewBuilder
-    private var cameraBackground: some View {
-        if cameraManager.isSessionRunning {
-            CameraPreview(session: cameraManager.session)
-        } else {
-            Color.black
-                .overlay {
-                    cameraUnavailableContent
-                }
-        }
+    private func viewfinderDimension(in containerSize: CGSize) -> CGFloat {
+        let horizontalPadding = AppSpacing.screenHorizontal * 2
+        let maxWidth = max(containerSize.width - horizontalPadding, 1)
+        let reservedHeight = AppSpacing.huge * 4 + AppSpacing.xxxl
+        let maxHeight = max(containerSize.height - reservedHeight, 1)
+        return min(maxWidth, maxHeight)
     }
 
-    private var cameraScrim: some View {
-        VStack(spacing: 0) {
-            LinearGradient(
-                colors: [
-                    Color.black.opacity(0.45),
-                    Color.black.opacity(0.15),
-                    Color.clear
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 220)
-
-            Spacer()
-
-            LinearGradient(
-                colors: [
-                    Color.clear,
-                    Color.black.opacity(0.2),
-                    Color.black.opacity(0.5)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .frame(height: 200)
+    @ViewBuilder
+    private func squareViewfinder(side: CGFloat) -> some View {
+        ZStack {
+            if cameraManager.isSessionRunning {
+                CameraPreview(session: cameraManager.session)
+            } else {
+                Color.black
+                    .overlay {
+                        cameraUnavailableContent
+                    }
+            }
         }
-        .allowsHitTesting(false)
+        .frame(width: side, height: side)
+        .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+        }
+        .contentShape(Rectangle())
+        .simultaneousGesture(zoomGesture)
+        .accessibilityLabel("1대1 카메라 미리보기")
     }
 
     // MARK: - Top Bar
@@ -293,7 +293,9 @@ struct CameraView: View {
     private func capturePhoto() async {
         do {
             let image = try await cameraManager.capturePhoto()
-            editorPresentation = CameraEditorPresentation(image: image)
+            let viewport = CGSize(width: viewfinderSide, height: viewfinderSide)
+            let cropped = ImageCropUtility.cropSquareAspectFill(image: image, viewportSize: viewport) ?? image
+            editorPresentation = CameraEditorPresentation(image: cropped)
         } catch {
             captureErrorMessage = error.localizedDescription
         }

@@ -1,4 +1,12 @@
 import SwiftUI
+import UIKit
+
+// MARK: - Crop Presentation
+
+private struct PhotoCropPresentation: Identifiable {
+    let id = UUID()
+    let image: UIImage
+}
 
 // MARK: - PhotoSelectionSheet
 
@@ -12,6 +20,7 @@ struct PhotoSelectionSheet: View {
 
     @Environment(\.dismiss) private var dismiss
     @State private var showImagePicker = false
+    @State private var cropPresentation: PhotoCropPresentation?
 
     private var conceptThemeColor: Color {
         if let concept {
@@ -66,10 +75,23 @@ struct PhotoSelectionSheet: View {
             }
             .sheet(isPresented: $showImagePicker) {
                 PhotoLibraryPicker { image in
-                    dismiss()
-                    onImagePicked(image)
+                    showImagePicker = false
+                    cropPresentation = PhotoCropPresentation(image: image)
                 }
                 .ignoresSafeArea()
+            }
+            .fullScreenCover(item: $cropPresentation) { presentation in
+                SquareImageCropView(
+                    image: presentation.image,
+                    onConfirm: { croppedImage in
+                        cropPresentation = nil
+                        dismiss()
+                        onImagePicked(croppedImage)
+                    },
+                    onCancel: {
+                        cropPresentation = nil
+                    }
+                )
             }
         }
         .presentationDetents([.fraction(0.55)])
@@ -107,9 +129,9 @@ struct PhotoSelectionSheet: View {
 
     private var heroMessage: String {
         if concept != nil {
-            return "선택한 컨셉에 담을 사진을 골라보세요"
+            return "선택한 컨셉에 담을 사진을 1:1 비율로 맞춰보세요"
         }
-        return "꾸미고 싶은 사진을 골라 MODI 기록으로 남겨보세요"
+        return "꾸미고 싶은 사진을 1:1 비율로 맞춰 MODI 기록으로 남겨보세요"
     }
 
     private func selectedConceptCard(_ concept: Concept) -> some View {
