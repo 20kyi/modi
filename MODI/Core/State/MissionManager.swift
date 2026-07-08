@@ -105,6 +105,49 @@ final class MissionManager {
         saveTodayMissions()
     }
 
+    /// 해당 날짜에 미션을 바꿀 수 있는지 확인합니다. 하루 1회, 미완료 상태에서만 가능합니다.
+    func canChangeMission(on date: Date = .now, repository: RecordRepository) -> Bool {
+        guard !isMissionCompleted(on: date, repository: repository) else { return false }
+        guard !mission(for: date).hasChangedConcept else { return false }
+        return !rerollCandidates(on: date).isEmpty
+    }
+
+    /// 오늘의 미션을 다른 Concept으로 바꿉니다. 하루 1회만 가능합니다.
+    @discardableResult
+    func changeMission(
+        to concept: Concept,
+        on date: Date = .now,
+        repository: RecordRepository
+    ) -> Bool {
+        guard canChangeMission(on: date, repository: repository) else { return false }
+        guard concept.id != mission(for: date).conceptId else { return false }
+
+        let current = mission(for: date)
+        let key = TodayMission.dayKey(for: date)
+        let mission = TodayMission(
+            conceptId: concept.id,
+            initialConceptId: current.initialConceptId,
+            date: date,
+            hasChangedConcept: true
+        )
+        todayMissions[key] = mission
+        saveTodayMissions()
+        return true
+    }
+
+    /// 오늘 첫 미션을 제외한 컬렉션에서 랜덤으로 미션을 바꿉니다.
+    @discardableResult
+    func rerollMission(on date: Date = .now, repository: RecordRepository) -> Concept? {
+        guard let concept = rerollCandidates(on: date).randomElement() else { return nil }
+        guard changeMission(to: concept, on: date, repository: repository) else { return nil }
+        return concept
+    }
+
+    private func rerollCandidates(on date: Date) -> [Concept] {
+        let initialConceptId = mission(for: date).initialConceptId
+        return allConcepts.filter { $0.id != initialConceptId }
+    }
+
     // MARK: - Completion
 
     func isMissionCompleted(on date: Date = .now, repository: RecordRepository) -> Bool {

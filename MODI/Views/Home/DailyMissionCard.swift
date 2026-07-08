@@ -4,6 +4,8 @@ struct DailyMissionCard: View {
 
     let mission: DailyMission
     var onRecordTapped: (() -> Void)?
+    var canChangeMission: Bool = false
+    var onChangeMissionTapped: (() -> Void)?
 
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
@@ -33,11 +35,21 @@ struct DailyMissionCard: View {
                         AppColor.Semantic.success.opacity(0.12),
                         in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
                     )
-            } else if let onRecordTapped {
-                Button(action: onRecordTapped) {
-                    Text("기록하기")
+            } else {
+                VStack(spacing: AppSpacing.sm) {
+                    if let onRecordTapped {
+                        Button(action: onRecordTapped) {
+                            Text("기록하기")
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                    }
+
+                    if canChangeMission, let onChangeMissionTapped {
+                        Button("미션 바꾸기", action: onChangeMissionTapped)
+                            .font(AppFont.footnote)
+                            .foregroundStyle(AppColor.Text.secondary)
+                    }
                 }
-                .buttonStyle(PrimaryButtonStyle())
             }
         }
         .padding(AppSpacing.xl)

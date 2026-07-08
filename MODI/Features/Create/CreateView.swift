@@ -32,6 +32,10 @@ struct CreateView: View {
         showCompleted || missionManager.isTodaysMissionCompleted(repository: repository)
     }
 
+    private var canChangeMission: Bool {
+        !showCompleted && missionManager.canChangeMission(repository: repository)
+    }
+
     var body: some View {
         NavigationStack {
             Group {
@@ -115,7 +119,11 @@ struct CreateView: View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            DailyMissionCard(mission: todaysMission)
+            DailyMissionCard(
+                mission: todaysMission,
+                canChangeMission: canChangeMission,
+                onChangeMissionTapped: rerollMission
+            )
 
             VStack(spacing: AppSpacing.sm) {
                 Text("미션에 맞는 순간을 찾아보세요")
@@ -205,6 +213,10 @@ struct CreateView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
             editorPresentation = EditorPresentation(image: image)
         }
+    }
+
+    private func rerollMission() {
+        _ = missionManager.rerollMission(repository: repository)
     }
 }
 

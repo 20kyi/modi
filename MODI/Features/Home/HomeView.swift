@@ -19,6 +19,10 @@ struct HomeView: View {
             ?? .mock
     }
 
+    private var canChangeMission: Bool {
+        missionManager.canChangeMission(repository: recordRepository)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -29,7 +33,9 @@ struct HomeView: View {
 
                     DailyMissionCard(
                         mission: todaysMission,
-                        onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped
+                        onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
+                        canChangeMission: canChangeMission,
+                        onChangeMissionTapped: rerollMission
                     )
 
                     recentDiscoverySection
@@ -146,6 +152,11 @@ struct HomeView: View {
             recordRepository: recordRepository,
             collectionRepository: collectionRepository
         )
+    }
+
+    private func rerollMission() {
+        guard missionManager.rerollMission(repository: recordRepository) != nil else { return }
+        refreshData()
     }
 }
 
