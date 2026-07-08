@@ -418,6 +418,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "오늘의 미션 사진을 촬영하기 위해 카메라 접근이 필요해요.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "컬렉션 공유 카드를 사진 앱에 저장하기 위해 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앨범에서 미션 사진을 선택하기 위해 사진 라이브러리 접근이 필요해요.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
@@ -463,6 +464,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_NSCameraUsageDescription = "오늘의 미션 사진을 촬영하기 위해 카메라 접근이 필요해요.";
+				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "컬렉션 공유 카드를 사진 앱에 저장하기 위해 접근이 필요해요.";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "앨범에서 미션 사진을 선택하기 위해 사진 라이브러리 접근이 필요해요.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;

@@ -114,7 +114,7 @@ struct CollectionDetailView: View {
             Text("삭제한 사진은 복구할 수 없어요.")
         }
         .sheet(item: $sharePayload) { payload in
-            ShareSheet(items: [payload.image])
+            CollectionShareOptionsSheet(image: payload.image)
                 .presentationDetents([.medium, .large])
         }
     }
