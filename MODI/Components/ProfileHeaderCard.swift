@@ -5,13 +5,26 @@ struct ProfileHeaderCard: View {
     let nickname: String
     let tagline: String
     let stats: DiscoveryStats
+    let nameSuffix: String
+
+    init(
+        nickname: String,
+        tagline: String,
+        stats: DiscoveryStats,
+        nameSuffix: String = "님"
+    ) {
+        self.nickname = nickname
+        self.tagline = tagline
+        self.stats = stats
+        self.nameSuffix = nameSuffix
+    }
 
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
             profileImage
 
             VStack(spacing: AppSpacing.xs) {
-                Text("\(nickname)님")
+                Text("\(nickname)\(nameSuffix)")
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.Text.primary)
 

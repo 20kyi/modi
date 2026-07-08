@@ -105,6 +105,7 @@ struct MainTabView: View {
         .modelContainer(container)
         .environment(NotificationManager.mock)
         .environment(MissionManager.mock)
+        .environment(AuthManager.mock)
         .environment(repository)
         .environment(collectionRepository)
         .environment(streakManager)

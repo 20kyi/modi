@@ -13,9 +13,11 @@ struct ProfileView: View {
     @Environment(RecordRepository.self) private var recordRepository
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(MissionManager.self) private var missionManager
+    @Environment(AuthManager.self) private var authManager
     @State private var viewModel = ProfileViewModel()
     @State private var selectedCalendarDay: SelectedCalendarDay?
     @State private var pastDiscoveryPresentation: PastDiscoveryPresentation?
+    @State private var isShowingLogin = false
 
     private struct PastDiscoveryPresentation: Identifiable {
         let id = UUID()
@@ -27,10 +29,27 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
                     ProfileHeaderCard(
-                        nickname: viewModel.nickname,
+                        nickname: authManager.session.isGuest
+                            ? "게스트 사용자"
+                            : (authManager.session.nickname ?? viewModel.nickname),
                         tagline: viewModel.tagline,
-                        stats: viewModel.stats
+                        stats: viewModel.stats,
+                        nameSuffix: authManager.session.isGuest ? "" : "님"
                     )
+
+                    if authManager.session.isGuest {
+                        VStack(alignment: .leading, spacing: AppSpacing.md) {
+                            Button("로그인하고 기록 보호하기") {
+                                isShowingLogin = true
+                            }
+                            .buttonStyle(PrimaryButtonStyle())
+
+                            Text("로그인은 기록 보호를 위한 선택이에요.")
+                                .font(AppFont.footnote)
+                                .foregroundStyle(AppColor.Text.secondary)
+                        }
+                        .appCardStyle()
+                    }
 
                     discoveryCalendarSection
                     monthlyConceptSection
@@ -70,6 +89,12 @@ struct ProfileView: View {
                 .environment(recordRepository)
                 .environment(collectionRepository)
                 .environment(streakManager)
+            }
+            .fullScreenCover(isPresented: $isShowingLogin) {
+                LoginView {
+                    isShowingLogin = false
+                }
+                .environment(authManager)
             }
         }
     }
@@ -260,6 +285,7 @@ struct ProfileView: View {
         .modelContainer(container)
         .environment(NotificationManager.mock)
         .environment(MissionManager.mock)
+        .environment(AuthManager.mock)
         .environment(repository)
         .environment(collectionRepository)
         .environment(streakManager)

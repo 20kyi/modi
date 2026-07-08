@@ -1,0 +1,111 @@
+import AuthenticationServices
+import SwiftUI
+
+struct LoginView: View {
+    @Environment(AuthManager.self) private var authManager
+
+    /// 온보딩/프로필 진입 후, 로그인 선택을 완료하면 호출됩니다.
+    let onComplete: () -> Void
+
+    @State private var isSigningIn = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            header
+
+            Spacer()
+
+            contentCard
+
+            Spacer()
+        }
+        .appScreenBackground()
+    }
+
+    private var header: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("MODI")
+                .font(AppFont.headline)
+                .foregroundStyle(AppColor.Text.primary)
+
+            Text("작은 순간을 발견하고 기록하세요 ✨")
+                .font(AppFont.callout)
+                .foregroundStyle(AppColor.Text.secondary)
+                .lineSpacing(6)
+        }
+        .appScreenPadding()
+        .padding(.top, AppSpacing.xxxl)
+    }
+
+    private var contentCard: some View {
+        VStack(spacing: AppSpacing.md) {
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.Semantic.error)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            Button {
+                startAppleSignIn()
+            } label: {
+                HStack(spacing: AppSpacing.md) {
+                    Image(systemName: "apple.logo")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(.white)
+
+                    Text("Apple로 시작하기")
+                        .font(AppFont.headline)
+                        .foregroundStyle(.white)
+
+                    Spacer()
+
+                    if isSigningIn {
+                        ProgressView()
+                            .tint(.white)
+                    }
+                }
+                .padding(.horizontal, AppSpacing.lg)
+                .frame(height: AppSpacing.minTouchTarget)
+                .background(Color.black, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .disabled(isSigningIn)
+
+            Button("나중에 둘러보기") {
+                authManager.setGuest()
+                onComplete()
+            }
+            .buttonStyle(SecondaryButtonStyle())
+            .disabled(isSigningIn)
+        }
+        .appCardStyle()
+        .padding(.horizontal, AppSpacing.cardPadding)
+    }
+
+    private func startAppleSignIn() {
+        isSigningIn = true
+        errorMessage = nil
+
+        Task {
+            do {
+                _ = try await authManager.signInWithApple()
+                onComplete()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+
+            isSigningIn = false
+        }
+    }
+}
+
+// MARK: - Preview
+
+#Preview {
+    LoginView(onComplete: {})
+        .environment(AuthManager.mock)
+}
+
