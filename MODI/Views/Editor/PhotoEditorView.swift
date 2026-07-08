@@ -318,7 +318,7 @@ struct PhotoEditorView: View {
         let center = defaultElementPosition()
 
         let element = EditorElement(
-            type: .text(content: content, color: .white),
+            type: .text(content: content, color: AppColor.Text.onAccent),
             position: center,
             scale: 1.0
         )
@@ -517,12 +517,12 @@ private struct EditorElementOverlay: View {
         } label: {
             Image(systemName: "xmark")
                 .font(.system(size: 8, weight: .bold))
-                .foregroundStyle(.white)
+                .foregroundStyle(AppColor.Text.onAccent)
                 .frame(width: 16, height: 16)
-                .background(Color.black.opacity(0.6), in: Circle())
+                .background(AppColor.Overlay.scrim.opacity(0.9), in: Circle())
                 .overlay {
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.85), lineWidth: 1)
+                        .strokeBorder(AppColor.Text.onAccent.opacity(0.85), lineWidth: 1)
                 }
         }
         .buttonStyle(.plain)
@@ -539,7 +539,7 @@ private struct EditorElementOverlay: View {
             Text(content)
                 .font(.system(size: baseTextSize * element.scale * magnifyBy, weight: .semibold))
                 .foregroundStyle(color)
-                .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
+                .shadow(color: AppColor.Overlay.scrim.opacity(0.9), radius: 3, y: 1)
                 .rotationEffect(element.rotation + rotateBy)
                 .padding(.horizontal, AppSpacing.sm)
                 .padding(.vertical, AppSpacing.xs)
@@ -647,7 +647,7 @@ private struct EditorRenderCanvas: View {
                     Text(content)
                         .font(.system(size: baseTextSize * element.scale, weight: .semibold))
                         .foregroundStyle(color)
-                        .shadow(color: .black.opacity(0.45), radius: 3, y: 1)
+                        .shadow(color: AppColor.Overlay.scrim.opacity(0.9), radius: 3, y: 1)
                         .rotationEffect(element.rotation)
                         .position(element.position)
                 }
@@ -677,7 +677,7 @@ private struct EditorRenderCanvas: View {
 
 // MARK: - Preview
 
-#Preview("With Concept") {
+#Preview("With Concept · Light") {
     let (container, repository) = RecordPreviewData.makeRepository()
     let size = CGSize(width: 300, height: 400)
     let renderer = UIGraphicsImageRenderer(size: size)
@@ -693,9 +693,29 @@ private struct EditorRenderCanvas: View {
     .modelContainer(container)
     .environment(repository)
     .environment(CollectionRepository(modelContext: container.mainContext))
+    .preferredColorScheme(.light)
 }
 
-#Preview("Without Concept") {
+#Preview("With Concept · Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository()
+    let size = CGSize(width: 300, height: 400)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let sampleImage = renderer.image { context in
+        UIColor.systemTeal.setFill()
+        context.fill(CGRect(origin: .zero, size: size))
+    }
+
+    return PhotoEditorView(
+        image: sampleImage,
+        concept: .mock
+    ) {}
+    .modelContainer(container)
+    .environment(repository)
+    .environment(CollectionRepository(modelContext: container.mainContext))
+    .preferredColorScheme(.dark)
+}
+
+#Preview("Without Concept · Light") {
     let (container, repository) = RecordPreviewData.makeRepository()
     let size = CGSize(width: 300, height: 400)
     let renderer = UIGraphicsImageRenderer(size: size)
@@ -708,4 +728,21 @@ private struct EditorRenderCanvas: View {
         .modelContainer(container)
         .environment(repository)
         .environment(CollectionRepository(modelContext: container.mainContext))
+        .preferredColorScheme(.light)
+}
+
+#Preview("Without Concept · Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository()
+    let size = CGSize(width: 300, height: 400)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let sampleImage = renderer.image { context in
+        UIColor.systemPink.setFill()
+        context.fill(CGRect(origin: .zero, size: size))
+    }
+
+    return PhotoEditorView(image: sampleImage) {}
+        .modelContainer(container)
+        .environment(repository)
+        .environment(CollectionRepository(modelContext: container.mainContext))
+        .preferredColorScheme(.dark)
 }

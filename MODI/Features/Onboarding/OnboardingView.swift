@@ -125,8 +125,16 @@ struct OnboardingNotificationOptIn: View {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Light") {
     OnboardingView(onComplete: {})
         .environment(NotificationManager.mock)
         .environment(MissionManager.mock)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    OnboardingView(onComplete: {})
+        .environment(NotificationManager.mock)
+        .environment(MissionManager.mock)
+        .preferredColorScheme(.dark)
 }

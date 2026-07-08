@@ -35,11 +35,15 @@ struct CollectionSummaryCard: View {
             AppColor.Surface.card,
             in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .stroke(AppColor.Border.default, lineWidth: 0.75)
+        }
         .shadow(color: AppShadow.subtle.color, radius: AppShadow.subtle.radius, x: 0, y: AppShadow.subtle.yOffset)
     }
 }
 
-#Preview {
+#Preview("Light") {
     VStack(spacing: AppSpacing.sm) {
         ForEach(ProfileCollectionSummary.mockList) { summary in
             CollectionSummaryCard(summary: summary)
@@ -47,4 +51,16 @@ struct CollectionSummaryCard: View {
     }
     .appScreenPadding()
     .appScreenBackground()
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    VStack(spacing: AppSpacing.sm) {
+        ForEach(ProfileCollectionSummary.mockList) { summary in
+            CollectionSummaryCard(summary: summary)
+        }
+    }
+    .appScreenPadding()
+    .appScreenBackground()
+    .preferredColorScheme(.dark)
 }

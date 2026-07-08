@@ -116,6 +116,8 @@ struct SettingsView: View {
         .appGroupedBackground()
         .navigationTitle("설정")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private var accountSection: some View {
@@ -250,22 +252,22 @@ struct SettingsView: View {
                         HStack(spacing: AppSpacing.md) {
                             Image(systemName: "apple.logo")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColor.Text.onAccent)
 
                             Text("Apple로 로그인")
                                 .font(AppFont.headline)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppColor.Text.onAccent)
 
                             Spacer()
 
                             if isSigningIn {
                                 ProgressView()
-                                    .tint(.white)
+                                    .tint(AppColor.Text.onAccent)
                             }
                         }
                         .padding(.horizontal, AppSpacing.lg)
                         .frame(height: AppSpacing.minTouchTarget)
-                        .background(Color.black, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+                        .background(AppColor.Accent.primary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .disabled(isSigningIn)
@@ -465,16 +467,34 @@ struct SettingsView: View {
     }
 }
 
-#Preview("로그인 사용자") {
+#Preview("로그인 사용자 · Light") {
     NavigationStack {
         SettingsView()
     }
     .environment(AuthManager.mock)
+    .preferredColorScheme(.light)
 }
 
-#Preview("게스트") {
+#Preview("로그인 사용자 · Dark") {
+    NavigationStack {
+        SettingsView()
+    }
+    .environment(AuthManager.mock)
+    .preferredColorScheme(.dark)
+}
+
+#Preview("게스트 · Light") {
     NavigationStack {
         SettingsView()
     }
     .environment(AuthManager(session: .guest))
+    .preferredColorScheme(.light)
+}
+
+#Preview("게스트 · Dark") {
+    NavigationStack {
+        SettingsView()
+    }
+    .environment(AuthManager(session: .guest))
+    .preferredColorScheme(.dark)
 }

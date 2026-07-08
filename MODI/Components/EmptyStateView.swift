@@ -43,7 +43,7 @@ struct EmptyStateView: View {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Light") {
     EmptyStateView(
         icon: "photo.on.rectangle.angled",
         title: "아직 제작한 아이템이 없어요",
@@ -53,4 +53,18 @@ struct EmptyStateView: View {
     )
     .appScreenPadding()
     .appScreenBackground()
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    EmptyStateView(
+        icon: "photo.on.rectangle.angled",
+        title: "아직 제작한 아이템이 없어요",
+        message: "첫 번째 아이템을 만들어보세요.",
+        actionTitle: "만들기",
+        action: {}
+    )
+    .appScreenPadding()
+    .appScreenBackground()
+    .preferredColorScheme(.dark)
 }

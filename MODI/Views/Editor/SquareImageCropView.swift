@@ -82,7 +82,7 @@ struct SquareImageCropView: View {
 
     private func cropCanvas(side: CGFloat) -> some View {
         ZStack {
-            Color.black.opacity(0.92)
+            AppColor.Overlay.scrim.opacity(0.95)
 
             ZStack {
                 Image(uiImage: normalizedImage)
@@ -107,7 +107,7 @@ struct SquareImageCropView: View {
     private func squareCropOverlay(side: CGFloat) -> some View {
         ZStack {
             Rectangle()
-                .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
+                .strokeBorder(AppColor.Text.onAccent.opacity(0.9), lineWidth: 1.5)
                 .frame(width: side, height: side)
 
             VStack {
@@ -131,7 +131,7 @@ struct SquareImageCropView: View {
 
     private var gridLine: some View {
         Rectangle()
-            .fill(Color.white.opacity(0.22))
+            .fill(AppColor.Text.onAccent.opacity(0.22))
             .frame(height: 0.5)
     }
 
@@ -215,7 +215,7 @@ struct SquareImageCropView: View {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Light") {
     let size = CGSize(width: 800, height: 1200)
     let renderer = UIGraphicsImageRenderer(size: size)
     let sampleImage = renderer.image { context in
@@ -228,4 +228,21 @@ struct SquareImageCropView: View {
         onConfirm: { _ in },
         onCancel: {}
     )
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let size = CGSize(width: 800, height: 1200)
+    let renderer = UIGraphicsImageRenderer(size: size)
+    let sampleImage = renderer.image { context in
+        UIColor.systemTeal.setFill()
+        context.fill(CGRect(origin: .zero, size: size))
+    }
+
+    return SquareImageCropView(
+        image: sampleImage,
+        onConfirm: { _ in },
+        onCancel: {}
+    )
+    .preferredColorScheme(.dark)
 }

@@ -30,3 +30,35 @@ struct SecondaryButtonStyle: ButtonStyle {
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
 }
+
+#Preview("Primary · Light") {
+    Button("기록하기") {}
+        .buttonStyle(PrimaryButtonStyle())
+        .padding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
+}
+
+#Preview("Primary · Dark") {
+    Button("기록하기") {}
+        .buttonStyle(PrimaryButtonStyle())
+        .padding()
+        .appScreenBackground()
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Secondary · Light") {
+    Button("나중에 둘러보기") {}
+        .buttonStyle(SecondaryButtonStyle())
+        .padding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
+}
+
+#Preview("Secondary · Dark") {
+    Button("나중에 둘러보기") {}
+        .buttonStyle(SecondaryButtonStyle())
+        .padding()
+        .appScreenBackground()
+        .preferredColorScheme(.dark)
+}

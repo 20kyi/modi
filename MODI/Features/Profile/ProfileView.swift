@@ -61,6 +61,8 @@ struct ProfileView: View {
             .appScreenBackground()
             .navigationTitle("프로필")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .onAppear {
                 refreshData()
             }
@@ -226,7 +228,7 @@ struct ProfileView: View {
     }
 }
 
-#Preview {
+#Preview("Light") {
     let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     let collectionRepository = CollectionRepository(modelContext: container.mainContext)
     collectionRepository.bootstrap()
@@ -241,4 +243,23 @@ struct ProfileView: View {
         .environment(repository)
         .environment(collectionRepository)
         .environment(streakManager)
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
+    let streakManager = StreakManager()
+    streakManager.refresh(recordRepository: repository, collectionRepository: collectionRepository)
+
+    return ProfileView()
+        .modelContainer(container)
+        .environment(NotificationManager.mock)
+        .environment(MissionManager.mock)
+        .environment(AuthManager.mock)
+        .environment(repository)
+        .environment(collectionRepository)
+        .environment(streakManager)
+        .preferredColorScheme(.dark)
 }

@@ -70,10 +70,26 @@ struct DailyMissionCard: View {
     DailyMissionCard(mission: .mock) {}
         .appScreenPadding()
         .appScreenBackground()
+        .preferredColorScheme(.light)
 }
 
 #Preview("완료") {
     DailyMissionCard(mission: .mockCompleted)
         .appScreenPadding()
         .appScreenBackground()
+        .preferredColorScheme(.light)
+}
+
+#Preview("진행 중 · Dark") {
+    DailyMissionCard(mission: .mock) {}
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.dark)
+}
+
+#Preview("완료 · Dark") {
+    DailyMissionCard(mission: .mockCompleted)
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.dark)
 }

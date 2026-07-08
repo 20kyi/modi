@@ -80,6 +80,8 @@ struct MainTabView: View {
                 .tag(MainTab.profile)
         }
         .tint(AppColor.Accent.primary)
+        .toolbarBackground(AppColor.Background.primary, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .environment(collectionStore)
         .environment(missionManager)
         .environment(repository)

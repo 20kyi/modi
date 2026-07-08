@@ -84,6 +84,10 @@ extension View {
         self
             .padding(padding)
             .background(AppColor.Surface.card, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: radius, style: .continuous)
+                    .stroke(AppColor.Border.default, lineWidth: 0.75)
+            }
             .shadow(color: shadow.color, radius: shadow.radius, x: 0, y: shadow.yOffset)
     }
 

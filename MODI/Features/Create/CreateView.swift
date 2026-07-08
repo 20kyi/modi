@@ -47,6 +47,8 @@ struct CreateView: View {
             }
             .navigationTitle("오늘의 미션")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .fullScreenCover(isPresented: $showCamera) {
                 if let concept = missionManager.todaysConcept {
                     CameraView(
@@ -220,7 +222,7 @@ struct CreateView: View {
     }
 }
 
-#Preview {
+#Preview("Light") {
     let (container, repository) = RecordPreviewData.makeRepository()
     return CreateView()
         .modelContainer(container)
@@ -228,4 +230,16 @@ struct CreateView: View {
         .environment(MissionManager.mock)
         .environment(repository)
         .environment(StreakManager.mock)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository()
+    return CreateView()
+        .modelContainer(container)
+        .environment(CollectionStore())
+        .environment(MissionManager.mock)
+        .environment(repository)
+        .environment(StreakManager.mock)
+        .preferredColorScheme(.dark)
 }

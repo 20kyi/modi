@@ -28,6 +28,8 @@ struct CollectionView: View {
             .appScreenBackground()
             .navigationTitle("컬렉션")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink {
@@ -123,10 +125,20 @@ struct CollectionView: View {
     }
 }
 
-#Preview {
+#Preview("Light") {
     let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     return CollectionView()
         .modelContainer(container)
         .environment(CollectionStore())
         .environment(repository)
+        .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    return CollectionView()
+        .modelContainer(container)
+        .environment(CollectionStore())
+        .environment(repository)
+        .preferredColorScheme(.dark)
 }

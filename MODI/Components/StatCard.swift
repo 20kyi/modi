@@ -29,7 +29,7 @@ struct StatCard: View {
     }
 }
 
-#Preview {
+#Preview("Light") {
     HStack(spacing: AppSpacing.sm) {
         StatCard(value: "20", label: "총 기록")
         StatCard(value: "5", label: "컨셉")
@@ -37,4 +37,16 @@ struct StatCard: View {
     }
     .appScreenPadding()
     .appScreenBackground()
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    HStack(spacing: AppSpacing.sm) {
+        StatCard(value: "20", label: "총 기록")
+        StatCard(value: "5", label: "컨셉")
+        StatCard(value: "7일", label: "연속 기록")
+    }
+    .appScreenPadding()
+    .appScreenBackground()
+    .preferredColorScheme(.dark)
 }

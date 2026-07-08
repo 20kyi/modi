@@ -95,8 +95,16 @@ struct ProfileHeaderCard: View {
     }
 }
 
-#Preview {
+#Preview("Light") {
     ProfileHeaderCard(nickname: "영임", tagline: "MODI Explorer", stats: .mock)
         .appScreenPadding()
         .appScreenBackground()
+        .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    ProfileHeaderCard(nickname: "영임", tagline: "MODI Explorer", stats: .mock)
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.dark)
 }

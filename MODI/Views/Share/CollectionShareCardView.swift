@@ -47,7 +47,7 @@ struct CollectionShareCardView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                .strokeBorder(AppColor.Text.onAccent.opacity(0.35), lineWidth: 1)
         }
         .shadow(color: AppShadow.medium.color, radius: AppShadow.medium.radius, x: 0, y: AppShadow.medium.yOffset)
     }

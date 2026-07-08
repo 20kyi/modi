@@ -78,7 +78,7 @@ extension CollectionCard {
     }
 }
 
-#Preview {
+#Preview("Light") {
     let collection = MODICollection.from(
         photoCollection: PhotoCollection.builtIn[0],
         type: .system
@@ -92,4 +92,22 @@ extension CollectionCard {
     .frame(width: 170)
     .appScreenPadding()
     .appScreenBackground()
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let collection = MODICollection.from(
+        photoCollection: PhotoCollection.builtIn[0],
+        type: .system
+    )
+
+    return CollectionCard(
+        collection: collection,
+        photoCount: 3,
+        latestRecordDate: .now
+    )
+    .frame(width: 170)
+    .appScreenPadding()
+    .appScreenBackground()
+    .preferredColorScheme(.dark)
 }

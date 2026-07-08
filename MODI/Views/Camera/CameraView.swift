@@ -36,7 +36,7 @@ struct CameraView: View {
             let side = viewfinderDimension(in: geometry.size)
 
             ZStack {
-                Color.black
+                AppColor.Surface.cameraBackdrop
                     .ignoresSafeArea()
 
                 VStack(spacing: AppSpacing.lg) {
@@ -69,7 +69,7 @@ struct CameraView: View {
                 viewfinderSide = viewfinderDimension(in: newSize)
             }
         }
-        .background(Color.black)
+        .background(AppColor.Surface.cameraBackdrop)
         .task {
             await cameraManager.setup()
         }
@@ -121,7 +121,7 @@ struct CameraView: View {
             if cameraManager.isSessionRunning {
                 CameraPreview(session: cameraManager.session)
             } else {
-                Color.black
+                AppColor.Surface.cameraBackdrop
                     .overlay {
                         cameraUnavailableContent
                     }
@@ -131,7 +131,7 @@ struct CameraView: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                .strokeBorder(Color.white.opacity(0.35), lineWidth: 1)
+                .strokeBorder(AppColor.Text.onAccent.opacity(0.35), lineWidth: 1)
         }
         .contentShape(Rectangle())
         .simultaneousGesture(zoomGesture)
@@ -149,7 +149,7 @@ struct CameraView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(AppColor.Text.onAccent)
                     .frame(width: AppSpacing.minTouchTarget, height: AppSpacing.minTouchTarget)
-                    .background(Color.black.opacity(0.25), in: Circle())
+                    .background(AppColor.Overlay.scrim.opacity(0.65), in: Circle())
             }
             .accessibilityLabel("닫기")
 
@@ -163,7 +163,7 @@ struct CameraView: View {
                         .font(.system(size: 17, weight: .semibold))
                         .foregroundStyle(AppColor.Text.onAccent)
                         .frame(width: AppSpacing.minTouchTarget, height: AppSpacing.minTouchTarget)
-                        .background(Color.black.opacity(0.25), in: Circle())
+                        .background(AppColor.Overlay.scrim.opacity(0.65), in: Circle())
                 }
                 .accessibilityLabel(cameraManager.flashMode.accessibilityLabel)
             }
@@ -177,7 +177,7 @@ struct CameraView: View {
             .foregroundStyle(AppColor.Text.onAccent)
             .padding(.horizontal, AppSpacing.md)
             .padding(.vertical, AppSpacing.xs)
-            .background(Color.black.opacity(0.35), in: Capsule())
+            .background(AppColor.Overlay.scrim.opacity(0.8), in: Capsule())
             .accessibilityLabel("줌 \(String(format: "%.1f", cameraManager.zoomFactor))배")
     }
 
@@ -198,20 +198,20 @@ struct CameraView: View {
         VStack(spacing: AppSpacing.md) {
             Text(concept.emoji)
                 .font(.system(size: 56))
-                .shadow(color: .black.opacity(0.35), radius: 8, y: 2)
+                .shadow(color: AppColor.Overlay.scrim.opacity(0.85), radius: 8, y: 2)
 
             Text(concept.title)
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.Text.onAccent)
                 .multilineTextAlignment(.center)
-                .shadow(color: .black.opacity(0.4), radius: 6, y: 2)
+                .shadow(color: AppColor.Overlay.scrim.opacity(0.9), radius: 6, y: 2)
 
             Text(concept.description)
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.Text.onAccent.opacity(0.9))
                 .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
-                .shadow(color: .black.opacity(0.35), radius: 6, y: 2)
+                .shadow(color: AppColor.Overlay.scrim.opacity(0.85), radius: 6, y: 2)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(concept.title), \(concept.description)")
@@ -281,7 +281,7 @@ struct CameraView: View {
                     .frame(width: 62, height: 62)
                     .opacity(cameraManager.isCapturing ? 0.6 : 1)
             }
-            .shadow(color: .black.opacity(0.3), radius: 8, y: 2)
+            .shadow(color: AppColor.Overlay.scrim.opacity(0.8), radius: 8, y: 2)
         }
         .buttonStyle(.plain)
         .disabled(!cameraManager.isSessionRunning || cameraManager.isCapturing)
@@ -311,7 +311,7 @@ struct CameraView: View {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("Light") {
     let (container, repository) = RecordPreviewData.makeRepository()
     return CameraView(
         todayMission: .mock,
@@ -321,4 +321,18 @@ struct CameraView: View {
     )
     .modelContainer(container)
     .environment(repository)
+    .preferredColorScheme(.light)
+}
+
+#Preview("Dark") {
+    let (container, repository) = RecordPreviewData.makeRepository()
+    return CameraView(
+        todayMission: .mock,
+        concept: .mock,
+        mission: .mock,
+        onSaved: {}
+    )
+    .modelContainer(container)
+    .environment(repository)
+    .preferredColorScheme(.dark)
 }
