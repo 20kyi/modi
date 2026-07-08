@@ -8,7 +8,6 @@ private struct SelectedCalendarDay: Identifiable {
 
 struct ProfileView: View {
 
-    @Environment(NotificationManager.self) private var notificationManager
     @Environment(StreakManager.self) private var streakManager
     @Environment(RecordRepository.self) private var recordRepository
     @Environment(CollectionRepository.self) private var collectionRepository
@@ -186,63 +185,39 @@ struct ProfileView: View {
             sectionHeader(title: "설정")
 
             VStack(spacing: 0) {
-                ForEach(Array(viewModel.settingsItems.enumerated()), id: \.element.id) { index, item in
-                    settingsRowLink(for: item)
+                Button {
+                    // TODO: Premium 화면 연결
+                } label: {
+                    settingsRow(icon: "crown.fill", title: "Premium", iconColor: AppColor.Semantic.warning)
+                }
+                .buttonStyle(.plain)
 
-                    if index < viewModel.settingsItems.count - 1 {
-                        Divider()
-                            .padding(.leading, AppSpacing.lg + AppSpacing.xl + AppSpacing.md)
-                    }
+                Divider()
+                    .padding(.leading, AppSpacing.lg + AppSpacing.xl + AppSpacing.md)
+
+                NavigationLink {
+                    SettingsView()
+                } label: {
+                    settingsRow(icon: "gearshape.fill", title: "설정 열기", iconColor: AppColor.Accent.primary)
                 }
             }
+            .buttonStyle(.plain)
             .appCardStyle(padding: 0)
         }
     }
 
-    @ViewBuilder
-    private func settingsRowLink(for item: ProfileSettingsItem) -> some View {
-        switch item.destination {
-        case .notifications:
-            NavigationLink {
-                NotificationSettingsView()
-            } label: {
-                settingsRow(item: item, subtitle: notificationSubtitle)
-            }
-            .buttonStyle(.plain)
-
-        case .premium, .appSettings:
-            Button {
-                // TODO: 설정 항목 액션
-            } label: {
-                settingsRow(item: item, subtitle: nil)
-            }
-            .buttonStyle(.plain)
-        }
-    }
-
-    private var notificationSubtitle: String? {
-        guard notificationManager.isEnabled else { return "꺼짐" }
-        return notificationManager.formattedNotificationTime
-    }
-
-    private func settingsRow(item: ProfileSettingsItem, subtitle: String?) -> some View {
+    private func settingsRow(icon: String, title: String, iconColor: Color) -> some View {
         HStack(spacing: AppSpacing.md) {
-            Image(systemName: item.icon)
+            Image(systemName: icon)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(item.isPremium ? AppColor.Semantic.warning : AppColor.Accent.primary)
+                .foregroundStyle(iconColor)
                 .frame(width: 28)
 
-            Text(item.title)
+            Text(title)
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.Text.primary)
 
             Spacer()
-
-            if let subtitle {
-                Text(subtitle)
-                    .font(AppFont.footnote)
-                    .foregroundStyle(AppColor.Text.tertiary)
-            }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
