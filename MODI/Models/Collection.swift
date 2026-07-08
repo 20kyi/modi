@@ -117,11 +117,11 @@ extension MODICollection {
     }
 
     var latestRecordDate: Date? {
-        records?.max(by: { $0.createdAt < $1.createdAt })?.createdAt
+        records?.max(by: { $0.discoveryDate < $1.discoveryDate })?.discoveryDate
     }
 
     var sortedRecords: [MODIRecord] {
-        (records ?? []).sorted { $0.createdAt > $1.createdAt }
+        (records ?? []).sorted { $0.discoveryDate > $1.discoveryDate }
     }
 
     var concept: Concept {

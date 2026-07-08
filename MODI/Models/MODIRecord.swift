@@ -21,6 +21,8 @@ final class MODIRecord {
     @Attribute(originalName: "missionEmoji")
     var conceptEmoji: String
     var createdAt: Date
+    /// 실제 발견 날짜. nil이면 `createdAt`을 발견 날짜로 취급합니다.
+    var recordDate: Date?
     /// 기존 데이터 마이그레이션 호환을 위해 optional. nil이면 false로 취급.
     var isEdited: Bool?
     var collection: MODICollection?
@@ -32,6 +34,7 @@ final class MODIRecord {
         conceptTitle: String,
         conceptEmoji: String,
         createdAt: Date = .now,
+        recordDate: Date? = nil,
         isEdited: Bool = false
     ) {
         self.id = id
@@ -40,10 +43,16 @@ final class MODIRecord {
         self.conceptTitle = conceptTitle
         self.conceptEmoji = conceptEmoji
         self.createdAt = createdAt
+        self.recordDate = recordDate.map { Calendar.current.startOfDay(for: $0) }
         self.isEdited = isEdited
     }
 }
 
 extension MODIRecord {
     var wasEdited: Bool { isEdited ?? false }
+
+    /// 캘린더·스트릭 등에 사용하는 실제 발견 날짜.
+    var discoveryDate: Date {
+        Calendar.current.startOfDay(for: recordDate ?? createdAt)
+    }
 }

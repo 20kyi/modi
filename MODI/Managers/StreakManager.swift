@@ -19,9 +19,7 @@ final class StreakManager {
         collections: [MODICollection]
     ) {
         recordedDayKeys = Self.uniqueDayKeys(from: records)
-        let lastRecordDate = records.map(\.createdAt).max().map {
-            calendar.startOfDay(for: $0)
-        }
+        let lastRecordDate = records.map(\.discoveryDate).max()
 
         stats = DiscoveryStats(
             totalRecords: records.count,
@@ -96,7 +94,7 @@ final class StreakManager {
     // MARK: - Helpers
 
     private static func uniqueDayKeys(from records: [MODIRecord]) -> Set<String> {
-        Set(records.map { DailyMission.dayKey(for: $0.createdAt) })
+        Set(records.map { DailyMission.dayKey(for: $0.discoveryDate) })
     }
 
     private static func completedConceptCount(from records: [MODIRecord]) -> Int {

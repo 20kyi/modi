@@ -51,8 +51,8 @@ final class ProfileViewModel {
     private static func makeRecordedDayEmojis(from records: [MODIRecord]) -> [String: String] {
         var dayEmojis: [String: String] = [:]
 
-        for record in records.sorted(by: { $0.createdAt > $1.createdAt }) {
-            let dayKey = DailyMission.dayKey(for: record.createdAt)
+        for record in records.sorted(by: { $0.discoveryDate > $1.discoveryDate }) {
+            let dayKey = DailyMission.dayKey(for: record.discoveryDate)
             guard dayEmojis[dayKey] == nil else { continue }
             dayEmojis[dayKey] = record.collection?.emoji ?? record.conceptEmoji
         }
@@ -63,7 +63,7 @@ final class ProfileViewModel {
     private static func makeMonthlyConcept(from records: [MODIRecord]) -> MonthlyConcept {
         let calendar = Calendar.current
         let monthRecords = records.filter {
-            calendar.isDate($0.createdAt, equalTo: .now, toGranularity: .month)
+            calendar.isDate($0.discoveryDate, equalTo: .now, toGranularity: .month)
         }
 
         let formatter = DateFormatter()

@@ -5,13 +5,19 @@ import SwiftUI
 struct DiscoveryCalendarView: View {
 
     let recordedDayEmojis: [String: String]
+    var onDaySelected: ((Date) -> Void)?
     @State private var displayedMonth: Date
 
     private let calendar = Calendar.current
     private let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
 
-    init(recordedDayEmojis: [String: String], referenceMonth: Date = .now) {
+    init(
+        recordedDayEmojis: [String: String],
+        referenceMonth: Date = .now,
+        onDaySelected: ((Date) -> Void)? = nil
+    ) {
         self.recordedDayEmojis = recordedDayEmojis
+        self.onDaySelected = onDaySelected
         let components = Calendar.current.dateComponents([.year, .month], from: referenceMonth)
         _displayedMonth = State(
             initialValue: Calendar.current.date(from: components) ?? referenceMonth
@@ -76,11 +82,16 @@ struct DiscoveryCalendarView: View {
 
     // MARK: - Day Grid
 
+    private struct CalendarDayCell: Identifiable {
+        let id: Int
+        let date: Date?
+    }
+
     private var dayGrid: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: AppSpacing.sm) {
-            ForEach(monthDays, id: \.self) { day in
-                if let day {
-                    dayCell(for: day)
+            ForEach(calendarDayCells) { cell in
+                if let date = cell.date {
+                    dayCell(for: date)
                 } else {
                     Color.clear
                         .frame(height: 36)
@@ -96,35 +107,41 @@ struct DiscoveryCalendarView: View {
         let isToday = calendar.isDateInToday(date)
         let isFuture = date > calendar.startOfDay(for: .now)
 
-        return VStack(spacing: AppSpacing.xxs) {
-            if let dayEmoji {
-                Text(dayEmoji)
-                    .font(.system(size: 18))
-            } else {
-                Text("\(calendar.component(.day, from: date))")
-                    .font(isToday ? AppFont.subheadline.weight(.semibold) : AppFont.subheadline)
-                    .foregroundStyle(dayNumberColor(isToday: isToday, isFuture: isFuture))
-            }
-
-            Circle()
-                .fill(hasRecord ? AppColor.Accent.primary : Color.clear)
-                .frame(width: 6, height: 6)
-                .overlay {
-                    if !hasRecord, !isFuture {
-                        Circle()
-                            .strokeBorder(AppColor.Border.subtle, lineWidth: 1)
-                            .frame(width: 6, height: 6)
-                    }
+        return Button {
+            onDaySelected?(date)
+        } label: {
+            VStack(spacing: AppSpacing.xxs) {
+                if let dayEmoji {
+                    Text(dayEmoji)
+                        .font(.system(size: 18))
+                } else {
+                    Text("\(calendar.component(.day, from: date))")
+                        .font(isToday ? AppFont.subheadline.weight(.semibold) : AppFont.subheadline)
+                        .foregroundStyle(dayNumberColor(isToday: isToday, isFuture: isFuture))
                 }
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: 36)
-        .background {
-            if isToday {
-                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                    .fill(AppColor.Accent.soft.opacity(0.5))
+
+                Circle()
+                    .fill(hasRecord ? AppColor.Accent.primary : Color.clear)
+                    .frame(width: 6, height: 6)
+                    .overlay {
+                        if !hasRecord, !isFuture {
+                            Circle()
+                                .strokeBorder(AppColor.Border.subtle, lineWidth: 1)
+                                .frame(width: 6, height: 6)
+                        }
+                    }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 36)
+            .background {
+                if isToday {
+                    RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                        .fill(AppColor.Accent.soft.opacity(0.5))
+                }
             }
         }
+        .buttonStyle(.plain)
+        .disabled(isFuture || onDaySelected == nil)
     }
 
     // MARK: - Helpers
@@ -149,7 +166,7 @@ struct DiscoveryCalendarView: View {
             || (displayedYear == currentYear && displayedMonthValue < currentMonth)
     }
 
-    private var monthDays: [Date?] {
+    private var calendarDayCells: [CalendarDayCell] {
         guard let monthInterval = calendar.dateInterval(of: .month, for: displayedMonth),
               let firstWeekday = calendar.dateComponents([.weekday], from: monthInterval.start).weekday else {
             return []
@@ -165,7 +182,7 @@ struct DiscoveryCalendarView: View {
             current = next
         }
 
-        return days
+        return days.enumerated().map { CalendarDayCell(id: $0.offset, date: $0.element) }
     }
 
     private func shiftMonth(by value: Int) {

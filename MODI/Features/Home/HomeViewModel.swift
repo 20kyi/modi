@@ -41,7 +41,7 @@ final class HomeViewModel {
 
     private static func makeRecentDiscoveries(from records: [MODIRecord]) -> [RecentDiscovery] {
         records
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted { $0.discoveryDate > $1.discoveryDate }
             .prefix(3)
             .map { record in
                 RecentDiscovery(
@@ -49,7 +49,7 @@ final class HomeViewModel {
                     emoji: record.collection?.emoji ?? record.conceptEmoji,
                     title: record.conceptTitle,
                     subtitle: discoverySubtitle(for: record),
-                    relativeDate: relativeDiscoveryDate(from: record.createdAt),
+                    relativeDate: relativeDiscoveryDate(from: record.discoveryDate),
                     themeColorHex: themeColorHex(for: record)
                 )
             }
@@ -66,7 +66,7 @@ final class HomeViewModel {
         let collection = collectionRepository.collection(for: conceptId)
         let photoCollection = PhotoCollection.collection(for: conceptId)
         let records = recordRepository.fetchRecords(conceptId: conceptId)
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted { $0.discoveryDate > $1.discoveryDate }
 
         return TodaysMissionCollectionGallery(
             collectionID: conceptId,

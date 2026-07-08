@@ -174,7 +174,7 @@ extension MODIRecord {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
         formatter.dateFormat = "yyyy.MM.dd"
-        return formatter.string(from: createdAt)
+        return formatter.string(from: discoveryDate)
     }
 }
 

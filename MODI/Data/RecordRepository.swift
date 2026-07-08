@@ -43,7 +43,8 @@ final class RecordRepository {
         concept: Concept,
         collection: MODICollection? = nil,
         editorState: EditorState? = nil,
-        isEdited: Bool = false
+        isEdited: Bool = false,
+        recordDate: Date? = nil
     ) throws -> MODIRecord {
         guard let imageData = image.jpegData(compressionQuality: 0.85),
               let originalData = originalImage.jpegData(compressionQuality: 0.85)
@@ -51,11 +52,13 @@ final class RecordRepository {
             throw RecordRepositoryError.imageEncodingFailed
         }
 
+        let discoveryDay = Calendar.current.startOfDay(for: recordDate ?? .now)
         let record = MODIRecord(
             imageData: imageData,
             conceptId: concept.id,
             conceptTitle: concept.title,
             conceptEmoji: concept.emoji,
+            recordDate: discoveryDay,
             isEdited: isEdited
         )
         record.originalImageData = originalData
@@ -117,6 +120,13 @@ final class RecordRepository {
 
     func fetchRecords(for collection: MODICollection) -> [MODIRecord] {
         records.filter { $0.collection?.id == collection.id || $0.conceptId == collection.id }
+            .sorted { $0.discoveryDate > $1.discoveryDate }
+    }
+
+    func fetchRecords(on date: Date) -> [MODIRecord] {
+        let dayKey = DailyMission.dayKey(for: date)
+        return records
+            .filter { DailyMission.dayKey(for: $0.discoveryDate) == dayKey }
             .sorted { $0.createdAt > $1.createdAt }
     }
 
@@ -129,14 +139,14 @@ final class RecordRepository {
     }
 
     func latestRecordDate(for collection: MODICollection) -> Date? {
-        fetchRecords(for: collection).first?.createdAt
+        fetchRecords(for: collection).first?.discoveryDate
     }
 
     func hasRecord(on date: Date, conceptId: UUID) -> Bool {
         let dayKey = DailyMission.dayKey(for: date)
         return records.contains {
             $0.conceptId == conceptId &&
-            DailyMission.dayKey(for: $0.createdAt) == dayKey
+            DailyMission.dayKey(for: $0.discoveryDate) == dayKey
         }
     }
 
@@ -144,7 +154,7 @@ final class RecordRepository {
         let dayKey = DailyMission.dayKey(for: date)
         return records.first {
             $0.conceptId == conceptId &&
-            DailyMission.dayKey(for: $0.createdAt) == dayKey
+            DailyMission.dayKey(for: $0.discoveryDate) == dayKey
         }
     }
 
@@ -206,12 +216,14 @@ enum RecordPreviewData {
 
             guard let imageData = image.jpegData(compressionQuality: 0.85) else { continue }
 
+            let discoveryDate = Calendar.current.date(byAdding: .day, value: -index, to: .now)!
             let record = MODIRecord(
                 imageData: imageData,
                 conceptId: concept.id,
                 conceptTitle: concept.title,
                 conceptEmoji: concept.emoji,
-                createdAt: Calendar.current.date(byAdding: .day, value: -index, to: .now)!,
+                createdAt: discoveryDate,
+                recordDate: discoveryDate,
                 isEdited: index == 0
             )
             record.collection = collection

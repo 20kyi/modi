@@ -10,6 +10,7 @@ struct PhotoEditorView: View {
     var concept: Concept?
     var collection: MODICollection?
     var existingRecord: MODIRecord?
+    var recordDate: Date?
     var onSaved: () -> Void
     var onSaveFailed: ((Error) -> Void)?
 
@@ -61,7 +62,7 @@ struct PhotoEditorView: View {
         EditorFrameMetadata(
             showDate: true,
             showConceptName: resolvedConcept != nil,
-            date: existingRecord?.createdAt ?? .now,
+            date: recordDate ?? existingRecord?.discoveryDate ?? .now,
             conceptTitle: resolvedConcept?.title
         )
     }
@@ -433,7 +434,8 @@ struct PhotoEditorView: View {
                     concept: concept,
                     collection: linkedCollection,
                     editorState: editorState,
-                    isEdited: wasEdited
+                    isEdited: wasEdited,
+                    recordDate: recordDate ?? existingRecord?.discoveryDate
                 )
             }
             collectionRepository.reload()

@@ -1,13 +1,26 @@
 import SwiftData
 import SwiftUI
 
+private struct SelectedCalendarDay: Identifiable {
+    let id = UUID()
+    let date: Date
+}
+
 struct ProfileView: View {
 
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(StreakManager.self) private var streakManager
     @Environment(RecordRepository.self) private var recordRepository
     @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(MissionManager.self) private var missionManager
     @State private var viewModel = ProfileViewModel()
+    @State private var selectedCalendarDay: SelectedCalendarDay?
+    @State private var pastDiscoveryPresentation: PastDiscoveryPresentation?
+
+    private struct PastDiscoveryPresentation: Identifiable {
+        let id = UUID()
+        let date: Date
+    }
 
     var body: some View {
         NavigationStack {
@@ -34,6 +47,30 @@ struct ProfileView: View {
             .onAppear {
                 refreshData()
             }
+            .sheet(item: $selectedCalendarDay) { selection in
+                DiscoveryDaySheet(
+                    date: selection.date,
+                    records: recordRepository.fetchRecords(on: selection.date),
+                    onAddPastDiscovery: {
+                        let date = selection.date
+                        selectedCalendarDay = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            pastDiscoveryPresentation = PastDiscoveryPresentation(date: date)
+                        }
+                    }
+                )
+                .environment(collectionRepository)
+            }
+            .sheet(item: $pastDiscoveryPresentation) { presentation in
+                PastDiscoveryFlowView(selectedDate: presentation.date) {
+                    refreshData()
+                    pastDiscoveryPresentation = nil
+                }
+                .environment(missionManager)
+                .environment(recordRepository)
+                .environment(collectionRepository)
+                .environment(streakManager)
+            }
         }
     }
 
@@ -43,7 +80,12 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             sectionHeader(title: "발견 캘린더")
 
-            DiscoveryCalendarView(recordedDayEmojis: viewModel.recordedDayEmojis)
+            DiscoveryCalendarView(
+                recordedDayEmojis: viewModel.recordedDayEmojis,
+                onDaySelected: { date in
+                    selectedCalendarDay = SelectedCalendarDay(date: date)
+                }
+            )
                 .appCardStyle()
         }
     }
