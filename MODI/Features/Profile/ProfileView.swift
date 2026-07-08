@@ -148,9 +148,11 @@ struct ProfileView: View {
                     }
                 }
 
-                Button("기록 보기") {
-                    // TODO: 월간 컨셉 기록 화면으로 이동
-                }
+                    NavigationLink {
+                        MonthlyMODIView()
+                    } label: {
+                        Text("기록 보기")
+                    }
                 .buttonStyle(SecondaryButtonStyle())
             }
             .appCardStyle()
