@@ -1,8 +1,12 @@
+import SwiftData
 import SwiftUI
 
 struct ProfileView: View {
 
     @Environment(NotificationManager.self) private var notificationManager
+    @Environment(StreakManager.self) private var streakManager
+    @Environment(RecordRepository.self) private var recordRepository
+    @Environment(CollectionRepository.self) private var collectionRepository
     @State private var viewModel = ProfileViewModel()
 
     var body: some View {
@@ -10,10 +14,12 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
                     ProfileHeaderCard(
-                        profile: viewModel.profile,
-                        tagline: viewModel.tagline
+                        nickname: viewModel.nickname,
+                        tagline: viewModel.tagline,
+                        stats: viewModel.stats
                     )
 
+                    discoveryCalendarSection
                     monthlyConceptSection
                     collectionSummarySection
                     settingsSection
@@ -25,6 +31,20 @@ struct ProfileView: View {
             .appScreenBackground()
             .navigationTitle("프로필")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                refreshData()
+            }
+        }
+    }
+
+    // MARK: - Discovery Calendar
+
+    private var discoveryCalendarSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            sectionHeader(title: "발견 캘린더")
+
+            DiscoveryCalendarView(recordedDayKeys: viewModel.recordedDayKeys)
+                .appCardStyle()
         }
     }
 
@@ -49,7 +69,7 @@ struct ProfileView: View {
                             .font(AppFont.title3)
                             .foregroundStyle(AppColor.Text.primary)
 
-                        Text("현재 기록 개수: \(viewModel.monthlyConcept.currentRecordCount)개")
+                        Text("이번 달 기록: \(viewModel.monthlyConcept.currentRecordCount)개")
                             .font(AppFont.footnote)
                             .foregroundStyle(AppColor.Text.secondary)
                     }
@@ -70,14 +90,23 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             sectionHeader(title: "나의 발견")
 
-            VStack(spacing: AppSpacing.sm) {
-                ForEach(viewModel.collectionSummaries) { summary in
-                    Button {
-                        // TODO: 컬렉션 상세로 이동
-                    } label: {
-                        CollectionSummaryCard(summary: summary)
+            if viewModel.collectionSummaries.isEmpty {
+                EmptyStateView(
+                    icon: "camera.fill",
+                    title: "아직 발견이 없어요",
+                    message: "오늘의 컨셉으로 첫 기록을 남겨보세요"
+                )
+                .appCardStyle()
+            } else {
+                VStack(spacing: AppSpacing.sm) {
+                    ForEach(viewModel.collectionSummaries) { summary in
+                        Button {
+                            // TODO: 컬렉션 상세로 이동
+                        } label: {
+                            CollectionSummaryCard(summary: summary)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }
@@ -159,6 +188,18 @@ struct ProfileView: View {
 
     // MARK: - Helpers
 
+    private func refreshData() {
+        streakManager.refresh(
+            recordRepository: recordRepository,
+            collectionRepository: collectionRepository
+        )
+        viewModel.refresh(
+            streakManager: streakManager,
+            recordRepository: recordRepository,
+            collectionRepository: collectionRepository
+        )
+    }
+
     private func sectionHeader(title: String) -> some View {
         Text(title)
             .font(AppFont.title3)
@@ -167,7 +208,17 @@ struct ProfileView: View {
 }
 
 #Preview {
-    ProfileView()
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
+    let streakManager = StreakManager()
+    streakManager.refresh(recordRepository: repository, collectionRepository: collectionRepository)
+
+    return ProfileView()
+        .modelContainer(container)
         .environment(NotificationManager.mock)
         .environment(MissionManager.mock)
+        .environment(repository)
+        .environment(collectionRepository)
+        .environment(streakManager)
 }

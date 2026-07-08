@@ -2,15 +2,16 @@ import SwiftUI
 
 struct ProfileHeaderCard: View {
 
-    let profile: UserProfile
+    let nickname: String
     let tagline: String
+    let stats: DiscoveryStats
 
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
             profileImage
 
             VStack(spacing: AppSpacing.xs) {
-                Text("\(profile.nickname)님")
+                Text("\(nickname)님")
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.Text.primary)
 
@@ -19,19 +20,40 @@ struct ProfileHeaderCard: View {
                     .foregroundStyle(AppColor.Text.secondary)
             }
 
-            HStack(spacing: AppSpacing.sm) {
-                StatCard(
-                    value: "\(profile.totalRecords)",
-                    label: "총 기록"
-                )
-                StatCard(
-                    value: "\(profile.totalConcepts)",
-                    label: "참여 컨셉"
-                )
-                StatCard(
-                    value: "\(profile.streakDays)일",
-                    label: "연속 기록"
-                )
+            if stats.streakDays > 0 {
+                HStack(spacing: AppSpacing.xs) {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AppColor.Semantic.warning)
+
+                    Text("\(stats.streakDays)일 연속 발견 중")
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.Text.secondary)
+                }
+            }
+
+            VStack(spacing: AppSpacing.sm) {
+                HStack(spacing: AppSpacing.sm) {
+                    StatCard(
+                        value: "\(stats.totalRecords)",
+                        label: "총 발견"
+                    )
+                    StatCard(
+                        value: "\(stats.completedConcepts)",
+                        label: "참여 컨셉"
+                    )
+                }
+
+                HStack(spacing: AppSpacing.sm) {
+                    StatCard(
+                        value: "\(stats.completedCollections)",
+                        label: "컬렉션"
+                    )
+                    StatCard(
+                        value: "\(stats.streakDays)일",
+                        label: "연속 기록"
+                    )
+                }
             }
         }
         .appCardStyle()
@@ -61,7 +83,7 @@ struct ProfileHeaderCard: View {
 }
 
 #Preview {
-    ProfileHeaderCard(profile: .mock, tagline: "MODI Explorer")
+    ProfileHeaderCard(nickname: "영임", tagline: "MODI Explorer", stats: .mock)
         .appScreenPadding()
         .appScreenBackground()
 }

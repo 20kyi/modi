@@ -23,6 +23,7 @@ struct CameraView: View {
     @Environment(\.openURL) private var openURL
 
     @Environment(RecordRepository.self) private var repository
+    @Environment(StreakManager.self) private var streakManager
 
     @State private var cameraManager = CameraManager()
     @State private var editorPresentation: CameraEditorPresentation?
@@ -83,6 +84,7 @@ struct CameraView: View {
                 }
             )
             .environment(repository)
+            .environment(streakManager)
         }
         .alert("사진을 촬영하지 못했어요", isPresented: captureErrorIsPresented) {
             Button("확인", role: .cancel) {

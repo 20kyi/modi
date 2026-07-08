@@ -16,6 +16,7 @@ struct PhotoEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(RecordRepository.self) private var repository
     @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(StreakManager.self) private var streakManager
 
     @State private var elements: [EditorElement] = []
     @State private var selectedElementID: UUID?
@@ -436,6 +437,10 @@ struct PhotoEditorView: View {
                 )
             }
             collectionRepository.reload()
+            streakManager.recordAdded(
+                recordRepository: repository,
+                collectionRepository: collectionRepository
+            )
             onSaved()
             dismiss()
         } catch {

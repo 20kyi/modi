@@ -13,6 +13,7 @@ struct RecordDetailView: View {
 
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(RecordRepository.self) private var repository
+    @Environment(StreakManager.self) private var streakManager
     @Environment(\.dismiss) private var dismiss
 
     let record: MODIRecord
@@ -52,11 +53,16 @@ struct RecordDetailView: View {
             ) {}
             .environment(repository)
             .environment(collectionRepository)
+            .environment(streakManager)
         }
         .alert("이 사진을 삭제할까요?", isPresented: $showDeleteAlert) {
             Button("삭제", role: .destructive) {
                 repository.deleteRecord(record)
                 collectionRepository.reload()
+                streakManager.refresh(
+                    recordRepository: repository,
+                    collectionRepository: collectionRepository
+                )
                 dismiss()
             }
             Button("취소", role: .cancel) {}
@@ -152,4 +158,5 @@ struct RecordNavigationValue: Hashable {
     .modelContainer(container)
     .environment(repository)
     .environment(collectionRepository)
+    .environment(StreakManager.mock)
 }

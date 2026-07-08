@@ -20,6 +20,7 @@ struct MainTabView: View {
     @State private var collectionStore = CollectionStore()
     @State private var repository: RecordRepository?
     @State private var collectionRepository: CollectionRepository?
+    @State private var streakManager = StreakManager()
     @State private var selectedTab: MainTab = .home
 
     var body: some View {
@@ -38,6 +39,10 @@ struct MainTabView: View {
                 collectionStore.configure(collectionRepository: collectionRepo)
                 repository = recordRepository
                 collectionRepository = collectionRepo
+                streakManager.refresh(
+                    recordRepository: recordRepository,
+                    collectionRepository: collectionRepo
+                )
             }
         }
     }
@@ -80,6 +85,7 @@ struct MainTabView: View {
         .environment(missionManager)
         .environment(repository)
         .environment(collectionRepository)
+        .environment(streakManager)
         .task {
             if notificationManager.isEnabled {
                 await notificationManager.scheduleDailyNotifications(missionManager: missionManager)
@@ -94,6 +100,7 @@ struct MainTabView: View {
     let (container, repository) = RecordPreviewData.makeRepository()
     let collectionRepository = CollectionRepository(modelContext: container.mainContext)
     collectionRepository.bootstrap()
+    let streakManager = StreakManager()
 
     return MainTabView()
         .modelContainer(container)
@@ -101,4 +108,5 @@ struct MainTabView: View {
         .environment(MissionManager.mock)
         .environment(repository)
         .environment(collectionRepository)
+        .environment(streakManager)
 }

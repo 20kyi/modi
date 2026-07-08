@@ -13,6 +13,7 @@ struct CollectionDetailView: View {
 
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(RecordRepository.self) private var repository
+    @Environment(StreakManager.self) private var streakManager
 
     private let photoCollection: PhotoCollection?
     private let modiCollection: MODICollection?
@@ -103,11 +104,16 @@ struct CollectionDetailView: View {
             ) {}
             .environment(repository)
             .environment(collectionRepository)
+            .environment(streakManager)
         }
         .alert("이 사진을 삭제할까요?", isPresented: deletionAlertIsPresented, presenting: recordPendingDeletion) { record in
             Button("삭제", role: .destructive) {
                 repository.deleteRecord(record)
                 collectionRepository.reload()
+                streakManager.refresh(
+                    recordRepository: repository,
+                    collectionRepository: collectionRepository
+                )
                 recordPendingDeletion = nil
             }
             Button("취소", role: .cancel) {
@@ -232,4 +238,5 @@ private struct MODIRecordTile: View {
     .modelContainer(container)
     .environment(repository)
     .environment(collectionRepository)
+    .environment(StreakManager.mock)
 }
