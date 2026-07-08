@@ -34,6 +34,8 @@ final class MODICollection {
     /// `CollectionCategory` raw value
     var category: String
     var sourceTemplateID: String?
+    /// 컬렉션 완성 목표 발견 수.
+    var targetCount: Int = 20
 
     @Relationship(deleteRule: .cascade, inverse: \MODIRecord.collection)
     var records: [MODIRecord]?
@@ -48,7 +50,8 @@ final class MODICollection {
         missionPrompt: String = "",
         themeColorHex: String = "E8ECF0",
         category: CollectionCategory = .custom,
-        sourceTemplateID: String? = nil
+        sourceTemplateID: String? = nil,
+        targetCount: Int = 20
     ) {
         self.id = id
         self.title = title
@@ -60,6 +63,7 @@ final class MODICollection {
         self.themeColorHex = themeColorHex
         self.category = category.rawValue
         self.sourceTemplateID = sourceTemplateID
+        self.targetCount = targetCount
     }
 }
 
@@ -80,6 +84,36 @@ extension MODICollection {
 
     var photoCount: Int {
         records?.count ?? 0
+    }
+
+    var currentCount: Int {
+        photoCount
+    }
+
+    var completionRate: Double {
+        guard targetCount > 0 else { return 0 }
+        return min(1.0, Double(currentCount) / Double(targetCount))
+    }
+
+    var isCollectionComplete: Bool {
+        currentCount >= targetCount
+    }
+
+    var discoveryCountLabel: String {
+        let count = currentCount
+        return count == 1 ? "1 discovery" : "\(count) discoveries"
+    }
+
+    var progressStatusLabel: String {
+        isCollectionComplete
+            ? "COMPLETE ✨"
+            : "\(Int((completionRate * 100).rounded()))% completed"
+    }
+
+    var progressDetailLabel: String {
+        isCollectionComplete
+            ? "COMPLETE ✨"
+            : "\(currentCount) / \(targetCount) discoveries"
     }
 
     var latestRecordDate: Date? {

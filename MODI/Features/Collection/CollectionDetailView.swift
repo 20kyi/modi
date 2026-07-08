@@ -19,8 +19,8 @@ struct CollectionDetailView: View {
     private let modiCollection: MODICollection?
 
     @State private var recordPendingDeletion: MODIRecord?
-    @State private var showPhotoLibrary = false
     @State private var editorPresentation: CollectionEditorPresentation?
+    @State private var sharePayload: ShareImagePayload?
 
     init(collection: MODICollection) {
         self.modiCollection = collection
@@ -52,11 +52,10 @@ struct CollectionDetailView: View {
         repository.fetchRecords(for: collection)
     }
 
-    private let columns = [
-        GridItem(.flexible(), spacing: AppSpacing.gridGutter),
-        GridItem(.flexible(), spacing: AppSpacing.gridGutter),
-        GridItem(.flexible(), spacing: AppSpacing.gridGutter)
-    ]
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
+        count: 3
+    )
 
     var body: some View {
         ScrollView {
@@ -74,25 +73,17 @@ struct CollectionDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
-                    showPhotoLibrary = true
+                    presentShareSheet()
                 } label: {
-                    Image(systemName: "photo.badge.plus")
+                    Image(systemName: "square.and.arrow.up")
                         .font(.system(size: 16, weight: .semibold))
                 }
-                .accessibilityLabel("앨범에서 사진 추가")
+                .accessibilityLabel("공유하기")
             }
         }
         .navigationDestination(for: RecordNavigationValue.self) { navigationValue in
             if let record = records.first(where: { $0.id == navigationValue.id }) {
                 RecordDetailView(record: record, collection: collection)
-            }
-        }
-        .sheet(isPresented: $showPhotoLibrary) {
-            AlbumPhotoPickerSheet { image in
-                showPhotoLibrary = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    editorPresentation = CollectionEditorPresentation(image: image)
-                }
             }
         }
         .fullScreenCover(item: $editorPresentation) { presentation in
@@ -121,6 +112,10 @@ struct CollectionDetailView: View {
             }
         } message: { _ in
             Text("삭제한 사진은 복구할 수 없어요.")
+        }
+        .sheet(item: $sharePayload) { payload in
+            ShareSheet(items: [payload.image])
+                .presentationDetents([.medium, .large])
         }
     }
 
@@ -153,7 +148,9 @@ struct CollectionDetailView: View {
                 }
             }
 
-            Text("\(records.count)장의 사진")
+            Text(collection.isCollectionComplete
+                ? "COMPLETE ✨ · \(records.count)장의 사진"
+                : "\(collection.progressDetailLabel) · \(records.count)장의 사진")
                 .font(AppFont.caption1)
                 .foregroundStyle(AppColor.Text.tertiary)
         }
@@ -195,6 +192,15 @@ struct CollectionDetailView: View {
             existingRecord: record
         )
     }
+
+    private func presentShareSheet() {
+        guard let image = CollectionShareCardView.renderedImage(
+            for: collection,
+            records: records
+        ) else { return }
+
+        sharePayload = ShareImagePayload(image: image)
+    }
 }
 
 // MARK: - MODI Record Tile
@@ -204,25 +210,14 @@ private struct MODIRecordTile: View {
     let collection: MODICollection
     let record: MODIRecord
 
-    private var dateLabel: String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M.d"
-        return formatter.string(from: record.createdAt)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xs) {
-            MODIRecordImage(record: record)
-                .aspectRatio(1, contentMode: .fill)
-                .frame(maxWidth: .infinity)
-                .background(collection.themeColor, in: RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
-
-            Text(dateLabel)
-                .font(AppFont.caption2)
-                .foregroundStyle(AppColor.Text.secondary)
-        }
+        Color.clear
+            .aspectRatio(1, contentMode: .fit)
+            .background(collection.themeColor)
+            .overlay {
+                MODIRecordImage(record: record, contentMode: .fill)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
     }
 }
 
