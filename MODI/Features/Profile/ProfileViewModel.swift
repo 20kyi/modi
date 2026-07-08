@@ -25,7 +25,7 @@ final class ProfileViewModel {
     let tagline = "MODI Explorer"
 
     private(set) var stats: DiscoveryStats = .empty
-    private(set) var recordedDayKeys: Set<String> = []
+    private(set) var recordedDayEmojis: [String: String] = [:]
     private(set) var monthlyConcept = MonthlyConcept.empty
     private(set) var collectionSummaries: [ProfileCollectionSummary] = []
 
@@ -41,12 +41,24 @@ final class ProfileViewModel {
         collectionRepository: CollectionRepository
     ) {
         stats = streakManager.stats
-        recordedDayKeys = streakManager.recordedDayKeys
+        recordedDayEmojis = Self.makeRecordedDayEmojis(from: recordRepository.fetchAllRecords())
         monthlyConcept = Self.makeMonthlyConcept(from: recordRepository.fetchAllRecords())
         collectionSummaries = Self.makeCollectionSummaries(from: collectionRepository)
     }
 
     // MARK: - Builders
+
+    private static func makeRecordedDayEmojis(from records: [MODIRecord]) -> [String: String] {
+        var dayEmojis: [String: String] = [:]
+
+        for record in records.sorted(by: { $0.createdAt > $1.createdAt }) {
+            let dayKey = DailyMission.dayKey(for: record.createdAt)
+            guard dayEmojis[dayKey] == nil else { continue }
+            dayEmojis[dayKey] = record.collection?.emoji ?? record.conceptEmoji
+        }
+
+        return dayEmojis
+    }
 
     private static func makeMonthlyConcept(from records: [MODIRecord]) -> MonthlyConcept {
         let calendar = Calendar.current

@@ -4,14 +4,14 @@ import SwiftUI
 
 struct DiscoveryCalendarView: View {
 
-    let recordedDayKeys: Set<String>
+    let recordedDayEmojis: [String: String]
     @State private var displayedMonth: Date
 
     private let calendar = Calendar.current
     private let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
 
-    init(recordedDayKeys: Set<String>, referenceMonth: Date = .now) {
-        self.recordedDayKeys = recordedDayKeys
+    init(recordedDayEmojis: [String: String], referenceMonth: Date = .now) {
+        self.recordedDayEmojis = recordedDayEmojis
         let components = Calendar.current.dateComponents([.year, .month], from: referenceMonth)
         _displayedMonth = State(
             initialValue: Calendar.current.date(from: components) ?? referenceMonth
@@ -91,14 +91,20 @@ struct DiscoveryCalendarView: View {
 
     private func dayCell(for date: Date) -> some View {
         let dayKey = DailyMission.dayKey(for: date)
-        let hasRecord = recordedDayKeys.contains(dayKey)
+        let dayEmoji = recordedDayEmojis[dayKey]
+        let hasRecord = dayEmoji != nil
         let isToday = calendar.isDateInToday(date)
         let isFuture = date > calendar.startOfDay(for: .now)
 
         return VStack(spacing: AppSpacing.xxs) {
-            Text("\(calendar.component(.day, from: date))")
-                .font(isToday ? AppFont.subheadline.weight(.semibold) : AppFont.subheadline)
-                .foregroundStyle(dayNumberColor(isToday: isToday, isFuture: isFuture, hasRecord: hasRecord))
+            if let dayEmoji {
+                Text(dayEmoji)
+                    .font(.system(size: 18))
+            } else {
+                Text("\(calendar.component(.day, from: date))")
+                    .font(isToday ? AppFont.subheadline.weight(.semibold) : AppFont.subheadline)
+                    .foregroundStyle(dayNumberColor(isToday: isToday, isFuture: isFuture))
+            }
 
             Circle()
                 .fill(hasRecord ? AppColor.Accent.primary : Color.clear)
@@ -167,10 +173,9 @@ struct DiscoveryCalendarView: View {
         displayedMonth = newMonth
     }
 
-    private func dayNumberColor(isToday: Bool, isFuture: Bool, hasRecord: Bool) -> Color {
+    private func dayNumberColor(isToday: Bool, isFuture: Bool) -> Color {
         if isFuture { return AppColor.Text.tertiary }
         if isToday { return AppColor.Accent.primary }
-        if hasRecord { return AppColor.Text.primary }
         return AppColor.Text.secondary
     }
 }
@@ -179,10 +184,13 @@ struct DiscoveryCalendarView: View {
 
 #Preview("With Records") {
     DiscoveryCalendarView(
-        recordedDayKeys: Set(
-            (0..<12).compactMap {
-                Calendar.current.date(byAdding: .day, value: -$0, to: .now)
-            }.map { DailyMission.dayKey(for: $0) }
+        recordedDayEmojis: Dictionary(
+            uniqueKeysWithValues: (0..<12).compactMap { offset -> (String, String)? in
+                guard let date = Calendar.current.date(byAdding: .day, value: -offset, to: .now) else {
+                    return nil
+                }
+                return (DailyMission.dayKey(for: date), "📸")
+            }
         )
     )
     .appCardStyle()
@@ -191,7 +199,7 @@ struct DiscoveryCalendarView: View {
 }
 
 #Preview("Empty") {
-    DiscoveryCalendarView(recordedDayKeys: [])
+    DiscoveryCalendarView(recordedDayEmojis: [:])
         .appCardStyle()
         .appScreenPadding()
         .appScreenBackground()

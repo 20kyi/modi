@@ -43,7 +43,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             sectionHeader(title: "발견 캘린더")
 
-            DiscoveryCalendarView(recordedDayKeys: viewModel.recordedDayKeys)
+            DiscoveryCalendarView(recordedDayEmojis: viewModel.recordedDayEmojis)
                 .appCardStyle()
         }
     }
