@@ -15,8 +15,9 @@ enum MainTab: Hashable {
 struct MainTabView: View {
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(NotificationManager.self) private var notificationManager
+    @Environment(MissionManager.self) private var missionManager
     @State private var collectionStore = CollectionStore()
-    @State private var missionManager = MissionManager()
     @State private var repository: RecordRepository?
     @State private var collectionRepository: CollectionRepository?
     @State private var selectedTab: MainTab = .home
@@ -79,6 +80,11 @@ struct MainTabView: View {
         .environment(missionManager)
         .environment(repository)
         .environment(collectionRepository)
+        .task {
+            if notificationManager.isEnabled {
+                await notificationManager.scheduleDailyNotifications(missionManager: missionManager)
+            }
+        }
     }
 }
 
@@ -91,6 +97,8 @@ struct MainTabView: View {
 
     return MainTabView()
         .modelContainer(container)
+        .environment(NotificationManager.mock)
+        .environment(MissionManager.mock)
         .environment(repository)
         .environment(collectionRepository)
 }

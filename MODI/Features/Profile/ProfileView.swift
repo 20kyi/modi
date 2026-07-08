@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
 
+    @Environment(NotificationManager.self) private var notificationManager
     @State private var viewModel = ProfileViewModel()
 
     var body: some View {
@@ -90,12 +91,7 @@ struct ProfileView: View {
 
             VStack(spacing: 0) {
                 ForEach(Array(viewModel.settingsItems.enumerated()), id: \.element.id) { index, item in
-                    Button {
-                        // TODO: 설정 항목 액션
-                    } label: {
-                        settingsRow(item: item)
-                    }
-                    .buttonStyle(.plain)
+                    settingsRowLink(for: item)
 
                     if index < viewModel.settingsItems.count - 1 {
                         Divider()
@@ -107,7 +103,33 @@ struct ProfileView: View {
         }
     }
 
-    private func settingsRow(item: ProfileSettingsItem) -> some View {
+    @ViewBuilder
+    private func settingsRowLink(for item: ProfileSettingsItem) -> some View {
+        switch item.destination {
+        case .notifications:
+            NavigationLink {
+                NotificationSettingsView()
+            } label: {
+                settingsRow(item: item, subtitle: notificationSubtitle)
+            }
+            .buttonStyle(.plain)
+
+        case .premium, .appSettings:
+            Button {
+                // TODO: 설정 항목 액션
+            } label: {
+                settingsRow(item: item, subtitle: nil)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var notificationSubtitle: String? {
+        guard notificationManager.isEnabled else { return "꺼짐" }
+        return notificationManager.formattedNotificationTime
+    }
+
+    private func settingsRow(item: ProfileSettingsItem, subtitle: String?) -> some View {
         HStack(spacing: AppSpacing.md) {
             Image(systemName: item.icon)
                 .font(.system(size: 16, weight: .medium))
@@ -119,6 +141,12 @@ struct ProfileView: View {
                 .foregroundStyle(AppColor.Text.primary)
 
             Spacer()
+
+            if let subtitle {
+                Text(subtitle)
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.Text.tertiary)
+            }
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
@@ -140,4 +168,6 @@ struct ProfileView: View {
 
 #Preview {
     ProfileView()
+        .environment(NotificationManager.mock)
+        .environment(MissionManager.mock)
 }

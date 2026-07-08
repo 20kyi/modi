@@ -3,6 +3,8 @@ import SwiftUI
 struct ContentView: View {
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    @State private var notificationManager = NotificationManager()
+    @State private var missionManager = MissionManager()
 
     var body: some View {
         Group {
@@ -16,6 +18,14 @@ struct ContentView: View {
                     }
                 }
                 .transition(.opacity)
+            }
+        }
+        .environment(notificationManager)
+        .environment(missionManager)
+        .task {
+            await notificationManager.refreshAuthorizationStatus()
+            if notificationManager.isEnabled {
+                await notificationManager.scheduleDailyNotifications(missionManager: missionManager)
             }
         }
     }
