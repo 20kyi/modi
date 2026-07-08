@@ -89,13 +89,13 @@ struct PhotoEditorView: View {
     private var stickerSuggestions: [String] {
         var items: [String] = []
 
-        let collectionEmoji = collection?.emoji?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let collectionEmoji = collection?.emoji.trimmingCharacters(in: .whitespacesAndNewlines)
         if let collectionEmoji, !collectionEmoji.isEmpty {
             items.append(collectionEmoji)
         }
 
         // 컬렉션 대표 이모지가 이미 있으면 중복 없이 기본 카탈로그를 뒤에 붙입니다.
-        let catalog = EditorSticker.catalog.filter { $0 != collectionEmoji }
+        let catalog = EditorSticker.catalog.filter { $0 != (collectionEmoji ?? "") }
         items.append(contentsOf: catalog)
 
         return items
@@ -108,8 +108,7 @@ struct PhotoEditorView: View {
             items.append(title)
         }
 
-        if let missionPrompt = collection?.missionPrompt?
-            .trimmingCharacters(in: .whitespacesAndNewlines),
+        if let missionPrompt = collection?.missionPrompt.trimmingCharacters(in: .whitespacesAndNewlines),
            !missionPrompt.isEmpty {
             items.append(missionPrompt)
         }

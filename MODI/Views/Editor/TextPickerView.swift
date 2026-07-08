@@ -24,7 +24,7 @@ struct TextPickerView: View {
         formatter.locale = Locale(identifier: "ko_KR")
         formatter.dateFormat = "yyyy.MM.dd"
         return [
-            "Cloud Hunter",
+            "오늘의 순간",
             formatter.string(from: .now),
             "오늘 발견한 순간"
         ]
