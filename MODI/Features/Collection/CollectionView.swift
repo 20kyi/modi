@@ -6,6 +6,8 @@ struct CollectionView: View {
     @Environment(CollectionStore.self) private var store
     @Environment(RecordRepository.self) private var repository
 
+    @Environment(CollectionRepository.self) private var collectionRepository
+
     private let columns = [
         GridItem(.flexible(), spacing: AppSpacing.gridGutter),
         GridItem(.flexible(), spacing: AppSpacing.gridGutter)
@@ -42,6 +44,17 @@ struct CollectionView: View {
             }
             .navigationDestination(for: PhotoCollection.self) { collection in
                 CollectionDetailView(collection: collection)
+            }
+            .navigationDestination(for: RecordNavigationValue.self) { navigationValue in
+                if let record = repository.records.first(where: { $0.id == navigationValue.id }) {
+                    if let collection = record.collection ?? collectionRepository.collection(for: record.conceptId) {
+                        RecordDetailView(record: record, collection: collection)
+                    } else {
+                        EmptyView()
+                    }
+                } else {
+                    EmptyView()
+                }
             }
         }
     }
@@ -127,18 +140,24 @@ struct CollectionView: View {
 
 #Preview("Light") {
     let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
     return CollectionView()
         .modelContainer(container)
         .environment(CollectionStore())
         .environment(repository)
+        .environment(collectionRepository)
         .preferredColorScheme(.light)
 }
 
 #Preview("Dark") {
     let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
     return CollectionView()
         .modelContainer(container)
         .environment(CollectionStore())
         .environment(repository)
+        .environment(collectionRepository)
         .preferredColorScheme(.dark)
 }
