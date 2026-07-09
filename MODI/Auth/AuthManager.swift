@@ -14,8 +14,7 @@ enum AuthError: LocalizedError {
 }
 
 /// 앱 내 인증 상태(게스트/로그인)와 세션 정보를 관리합니다.
-/// 현재는 Backend/API 없이 로컬에만 저장하며, 추후 Firebase/자체 서버로 확장하기 쉽도록
-/// "저장/복원"을 단일 지점으로 모아둡니다.
+/// Sign in with Apple 완료 후 백엔드에 토큰을 교환하고 JWT를 Keychain에 저장합니다.
 @MainActor
 @Observable
 final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
@@ -28,13 +27,19 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
     }
 
     private let storage: UserDefaults
+    private let authAPIService: AuthAPIService
 
     private var appleSignInContinuation: CheckedContinuation<UserSession, Error>?
     private var activeAuthorizationController: ASAuthorizationController?
 
-    init(session: UserSession, storage: UserDefaults = .standard) {
+    init(
+        session: UserSession,
+        storage: UserDefaults = .standard,
+        authAPIService: AuthAPIService = .shared
+    ) {
         self.session = session
         self.storage = storage
+        self.authAPIService = authAPIService
         super.init()
     }
 
@@ -53,6 +58,11 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         session: .loggedIn(userId: "mock-user", nickname: "영임")
     )
 
+    /// API 요청에 사용할 JWT. 로그인 상태가 아니면 nil.
+    var accessToken: String? {
+        KeychainStore.load(for: .accessToken)
+    }
+
     /// 런타임 진입 시 로컬 저장소를 반영합니다.
     func bootstrapFromStorage() {
         session = Self.loadSession(from: storage)
@@ -62,10 +72,11 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         storage.set(false, forKey: StorageKeys.isLoggedIn)
         storage.removeObject(forKey: StorageKeys.userId)
         storage.removeObject(forKey: StorageKeys.nickname)
+        KeychainStore.delete(for: .accessToken)
         session = .guest
     }
 
-    /// Sign in with Apple 진행 후, 성공 시 로컬에 사용자 정보를 저장합니다.
+    /// Sign in with Apple 진행 후, 백엔드 인증까지 완료합니다.
     func signInWithApple() async throws -> UserSession {
         try await withCheckedThrowingContinuation { continuation in
             appleSignInContinuation = continuation
@@ -77,7 +88,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
-            activeAuthorizationController = controller // 컨트롤러가 해제되지 않도록 보관
+            activeAuthorizationController = controller
 
             controller.performRequests()
         }
@@ -85,9 +96,20 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
 
     // MARK: - ASAuthorizationControllerPresentationContextProviding
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        // iOS 버전에 따라 UIWindowScene.windows/keyWindow 접근이 흔들릴 수 있어,
-        // 호환성을 위해 UIApplication의 key window를 사용합니다.
-        return UIApplication.shared.windows.first(where: { $0.isKeyWindow }) ?? UIWindow()
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+
+        if let keyWindow = scenes
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow) {
+            return keyWindow
+        }
+
+        if let firstWindow = scenes.flatMap(\.windows).first {
+            return firstWindow
+        }
+
+        return UIWindow()
     }
 
     // MARK: - ASAuthorizationControllerDelegate
@@ -100,23 +122,65 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             return
         }
 
-        let userId = credential.user
+        guard let tokenData = credential.identityToken,
+              let identityToken = String(data: tokenData, encoding: .utf8) else {
+            finishAppleSignIn(with: .failure(.appleSignInFailed("Apple 토큰을 확인할 수 없어요.")))
+            return
+        }
 
-        // fullName/email은 첫 로그인 시점에만 내려오는 경우가 많으므로,
-        // 없으면 기존 저장된 닉네임 또는 기본 닉네임을 사용합니다.
-        let nickname = nicknameForAppleCredential(credential, fallbackToStorageUserId: userId)
-        let newSession = UserSession.loggedIn(userId: userId, nickname: nickname)
+        let nickname = nicknameForAppleCredential(credential, fallbackToStorageUserId: credential.user)
 
-        persist(session: newSession)
-        session = newSession
-        finishAppleSignIn(with: .success(newSession))
+        Task {
+            do {
+                let authResponse = try await authAPIService.signInWithApple(
+                    identityToken: identityToken,
+                    nickname: nickname == "MODI Explorer" ? nil : nickname
+                )
+
+                let newSession = UserSession.loggedIn(
+                    userId: authResponse.user.id,
+                    nickname: authResponse.user.nickname
+                )
+
+                try persist(session: newSession, accessToken: authResponse.accessToken)
+                session = newSession
+                finishAppleSignIn(with: .success(newSession))
+            } catch {
+                let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+                finishAppleSignIn(with: .failure(.appleSignInFailed(message)))
+            }
+        }
     }
 
     func authorizationController(
         controller: ASAuthorizationController,
         didCompleteWithError error: Error
     ) {
-        finishAppleSignIn(with: .failure(.appleSignInFailed(error.localizedDescription)))
+        let nsError = error as NSError
+        let message: String
+        if nsError.domain == ASAuthorizationError.errorDomain,
+           let code = ASAuthorizationError.Code(rawValue: nsError.code) {
+            switch code {
+            case .canceled:
+                message = "로그인이 취소되었어요."
+            case .unknown:
+                message = "Apple 로그인 설정을 확인해주세요. (앱 entitlement / 프로비저닝 프로파일)"
+            case .invalidResponse:
+                message = "Apple 인증 응답이 올바르지 않아요."
+            case .notHandled:
+                message = "Apple 로그인 요청을 처리하지 못했어요."
+            case .failed:
+                message = "Apple 로그인에 실패했어요."
+            case .notInteractive:
+                message = "지금은 Apple 로그인을 진행할 수 없어요."
+            @unknown default:
+                message = error.localizedDescription
+            }
+        } else {
+            message = error.localizedDescription
+        }
+
+        finishAppleSignIn(with: .failure(.appleSignInFailed(message)))
     }
 
     // MARK: - Helpers
@@ -128,10 +192,11 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         continuation.resume(with: result.mapError { $0 as Error })
     }
 
-    private func persist(session: UserSession) {
+    private func persist(session: UserSession, accessToken: String) throws {
         storage.set(session.isLoggedIn, forKey: StorageKeys.isLoggedIn)
         storage.set(session.userId, forKey: StorageKeys.userId)
         storage.set(session.nickname, forKey: StorageKeys.nickname)
+        try KeychainStore.save(accessToken, for: .accessToken)
     }
 
     private func nicknameForAppleCredential(
@@ -159,6 +224,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
     private static func loadSession(from storage: UserDefaults) -> UserSession {
         let isLoggedIn = storage.bool(forKey: StorageKeys.isLoggedIn)
         guard isLoggedIn else { return .guest }
+        guard KeychainStore.load(for: .accessToken) != nil else { return .guest }
 
         let userId = storage.string(forKey: StorageKeys.userId)
         guard let userId, !userId.isEmpty else { return .guest }
@@ -167,4 +233,3 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         return .loggedIn(userId: userId, nickname: nickname)
     }
 }
-

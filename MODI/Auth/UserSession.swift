@@ -7,7 +7,7 @@ struct UserSession: Equatable, Sendable {
     /// 로그인하지 않고 게스트로 사용하는 상태.
     var isGuest: Bool
 
-    /// 유저 식별자(추후 서버 연동 시 외부 uid로 치환 가능).
+    /// 백엔드 User.id (UUID).
     var userId: String?
 
     /// 화면에 표시할 닉네임.
