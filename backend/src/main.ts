@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -8,6 +9,14 @@ async function bootstrap() {
   app.enableShutdownHooks();
   const configService = app.get(ConfigService);
 
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
+
   const apiPrefix = configService.get<string>('apiPrefix', 'api');
   app.setGlobalPrefix(apiPrefix);
 
@@ -15,13 +24,15 @@ async function bootstrap() {
     .setTitle('MODI API')
     .setDescription('MODI backend API documentation')
     .setVersion('1.0')
+    .addBearerAuth()
     .build();
 
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup(`${apiPrefix}/docs`, app, document);
 
   const port = configService.get<number>('port', 3000);
-  await app.listen(port);
+  // 실기기에서 Mac IP로 접속하려면 0.0.0.0 바인딩 필요
+  await app.listen(port, '0.0.0.0');
 }
 
 void bootstrap();
