@@ -29,12 +29,10 @@ struct ProfileView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
                     ProfileHeaderCard(
-                        nickname: authManager.session.isGuest
-                            ? "게스트 사용자"
-                            : (authManager.session.nickname ?? viewModel.nickname),
-                        tagline: viewModel.tagline,
+                        nickname: authManager.session.displayName,
+                        tagline: authManager.session.profileTagline,
                         stats: viewModel.stats,
-                        nameSuffix: authManager.session.isGuest ? "" : "님"
+                        nameSuffix: authManager.session.nameSuffix
                     )
 
                     if authManager.session.isGuest {
