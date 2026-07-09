@@ -1,4 +1,7 @@
-import { ConceptCategory } from '../../src/generated/prisma/client';
+import {
+  ConceptCategory,
+  ConceptType,
+} from '../../src/generated/prisma/client';
 
 /**
  * iOS PhotoCollection.builtIn 과 동일한 UUID·필드.
@@ -6,6 +9,7 @@ import { ConceptCategory } from '../../src/generated/prisma/client';
  */
 export type SystemConceptSeed = {
   id: string;
+  type: ConceptType;
   title: string;
   emoji: string;
   category: ConceptCategory;
@@ -18,6 +22,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   // Color
   {
     id: 'a1000001-0000-0000-0000-000000000001',
+    type: ConceptType.SYSTEM,
     title: 'Pink Love',
     emoji: '🩷',
     category: ConceptCategory.COLOR,
@@ -27,6 +32,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'a1000001-0000-0000-0000-000000000002',
+    type: ConceptType.SYSTEM,
     title: 'Blue Mood',
     emoji: '💙',
     category: ConceptCategory.COLOR,
@@ -36,6 +42,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'a1000001-0000-0000-0000-000000000003',
+    type: ConceptType.SYSTEM,
     title: 'Purple Dream',
     emoji: '💜',
     category: ConceptCategory.COLOR,
@@ -45,6 +52,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'a1000001-0000-0000-0000-000000000004',
+    type: ConceptType.SYSTEM,
     title: 'Yellow Day',
     emoji: '💛',
     category: ConceptCategory.COLOR,
@@ -54,6 +62,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'a1000001-0000-0000-0000-000000000005',
+    type: ConceptType.SYSTEM,
     title: 'Green Life',
     emoji: '💚',
     category: ConceptCategory.COLOR,
@@ -63,6 +72,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'a1000001-0000-0000-0000-000000000006',
+    type: ConceptType.SYSTEM,
     title: 'White Moment',
     emoji: '🤍',
     category: ConceptCategory.COLOR,
@@ -74,6 +84,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   // Nature
   {
     id: 'b2000001-0000-0000-0000-000000000001',
+    type: ConceptType.SYSTEM,
     title: 'Cloud Hunter',
     emoji: '☁️',
     category: ConceptCategory.NATURE,
@@ -83,6 +94,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'b2000001-0000-0000-0000-000000000002',
+    type: ConceptType.SYSTEM,
     title: 'Little Plant',
     emoji: '🪴',
     category: ConceptCategory.NATURE,
@@ -92,6 +104,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'b2000001-0000-0000-0000-000000000003',
+    type: ConceptType.SYSTEM,
     title: 'Flower Diary',
     emoji: '🌸',
     category: ConceptCategory.NATURE,
@@ -101,6 +114,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'b2000001-0000-0000-0000-000000000004',
+    type: ConceptType.SYSTEM,
     title: 'Animal Friend',
     emoji: '🐾',
     category: ConceptCategory.NATURE,
@@ -110,6 +124,7 @@ export const systemConcepts: SystemConceptSeed[] = [
   },
   {
     id: 'b2000001-0000-0000-0000-000000000005',
+    type: ConceptType.SYSTEM,
     title: 'Sky Time',
     emoji: '🌙',
     category: ConceptCategory.NATURE,

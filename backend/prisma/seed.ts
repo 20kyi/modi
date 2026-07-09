@@ -1,9 +1,6 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
-import {
-  ConceptType,
-  PrismaClient,
-} from '../src/generated/prisma/client';
+import { ConceptType, PrismaClient } from '../src/generated/prisma/client';
 import { systemConcepts } from './data/system-concepts';
 
 async function main(): Promise<void> {
@@ -22,7 +19,7 @@ async function main(): Promise<void> {
         create: {
           id: concept.id,
           userId: null,
-          type: ConceptType.SYSTEM,
+          type: concept.type,
           title: concept.title,
           emoji: concept.emoji,
           category: concept.category,
@@ -33,7 +30,7 @@ async function main(): Promise<void> {
         },
         update: {
           userId: null,
-          type: ConceptType.SYSTEM,
+          type: concept.type,
           title: concept.title,
           emoji: concept.emoji,
           category: concept.category,
