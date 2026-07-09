@@ -26,7 +26,6 @@ final class ProfileViewModel {
 
     private(set) var stats: DiscoveryStats = .empty
     private(set) var recordedDayEmojis: [String: String] = [:]
-    private(set) var monthlyConcept = MonthlyConcept.empty
     private(set) var collectionSummaries: [ProfileCollectionSummary] = []
     private(set) var earnedTitles: [ProfileHighestTitle] = []
 
@@ -43,7 +42,6 @@ final class ProfileViewModel {
     ) {
         stats = streakManager.stats
         recordedDayEmojis = Self.makeRecordedDayEmojis(from: recordRepository.fetchAllRecords())
-        monthlyConcept = Self.makeMonthlyConcept(from: recordRepository.fetchAllRecords())
         collectionSummaries = Self.makeCollectionSummaries(from: collectionRepository)
         earnedTitles = Self.makeEarnedTitles(
             from: collectionRepository,
@@ -63,31 +61,6 @@ final class ProfileViewModel {
         }
 
         return dayEmojis
-    }
-
-    private static func makeMonthlyConcept(from records: [MODIRecord]) -> MonthlyConcept {
-        let calendar = Calendar.current
-        let monthRecords = records.filter {
-            calendar.isDate($0.discoveryDate, equalTo: .now, toGranularity: .month)
-        }
-
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M월의 MODI"
-
-        let topRecord = Dictionary(grouping: monthRecords, by: \.conceptId)
-            .max(by: { $0.value.count < $1.value.count })?
-            .value
-            .first
-
-        return MonthlyConcept(
-            id: topRecord?.conceptId ?? UUID(),
-            monthLabel: formatter.string(from: .now),
-            title: topRecord?.conceptTitle ?? "이번 달 첫 발견을 기다려요",
-            emoji: topRecord?.conceptEmoji ?? "✨",
-            themeColorHex: topRecord.map { _ in "E8ECF0" } ?? "F0F2F5",
-            currentRecordCount: monthRecords.count
-        )
     }
 
     private static func makeCollectionSummaries(
@@ -138,17 +111,4 @@ final class ProfileViewModel {
             return lhs.acquiredDate > rhs.acquiredDate
         }
     }
-}
-
-// MARK: - MonthlyConcept Empty
-
-extension MonthlyConcept {
-    static let empty = MonthlyConcept(
-        id: UUID(),
-        monthLabel: "이번 달 MODI",
-        title: "이번 달 첫 발견을 기다려요",
-        emoji: "✨",
-        themeColorHex: "F0F2F5",
-        currentRecordCount: 0
-    )
 }

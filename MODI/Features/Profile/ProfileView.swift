@@ -53,7 +53,6 @@ struct ProfileView: View {
 
                     discoveryCalendarSection
                     earnedTitlesSection
-                    monthlyConceptSection
                     settingsSection
                 }
                 .appScreenPadding()
@@ -102,13 +101,6 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Monthly Concept Title
-
-    private var monthlyConceptTitle: String {
-        let month = Calendar.current.component(.month, from: Date())
-        return "\(month)월의 MODI"
-    }
-
     // MARK: - Discovery Calendar
 
     private var discoveryCalendarSection: some View {
@@ -154,43 +146,6 @@ struct ProfileView: View {
                     }
                 }
             }
-        }
-    }
-
-    // MARK: - Monthly Concept
-
-    private var monthlyConceptSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            sectionHeader(title: monthlyConceptTitle)
-            VStack(alignment: .leading, spacing: AppSpacing.lg) {
-                HStack(spacing: AppSpacing.md) {
-                    RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                        .fill(AppColor.emojiBackground(from: viewModel.monthlyConcept.themeColorHex))
-                        .frame(width: 56, height: 56)
-                        .overlay {
-                            Text(viewModel.monthlyConcept.emoji)
-                                .font(.system(size: 28))
-                        }
-
-                    VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                        Text(viewModel.monthlyConcept.title)
-                            .font(AppFont.title3)
-                            .foregroundStyle(AppColor.Text.primary)
-
-                        Text("이번 달 기록: \(viewModel.monthlyConcept.currentRecordCount)개")
-                            .font(AppFont.footnote)
-                            .foregroundStyle(AppColor.Text.secondary)
-                    }
-                }
-
-                    NavigationLink {
-                        MonthlyMODIView()
-                    } label: {
-                        Text("기록 보기")
-                    }
-                .buttonStyle(SecondaryButtonStyle())
-            }
-            .appCardStyle()
         }
     }
 

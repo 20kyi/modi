@@ -9,6 +9,7 @@ final class HomeViewModel {
 
     private(set) var recentDiscoveries: [RecentDiscovery] = []
     private(set) var todaysMissionGallery: TodaysMissionCollectionGallery?
+    private(set) var monthlyConcept = MonthlyConcept.empty
 
     var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
@@ -29,15 +30,42 @@ final class HomeViewModel {
         recordRepository: RecordRepository,
         collectionRepository: CollectionRepository
     ) {
-        recentDiscoveries = Self.makeRecentDiscoveries(from: recordRepository.fetchAllRecords())
+        let records = recordRepository.fetchAllRecords()
+        recentDiscoveries = Self.makeRecentDiscoveries(from: records)
         todaysMissionGallery = Self.makeTodaysMissionGallery(
             missionManager: missionManager,
             recordRepository: recordRepository,
             collectionRepository: collectionRepository
         )
+        monthlyConcept = Self.makeMonthlyConcept(from: records)
     }
 
     // MARK: - Builders
+
+    private static func makeMonthlyConcept(from records: [MODIRecord]) -> MonthlyConcept {
+        let calendar = Calendar.current
+        let monthRecords = records.filter {
+            calendar.isDate($0.discoveryDate, equalTo: .now, toGranularity: .month)
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M월의 MODI"
+
+        let topRecord = Dictionary(grouping: monthRecords, by: \.conceptId)
+            .max(by: { $0.value.count < $1.value.count })?
+            .value
+            .first
+
+        return MonthlyConcept(
+            id: topRecord?.conceptId ?? UUID(),
+            monthLabel: formatter.string(from: .now),
+            title: topRecord?.conceptTitle ?? "이번 달 첫 발견을 기다려요",
+            emoji: topRecord?.conceptEmoji ?? "✨",
+            themeColorHex: topRecord.map { _ in "E8ECF0" } ?? "F0F2F5",
+            currentRecordCount: monthRecords.count
+        )
+    }
 
     private static func makeRecentDiscoveries(from records: [MODIRecord]) -> [RecentDiscovery] {
         records

@@ -45,6 +45,15 @@ extension UserProfile {
 }
 
 extension MonthlyConcept {
+    static let empty = MonthlyConcept(
+        id: UUID(),
+        monthLabel: "이번 달 MODI",
+        title: "이번 달 첫 발견을 기다려요",
+        emoji: "✨",
+        themeColorHex: "F0F2F5",
+        currentRecordCount: 0
+    )
+
     static let mock = MonthlyConcept(
         id: UUID(uuidString: "C3000002-0000-0000-0000-000000000001")!,
         monthLabel: "7월의 MODI",

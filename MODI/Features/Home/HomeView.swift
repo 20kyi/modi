@@ -45,6 +45,8 @@ struct HomeView: View {
                         recentDiscoverySection
 
                         collectionPreviewSection
+
+                        monthlyConceptSection
                     }
                     .appScreenPadding()
                     .padding(.top, AppSpacing.md)
@@ -139,6 +141,12 @@ struct HomeView: View {
                 )
             }
         }
+    }
+
+    // MARK: - Monthly Concept
+
+    private var monthlyConceptSection: some View {
+        MonthlyConceptPreviewView(concept: viewModel.monthlyConcept)
     }
 
     // MARK: - Today's MODI

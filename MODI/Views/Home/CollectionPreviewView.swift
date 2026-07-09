@@ -5,6 +5,13 @@ struct CollectionPreviewView: View {
     let gallery: TodaysMissionCollectionGallery
     var onCreateTapped: (() -> Void)?
 
+    @State private var focusedRecordID: UUID?
+    @State private var autoScrollTask: Task<Void, Never>?
+
+    private var shouldAutoScroll: Bool {
+        gallery.records.count >= 3
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             header
@@ -25,8 +32,21 @@ struct CollectionPreviewView: View {
                                 photoThumbnail(record)
                             }
                             .buttonStyle(.plain)
+                            .id(record.id)
                         }
                     }
+                    .scrollTargetLayout()
+                }
+                .scrollTargetBehavior(.viewAligned)
+                .scrollPosition(id: $focusedRecordID)
+                .onAppear {
+                    resetAutoScroll()
+                }
+                .onDisappear {
+                    stopAutoScroll()
+                }
+                .onChange(of: gallery.records.map(\.id)) { _, _ in
+                    resetAutoScroll()
                 }
             }
         }
@@ -34,9 +54,14 @@ struct CollectionPreviewView: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: AppSpacing.md) {
-            Text("내 컬렉션")
-                .font(AppFont.title3)
-                .foregroundStyle(AppColor.Text.primary)
+            HStack(spacing: AppSpacing.xs) {
+                Text("오늘의 컬렉션")
+                    .font(AppFont.title3)
+                    .foregroundStyle(AppColor.Text.primary)
+
+                Text(gallery.emoji)
+                    .font(AppFont.title3)
+            }
 
             Spacer()
 
@@ -63,6 +88,50 @@ struct CollectionPreviewView: View {
                 MODIRecordImage(record: record, contentMode: .fill)
             }
             .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
+    }
+
+    private func resetAutoScroll() {
+        stopAutoScroll()
+        focusedRecordID = gallery.records.first?.id
+        startAutoScrollIfNeeded()
+    }
+
+    private func startAutoScrollIfNeeded() {
+        guard shouldAutoScroll else { return }
+
+        autoScrollTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(3))
+
+                guard !Task.isCancelled else { break }
+
+                await MainActor.run {
+                    advanceFocus()
+                }
+            }
+        }
+    }
+
+    private func stopAutoScroll() {
+        autoScrollTask?.cancel()
+        autoScrollTask = nil
+    }
+
+    private func advanceFocus() {
+        let recordIDs = gallery.records.map(\.id)
+        guard recordIDs.count >= 3 else { return }
+
+        guard let currentID = focusedRecordID,
+              let currentIndex = recordIDs.firstIndex(of: currentID)
+        else {
+            focusedRecordID = recordIDs.first
+            return
+        }
+
+        let nextIndex = (currentIndex + 1) % recordIDs.count
+        withAnimation(.easeInOut(duration: 0.65)) {
+            focusedRecordID = recordIDs[nextIndex]
+        }
     }
 }
 
