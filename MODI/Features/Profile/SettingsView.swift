@@ -97,7 +97,10 @@ struct SettingsView: View {
 
     @State private var viewModel = SettingsViewModel()
     @State private var isSigningIn = false
+    @State private var isDeletingAccount = false
     @State private var signInErrorMessage: String?
+    @State private var showSignOutConfirmation = false
+    @State private var showDeleteAccountConfirmation = false
 
     var body: some View {
         ScrollView {
@@ -118,6 +121,20 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .alert("로그아웃하시겠어요?", isPresented: $showSignOutConfirmation) {
+            Button("취소", role: .cancel) {}
+            Button("로그아웃", role: .destructive) {
+                authManager.signOut()
+            }
+        }
+        .alert("회원탈퇴하시겠어요?", isPresented: $showDeleteAccountConfirmation) {
+            Button("취소", role: .cancel) {}
+            Button("회원탈퇴", role: .destructive) {
+                deleteAccount()
+            }
+        } message: {
+            Text("탈퇴 시 계정과 기록이 모두 삭제되며 복구할 수 없어요.")
+        }
     }
 
     private var accountSection: some View {
@@ -241,10 +258,40 @@ struct SettingsView: View {
                 }
 
                 if authManager.session.isLoggedIn {
-                    Button("로그아웃") {
-                        authManager.setGuest()
+                    VStack(spacing: AppSpacing.sm) {
+                        Button("로그아웃") {
+                            showSignOutConfirmation = true
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                        .disabled(isDeletingAccount)
+
+                        Button {
+                            showDeleteAccountConfirmation = true
+                        } label: {
+                            ZStack {
+                                Text("회원탈퇴")
+                                    .font(AppFont.headline)
+                                    .frame(maxWidth: .infinity, alignment: .center)
+
+                                HStack {
+                                    Spacer()
+                                    if isDeletingAccount {
+                                        ProgressView()
+                                            .tint(AppColor.Semantic.error)
+                                    }
+                                }
+                            }
+                            .foregroundStyle(AppColor.Semantic.error)
+                            .padding(.horizontal, AppSpacing.lg)
+                            .frame(height: AppSpacing.minTouchTarget)
+                            .background(
+                                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                                    .stroke(AppColor.Semantic.error.opacity(0.4), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isDeletingAccount)
                     }
-                    .buttonStyle(SecondaryButtonStyle())
                 } else {
                     Button {
                         signInWithApple()
@@ -270,7 +317,7 @@ struct SettingsView: View {
                         .background(AppColor.Accent.primary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
                     }
                     .buttonStyle(.plain)
-                    .disabled(isSigningIn)
+                    .disabled(isSigningIn || isDeletingAccount)
                 }
             }
             .appCardStyle()
@@ -463,6 +510,20 @@ struct SettingsView: View {
                 signInErrorMessage = error.localizedDescription
             }
             isSigningIn = false
+        }
+    }
+
+    private func deleteAccount() {
+        isDeletingAccount = true
+        signInErrorMessage = nil
+
+        Task {
+            do {
+                try await authManager.deleteAccount()
+            } catch {
+                signInErrorMessage = error.localizedDescription
+            }
+            isDeletingAccount = false
         }
     }
 }

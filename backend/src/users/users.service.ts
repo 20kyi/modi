@@ -26,4 +26,14 @@ export class UsersService {
       throw new NotFoundException('사용자를 찾을 수 없습니다.');
     }
   }
+
+  async deleteMe(userId: string): Promise<void> {
+    try {
+      await this.prisma.user.delete({
+        where: { id: userId },
+      });
+    } catch {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+  }
 }

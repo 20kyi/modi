@@ -55,6 +55,46 @@ struct APIClient: Sendable {
         return try decoder.decode(Response.self, from: data)
     }
 
+    func requestVoid(
+        _ path: String,
+        method: String = "GET",
+        body: (any Encodable)? = nil,
+        accessToken: String? = nil
+    ) async throws {
+        guard let url = Self.makeURL(path: path) else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if let accessToken, !accessToken.isEmpty {
+            request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        }
+
+        if let body {
+            request.httpBody = try JSONEncoder().encode(AnyEncodable(body))
+        }
+
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let error as URLError {
+            throw APIError.from(urlError: error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.invalidResponse
+        }
+
+        guard (200 ... 299).contains(httpResponse.statusCode) else {
+            throw mapError(statusCode: httpResponse.statusCode, data: data)
+        }
+    }
+
     private static func makeURL(path: String) -> URL? {
         let base = APIConfig.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         let endpoint = path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))

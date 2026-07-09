@@ -1,6 +1,16 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiNoContentResponse,
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
@@ -32,5 +42,13 @@ export class UsersController {
   ): Promise<UserResponseDto> {
     const updated = await this.usersService.updateProfile(user.id, dto);
     return UserResponseDto.from(updated);
+  }
+
+  @Delete('me')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: '내 계정 삭제' })
+  @ApiNoContentResponse({ description: '회원탈퇴 완료' })
+  async deleteMe(@CurrentUser() user: User): Promise<void> {
+    await this.usersService.deleteMe(user.id);
   }
 }

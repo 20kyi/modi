@@ -28,6 +28,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
 
     private let storage: UserDefaults
     private let authAPIService: AuthAPIService
+    private let usersAPIService: UsersAPIService
 
     private var appleSignInContinuation: CheckedContinuation<UserSession, Error>?
     private var activeAuthorizationController: ASAuthorizationController?
@@ -35,11 +36,13 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
     init(
         session: UserSession,
         storage: UserDefaults = .standard,
-        authAPIService: AuthAPIService = .shared
+        authAPIService: AuthAPIService = .shared,
+        usersAPIService: UsersAPIService = .shared
     ) {
         self.session = session
         self.storage = storage
         self.authAPIService = authAPIService
+        self.usersAPIService = usersAPIService
         super.init()
     }
 
@@ -74,6 +77,19 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         storage.removeObject(forKey: StorageKeys.nickname)
         KeychainStore.delete(for: .accessToken)
         session = .guest
+    }
+
+    func signOut() {
+        setGuest()
+    }
+
+    func deleteAccount() async throws {
+        guard let accessToken else {
+            setGuest()
+            return
+        }
+        try await usersAPIService.deleteMe(accessToken: accessToken)
+        setGuest()
     }
 
     /// Sign in with Apple 진행 후, 백엔드 인증까지 완료합니다.
