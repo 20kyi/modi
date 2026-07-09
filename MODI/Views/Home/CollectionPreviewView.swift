@@ -96,12 +96,13 @@ struct CollectionPreviewView: View {
         startAutoScrollIfNeeded()
     }
 
+    // 자동 스크롤 시작
     private func startAutoScrollIfNeeded() {
         guard shouldAutoScroll else { return }
 
         autoScrollTask = Task {
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(3))
+                try? await Task.sleep(for: .seconds(1)) // 1초마다 자동 스크롤
 
                 guard !Task.isCancelled else { break }
 
