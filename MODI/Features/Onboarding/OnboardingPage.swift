@@ -128,14 +128,12 @@ struct OnboardingHeroPlaceholder: View {
 }
 
 struct OnboardingPhotoGridPlaceholder: View {
-    private let tiles: [CGFloat] = [1.25, 1.6, 1.05, 1.45, 1.3, 1.1]
+    private let tiles: [CGFloat] = [1.25, 1.6, 1.05, 1.45]
     private let tileColors: [Color] = [
-        Color(hex: "E8ECF0"),
-        Color(hex: "DDE8F0"),
         Color(hex: "F0E8E0"),
-        Color(hex: "E0E8E4"),
-        Color(hex: "ECE4F0"),
-        Color(hex: "E4ECF4")
+        Color(hex: "DDE8F0"),
+        Color(hex: "F5E0E8"),
+        Color(hex: "E0E8E4")
     ]
 
     private let columns = [
