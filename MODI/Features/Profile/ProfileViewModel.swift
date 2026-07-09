@@ -21,9 +21,6 @@ struct ProfileSettingsItem: Identifiable {
 @Observable
 final class ProfileViewModel {
 
-    let nickname = "영임"
-    let tagline = "MODI Explorer"
-
     private(set) var stats: DiscoveryStats = .empty
     private(set) var recordedDayEmojis: [String: String] = [:]
     private(set) var collectionSummaries: [ProfileCollectionSummary] = []
