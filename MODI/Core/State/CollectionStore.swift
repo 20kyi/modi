@@ -119,6 +119,11 @@ final class CollectionStore {
         guard let data = try? JSONEncoder().encode(dailyMissions) else { return }
         UserDefaults.standard.set(data, forKey: Self.missionsKey)
     }
+
+    func resetForSignedOutState() {
+        dailyMissions = [:]
+        UserDefaults.standard.removeObject(forKey: Self.missionsKey)
+    }
 }
 
 // MARK: - PhotoCollection Bridge

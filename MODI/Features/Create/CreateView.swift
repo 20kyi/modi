@@ -37,10 +37,24 @@ struct CreateView: View {
         !showCompleted && missionManager.canChangeMission(repository: repository)
     }
 
+    private var todaysRecord: MODIRecord? {
+        repository.fetchRecords(on: .now)
+            .sorted { $0.createdAt > $1.createdAt }
+            .first
+    }
+
+    private var displayConcept: Concept? {
+        if let todaysRecord,
+           let concept = missionManager.concept(for: todaysRecord.conceptId) {
+            return concept
+        }
+        return missionManager.todaysConcept
+    }
+
     var body: some View {
         NavigationStack {
             Group {
-                if let concept = missionManager.todaysConcept {
+                if let concept = displayConcept {
                     missionView(concept: concept)
                 } else {
                     ProgressView()
@@ -166,7 +180,7 @@ struct CreateView: View {
         VStack(spacing: AppSpacing.xl) {
             Spacer()
 
-            if let record = repository.record(on: .now, conceptId: missionManager.todaysMission.conceptId) {
+            if let record = todaysRecord {
                 RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
                     .fill(AppColor.Background.secondary)
                     .aspectRatio(1, contentMode: .fit)
@@ -187,7 +201,7 @@ struct CreateView: View {
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.Text.primary)
 
-                Text("「\(concept.title)」 컨셉에 추가됐어요")
+                Text("「\(todaysRecord?.conceptTitle ?? concept.title)」 컨셉에 추가됐어요")
                     .font(AppFont.callout)
                     .foregroundStyle(AppColor.Text.secondary)
             }

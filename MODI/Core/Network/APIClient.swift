@@ -9,7 +9,7 @@ struct APIClient: Sendable {
     init(session: URLSession = .shared) {
         self.session = session
         let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
+        decoder.dateDecodingStrategy = .custom(Self.decodeDate)
         self.decoder = decoder
     }
 
@@ -112,6 +112,49 @@ struct APIClient: Sendable {
 
         return .server(statusCode: statusCode, message: "서버 오류가 발생했어요. (\(statusCode))")
     }
+}
+
+private extension APIClient {
+    static func decodeDate(from decoder: Decoder) throws -> Date {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+
+        if let parsed = iso8601WithFractionalSeconds.date(from: raw) {
+            return parsed
+        }
+        if let parsed = iso8601.date(from: raw) {
+            return parsed
+        }
+        if let parsed = yyyyMMdd.date(from: raw) {
+            return parsed
+        }
+
+        throw DecodingError.dataCorruptedError(
+            in: container,
+            debugDescription: "Unsupported date format: \(raw)"
+        )
+    }
+
+    static let iso8601WithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    static let iso8601: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    static let yyyyMMdd: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
 }
 
 private struct APIErrorResponse: Decodable {

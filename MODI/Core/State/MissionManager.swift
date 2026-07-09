@@ -151,8 +151,8 @@ final class MissionManager {
     // MARK: - Completion
 
     func isMissionCompleted(on date: Date = .now, repository: RecordRepository) -> Bool {
-        let todayMission = mission(for: date)
-        return repository.hasRecord(on: date, conceptId: todayMission.conceptId)
+        // 이미 오늘 기록이 하나라도 있으면 "오늘의 미션 완료"로 간주합니다.
+        !repository.fetchRecords(on: date).isEmpty
     }
 
     func isTodaysMissionCompleted(repository: RecordRepository) -> Bool {
@@ -196,6 +196,13 @@ final class MissionManager {
     private func saveTodayMissions() {
         guard let data = try? JSONEncoder().encode(todayMissions) else { return }
         UserDefaults.standard.set(data, forKey: Self.todayMissionsKey)
+    }
+
+    func resetForSignedOutState() {
+        customConcepts = []
+        todayMissions = [:]
+        UserDefaults.standard.removeObject(forKey: Self.customConceptsKey)
+        UserDefaults.standard.removeObject(forKey: Self.todayMissionsKey)
     }
 }
 

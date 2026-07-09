@@ -173,6 +173,62 @@ final class RecordRepository {
         try? modelContext.save()
         reload()
     }
+
+    func replaceAllRecordsFromServer(
+        _ serverRecords: [ServerRecordResponse],
+        collectionRepository: CollectionRepository
+    ) {
+        deleteAllRecords()
+        for serverRecord in serverRecords {
+            guard let conceptID = UUID(uuidString: serverRecord.conceptId),
+                  let editedData = Data.fromDataURLString(serverRecord.editedImageUrl)
+            else { continue }
+
+            let collection: MODICollection
+            if let existingCollection = collectionRepository.collection(for: conceptID) {
+                collection = existingCollection
+            } else {
+                let newCollection = MODICollection(
+                    id: conceptID,
+                    title: serverRecord.conceptTitle,
+                    emoji: serverRecord.conceptEmoji,
+                    type: .custom,
+                    collectionDescription: serverRecord.conceptTitle,
+                    missionPrompt: serverRecord.conceptTitle,
+                    themeColorHex: "E8ECF0",
+                    category: .custom
+                )
+                modelContext.insert(newCollection)
+                collection = newCollection
+            }
+
+            let record = MODIRecord(
+                imageData: editedData,
+                conceptId: conceptID,
+                conceptTitle: serverRecord.conceptTitle,
+                conceptEmoji: serverRecord.conceptEmoji,
+                createdAt: serverRecord.createdAt,
+                recordDate: serverRecord.recordDate,
+                isEdited: serverRecord.isEdited
+            )
+            record.originalImageData = Data.fromDataURLString(serverRecord.originalImageUrl)
+            record.collection = collection
+            modelContext.insert(record)
+        }
+        try? modelContext.save()
+        collectionRepository.reload()
+        reload()
+    }
+}
+
+private extension Data {
+    static func fromDataURLString(_ value: String) -> Data? {
+        if let commaIndex = value.firstIndex(of: ",") {
+            let payload = String(value[value.index(after: commaIndex)...])
+            return Data(base64Encoded: payload)
+        }
+        return Data(base64Encoded: value)
+    }
 }
 
 // MARK: - Preview Support

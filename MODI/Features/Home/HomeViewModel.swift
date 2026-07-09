@@ -86,7 +86,10 @@ final class HomeViewModel {
         recordRepository: RecordRepository,
         collectionRepository: CollectionRepository
     ) -> TodaysMissionCollectionGallery? {
-        let conceptId = missionManager.mission(for: .now).conceptId
+        let todaysRecords = recordRepository.fetchRecords(on: .now)
+            .sorted { $0.createdAt > $1.createdAt }
+
+        let conceptId = todaysRecords.first?.conceptId ?? missionManager.mission(for: .now).conceptId
         guard let concept = missionManager.concept(for: conceptId) else { return nil }
 
         let collection = collectionRepository.collection(for: conceptId)

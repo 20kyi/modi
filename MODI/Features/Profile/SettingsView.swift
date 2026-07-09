@@ -1,4 +1,5 @@
 import StoreKit
+import SwiftData
 import SwiftUI
 
 enum AppAppearanceMode: String, CaseIterable, Identifiable {
@@ -92,8 +93,11 @@ final class SettingsViewModel {
 
 struct SettingsView: View {
     @Environment(AuthManager.self) private var authManager
+    @Environment(MissionManager.self) private var missionManager
+    @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
+    @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
 
     @State private var viewModel = SettingsViewModel()
     @State private var isSigningIn = false
@@ -132,7 +136,9 @@ struct SettingsView: View {
         .alert("로그아웃하시겠어요?", isPresented: $showSignOutConfirmation) {
             Button("취소", role: .cancel) {}
             Button("로그아웃", role: .destructive) {
+                clearLocalUserData()
                 authManager.signOut()
+                hasCompletedOnboarding = false
             }
         }
         .alert("회원탈퇴하시겠어요?", isPresented: $showDeleteAccountConfirmation) {
@@ -591,11 +597,23 @@ struct SettingsView: View {
         Task {
             do {
                 try await authManager.deleteAccount()
+                hasCompletedOnboarding = false
             } catch {
                 signInErrorMessage = error.localizedDescription
             }
             isDeletingAccount = false
         }
+    }
+
+    private func clearLocalUserData() {
+        let repository = RecordRepository(modelContext: modelContext)
+        let collectionRepository = CollectionRepository(modelContext: modelContext)
+
+        repository.deleteAllRecords()
+        collectionRepository.resetForSignedOutState()
+        CollectionStore().resetForSignedOutState()
+        missionManager.resetForSignedOutState()
+        WidgetDataStore.clearAll()
     }
 }
 
@@ -603,6 +621,8 @@ struct SettingsView: View {
     NavigationStack {
         SettingsView()
     }
+    .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
+    .environment(MissionManager.mock)
     .environment(AuthManager.mock)
     .preferredColorScheme(.light)
 }
@@ -611,6 +631,8 @@ struct SettingsView: View {
     NavigationStack {
         SettingsView()
     }
+    .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
+    .environment(MissionManager.mock)
     .environment(AuthManager.mock)
     .preferredColorScheme(.dark)
 }
@@ -619,6 +641,8 @@ struct SettingsView: View {
     NavigationStack {
         SettingsView()
     }
+    .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
+    .environment(MissionManager.mock)
     .environment(AuthManager(session: .guest))
     .preferredColorScheme(.light)
 }
@@ -627,6 +651,8 @@ struct SettingsView: View {
     NavigationStack {
         SettingsView()
     }
+    .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
+    .environment(MissionManager.mock)
     .environment(AuthManager(session: .guest))
     .preferredColorScheme(.dark)
 }

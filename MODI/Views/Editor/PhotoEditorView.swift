@@ -15,6 +15,7 @@ struct PhotoEditorView: View {
     var onSaveFailed: ((Error) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthManager.self) private var authManager
     @Environment(RecordRepository.self) private var repository
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(StreakManager.self) private var streakManager
@@ -668,6 +669,26 @@ struct PhotoEditorView: View {
                 )
             }
 
+            if authManager.session.isLoggedIn,
+               let accessToken = authManager.accessToken {
+                let request = UpsertRecordRequest(
+                    conceptId: concept.id.uuidString,
+                    conceptTitle: concept.title,
+                    conceptEmoji: concept.emoji,
+                    originalImageUrl: originalPhoto.jpegData(compressionQuality: 0.85)?.asDataURLString() ?? "",
+                    editedImageUrl: renderedImage.jpegData(compressionQuality: 0.85)?.asDataURLString() ?? "",
+                    recordDate: Self.serverDateFormatter.string(from: recordDate ?? existingRecord?.discoveryDate ?? .now),
+                    isEdited: wasEdited
+                )
+                Task {
+                    do {
+                        _ = try await RecordsAPIService.shared.upsertMyRecord(request, accessToken: accessToken)
+                    } catch {
+                        debugPrint("upsertMyRecord failed:", error.localizedDescription)
+                    }
+                }
+            }
+
             onSaved()
             dismiss()
         } catch {
@@ -688,6 +709,21 @@ struct PhotoEditorView: View {
         )
 
         return CGRect(origin: origin, size: CGSize(width: side, height: side))
+    }
+
+    private static let serverDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+}
+
+private extension Data {
+    func asDataURLString() -> String {
+        "data:image/jpeg;base64,\(base64EncodedString())"
     }
 }
 

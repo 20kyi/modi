@@ -129,6 +129,18 @@ final class CollectionRepository {
         reload()
     }
 
+    func resetForSignedOutState() {
+        let descriptor = FetchDescriptor<MODICollection>()
+        let allCollections = (try? modelContext.fetch(descriptor)) ?? []
+        for collection in allCollections {
+            modelContext.delete(collection)
+        }
+        try? modelContext.save()
+        reload()
+        seedSystemCollectionsIfNeeded()
+        reload()
+    }
+
     // MARK: - Seeding
 
     private func seedSystemCollectionsIfNeeded() {

@@ -14,6 +14,7 @@ enum MainTab: Hashable {
 
 struct MainTabView: View {
 
+    @Environment(AuthManager.self) private var authManager
     @Environment(\.modelContext) private var modelContext
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(MissionManager.self) private var missionManager
@@ -45,6 +46,15 @@ struct MainTabView: View {
                     recordRepository: recordRepository,
                     collectionRepository: collectionRepo
                 )
+
+                if authManager.session.isLoggedIn {
+                    Task {
+                        await syncRecordsFromServer(
+                            repository: recordRepository,
+                            collectionRepository: collectionRepo
+                        )
+                    }
+                }
             }
         }
     }
@@ -112,6 +122,23 @@ struct MainTabView: View {
         .onChange(of: repository.records.count) {
             syncWidgetData(repository: repository, collectionRepository: collectionRepository)
         }
+        .onChange(of: authManager.session.isLoggedIn) { oldValue, newValue in
+            if oldValue, !newValue {
+                clearLocalUserDataIfNeeded(
+                    repository: repository,
+                    collectionRepository: collectionRepository
+                )
+                return
+            }
+            if !oldValue, newValue {
+                Task {
+                    await syncRecordsFromServer(
+                        repository: repository,
+                        collectionRepository: collectionRepository
+                    )
+                }
+            }
+        }
         .onChange(of: deepLinkCoordinator.pendingDestination) { _, destination in
             guard destination == .todayMission else { return }
             selectedTab = .home
@@ -131,6 +158,43 @@ struct MainTabView: View {
             recordRepository: repository,
             streakManager: streakManager
         )
+    }
+
+    private func clearLocalUserDataIfNeeded(
+        repository: RecordRepository,
+        collectionRepository: CollectionRepository
+    ) {
+        repository.deleteAllRecords()
+        collectionRepository.resetForSignedOutState()
+        collectionStore.resetForSignedOutState()
+        missionManager.resetForSignedOutState()
+        WidgetDataStore.clearAll()
+        streakManager.refresh(
+            recordRepository: repository,
+            collectionRepository: collectionRepository
+        )
+    }
+
+    private func syncRecordsFromServer(
+        repository: RecordRepository,
+        collectionRepository: CollectionRepository
+    ) async {
+        guard let accessToken = authManager.accessToken else { return }
+        do {
+            let records = try await RecordsAPIService.shared.fetchMyRecords(accessToken: accessToken)
+            repository.replaceAllRecordsFromServer(records, collectionRepository: collectionRepository)
+            streakManager.refresh(
+                recordRepository: repository,
+                collectionRepository: collectionRepository
+            )
+            WidgetSyncService.sync(
+                missionManager: missionManager,
+                recordRepository: repository,
+                streakManager: streakManager
+            )
+        } catch {
+            debugPrint("syncRecordsFromServer failed:", error.localizedDescription)
+        }
     }
 }
 
