@@ -47,6 +47,8 @@ struct ProfileView: View {
                             Text("로그인은 기록 보호를 위한 선택이에요.")
                                 .font(AppFont.footnote)
                                 .foregroundStyle(AppColor.Text.secondary)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity, alignment: .center)
                         }
                         .appCardStyle()
                     }
