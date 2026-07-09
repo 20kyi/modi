@@ -131,6 +131,7 @@ struct MainTabView: View {
                 return
             }
             if !oldValue, newValue {
+                selectedTab = .home
                 Task {
                     await syncRecordsFromServer(
                         repository: repository,
