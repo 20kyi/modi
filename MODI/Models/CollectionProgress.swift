@@ -226,7 +226,8 @@ final class TitleCelebrationManager {
 
 // MARK: - ProfileHighestTitle
 
-struct ProfileHighestTitle: Equatable {
+struct ProfileHighestTitle: Identifiable, Equatable {
+    let id: UUID
     let title: CollectionTitle
     let collectionTitle: String
     let emoji: String
@@ -255,10 +256,23 @@ extension CollectionProgress {
 
 extension ProfileHighestTitle {
     static let mock = ProfileHighestTitle(
+        id: Concept.mock.id,
         title: CollectionTitle(name: "Cloud Chaser", milestone: 30),
         collectionTitle: "Cloud Hunter",
         emoji: "☁️",
         themeColorHex: "E4ECF4",
         acquiredDate: Calendar.current.date(byAdding: .day, value: -3, to: .now)!
     )
+
+    static let mockList: [ProfileHighestTitle] = [
+        mock,
+        ProfileHighestTitle(
+            id: PhotoCollection.builtIn[1].id,
+            title: CollectionTitle(name: "Blue Seeker", milestone: 10),
+            collectionTitle: "Blue Mood",
+            emoji: "💙",
+            themeColorHex: "D4E4F7",
+            acquiredDate: Calendar.current.date(byAdding: .day, value: -10, to: .now)!
+        )
+    ]
 }

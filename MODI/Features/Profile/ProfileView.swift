@@ -52,7 +52,7 @@ struct ProfileView: View {
                     }
 
                     discoveryCalendarSection
-                    highestTitleSection
+                    earnedTitlesSection
                     monthlyConceptSection
                     settingsSection
                 }
@@ -125,38 +125,18 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Highest Title
+    // MARK: - Earned Titles
 
-    private var highestTitleSection: some View {
+    private let titleGridColumns = Array(
+        repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
+        count: 4
+    )
+
+    private var earnedTitlesSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            sectionHeader(title: "가장 높은 Title")
+            sectionHeader(title: "획득한 Title")
 
-            if let highestTitle = viewModel.highestTitle {
-                HStack(spacing: AppSpacing.lg) {
-                    Text("🏅")
-                        .font(.system(size: 32))
-
-                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                        Text(highestTitle.title.name)
-                            .font(AppFont.title3)
-                            .foregroundStyle(AppColor.Text.primary)
-
-                        HStack(spacing: AppSpacing.xs) {
-                            Text(highestTitle.emoji)
-                            Text(highestTitle.collectionTitle)
-                                .font(AppFont.footnote)
-                                .foregroundStyle(AppColor.Text.secondary)
-                        }
-
-                        Text(highestTitleAcquiredLabel(highestTitle.acquiredDate))
-                            .font(AppFont.caption1)
-                            .foregroundStyle(AppColor.Text.tertiary)
-                    }
-
-                    Spacer()
-                }
-                .appCardStyle()
-            } else {
+            if viewModel.earnedTitles.isEmpty {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
                     Text("아직 획득한 Title이 없어요")
                         .font(AppFont.subheadline)
@@ -167,15 +147,14 @@ struct ProfileView: View {
                         .foregroundStyle(AppColor.Text.tertiary)
                 }
                 .appCardStyle()
+            } else {
+                LazyVGrid(columns: titleGridColumns, spacing: AppSpacing.gridGutter) {
+                    ForEach(viewModel.earnedTitles) { earnedTitle in
+                        ProfileTitleCard(earnedTitle: earnedTitle)
+                    }
+                }
             }
         }
-    }
-
-    private func highestTitleAcquiredLabel(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "yyyy.M.d"
-        return "\(formatter.string(from: date)) 획득"
     }
 
     // MARK: - Monthly Concept
@@ -283,6 +262,43 @@ struct ProfileView: View {
         Text(title)
             .font(AppFont.title3)
             .foregroundStyle(AppColor.Text.primary)
+    }
+}
+
+// MARK: - Profile Title Card
+
+private struct ProfileTitleCard: View {
+
+    let earnedTitle: ProfileHighestTitle
+
+    var body: some View {
+        VStack(spacing: AppSpacing.xs) {
+            Text(ProgressMilestone.hintEmoji(for: earnedTitle.title.milestone))
+                .font(.system(size: 22))
+
+            Text(earnedTitle.title.name)
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.Text.primary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+                .minimumScaleFactor(0.8)
+                .frame(maxWidth: .infinity)
+
+            Text(acquiredDateLabel)
+                .font(.system(size: 10))
+                .foregroundStyle(AppColor.Text.tertiary)
+                .multilineTextAlignment(.center)
+                .lineLimit(2)
+        }
+        .frame(maxWidth: .infinity)
+        .appCardStyle(padding: AppSpacing.sm)
+    }
+
+    private var acquiredDateLabel: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M.d"
+        return "\(formatter.string(from: earnedTitle.acquiredDate))\n획득"
     }
 }
 

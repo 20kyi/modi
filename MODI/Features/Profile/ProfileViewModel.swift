@@ -28,7 +28,7 @@ final class ProfileViewModel {
     private(set) var recordedDayEmojis: [String: String] = [:]
     private(set) var monthlyConcept = MonthlyConcept.empty
     private(set) var collectionSummaries: [ProfileCollectionSummary] = []
-    private(set) var highestTitle: ProfileHighestTitle?
+    private(set) var earnedTitles: [ProfileHighestTitle] = []
 
     let settingsItems: [ProfileSettingsItem] = [
         ProfileSettingsItem(title: "알림 설정", icon: "bell.fill", isPremium: false, destination: .notifications),
@@ -45,7 +45,7 @@ final class ProfileViewModel {
         recordedDayEmojis = Self.makeRecordedDayEmojis(from: recordRepository.fetchAllRecords())
         monthlyConcept = Self.makeMonthlyConcept(from: recordRepository.fetchAllRecords())
         collectionSummaries = Self.makeCollectionSummaries(from: collectionRepository)
-        highestTitle = Self.makeHighestTitle(
+        earnedTitles = Self.makeEarnedTitles(
             from: collectionRepository,
             recordRepository: recordRepository
         )
@@ -107,11 +107,11 @@ final class ProfileViewModel {
             }
     }
 
-    private static func makeHighestTitle(
+    private static func makeEarnedTitles(
         from collectionRepository: CollectionRepository,
         recordRepository: RecordRepository
-    ) -> ProfileHighestTitle? {
-        let candidates: [ProfileHighestTitle] = collectionRepository.collections.compactMap { collection in
+    ) -> [ProfileHighestTitle] {
+        let titles: [ProfileHighestTitle] = collectionRepository.collections.compactMap { collection in
             let records = recordRepository.fetchRecords(for: collection)
             guard records.count > 0,
                   let title = collection.currentTitle
@@ -122,6 +122,7 @@ final class ProfileViewModel {
             guard acquiredIndex >= 0, acquiredIndex < sortedRecords.count else { return nil }
 
             return ProfileHighestTitle(
+                id: collection.id,
                 title: title,
                 collectionTitle: collection.title,
                 emoji: collection.emoji,
@@ -130,11 +131,11 @@ final class ProfileViewModel {
             )
         }
 
-        return candidates.max { lhs, rhs in
+        return titles.sorted { lhs, rhs in
             if lhs.title.milestone != rhs.title.milestone {
-                return lhs.title.milestone < rhs.title.milestone
+                return lhs.title.milestone > rhs.title.milestone
             }
-            return lhs.acquiredDate < rhs.acquiredDate
+            return lhs.acquiredDate > rhs.acquiredDate
         }
     }
 }
