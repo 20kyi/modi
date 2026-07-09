@@ -7,3 +7,154 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+/// 기본(시스템) 컨셉 vs 사용자 정의 컨셉
+enum ConceptType {
+  SYSTEM
+  CUSTOM
+}
+
+enum ConceptCategory {
+  COLOR
+  NATURE
+  CUSTOM
+}
+
+// ---------------------------------------------------------------------------
+// User
+// ---------------------------------------------------------------------------
+
+model User {
+  id              String   @id @default(uuid()) @db.Uuid
+  nickname        String
+  profileImageUrl String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  concepts    Concept[]
+  records     Record[]
+  collections Collection[]
+  favorites   Favorite[]
+
+  @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// Concept — 시스템 기본 컨셉(userId = null) + 사용자 Custom 컨셉
+// ---------------------------------------------------------------------------
+
+model Concept {
+  id               String          @id @default(uuid()) @db.Uuid
+  /// null이면 앱 전역 기본 컨셉, 값이 있으면 해당 사용자의 Custom 컨셉
+  userId           String?         @db.Uuid
+  type             ConceptType
+  title            String
+  emoji            String
+  description      String          @default("")
+  category         ConceptCategory
+  missionPrompt    String          @default("")
+  themeColorHex    String          @default("E8ECF0")
+  sourceTemplateId String?
+  targetCount      Int             @default(20)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  user        User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  records     Record[]
+  collections Collection[]
+  favorites   Favorite[]
+
+  @@index([userId])
+  @@index([type])
+  @@map("concepts")
+}
+
+// ---------------------------------------------------------------------------
+// Record — 사용자당 하루 1개, 사진 URL 2종(original / edited)
+// ---------------------------------------------------------------------------
+
+model Record {
+  id               String   @id @default(uuid()) @db.Uuid
+  userId           String   @db.Uuid
+  conceptId        String   @db.Uuid
+  originalImageUrl String
+  editedImageUrl   String
+  /// 캘린더·스트릭 기준일 (날짜만 저장)
+  recordDate       DateTime @db.Date
+  isEdited         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user        User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept     Concept            @relation(fields: [conceptId], references: [id], onDelete: Restrict)
+  collections CollectionRecord[]
+
+  /// 사용자당 하루 하나의 Record만 허용
+  @@unique([userId, recordDate])
+  @@index([userId])
+  @@index([conceptId])
+  @@index([recordDate])
+  @@map("records")
+}
+
+// ---------------------------------------------------------------------------
+// Collection — 사용자가 Concept별로 쌓아가는 컬렉션
+// ---------------------------------------------------------------------------
+
+model Collection {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  conceptId String   @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept Concept            @relation(fields: [conceptId], references: [id], onDelete: Restrict)
+  records CollectionRecord[]
+
+  /// 사용자·컨셉 조합당 컬렉션 1개
+  @@unique([userId, conceptId])
+  @@index([userId])
+  @@map("collections")
+}
+
+// ---------------------------------------------------------------------------
+// CollectionRecord — Collection ↔ Record 다대다 조인
+// ---------------------------------------------------------------------------
+
+model CollectionRecord {
+  id           String   @id @default(uuid()) @db.Uuid
+  collectionId String   @db.Uuid
+  recordId     String   @db.Uuid
+  createdAt    DateTime @default(now())
+
+  collection Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  record     Record     @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, recordId])
+  @@index([recordId])
+  @@map("collection_records")
+}
+
+// ---------------------------------------------------------------------------
+// Favorite — 사용자가 즐겨찾는 Concept
+// ---------------------------------------------------------------------------
+
+model Favorite {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String   @db.Uuid
+  conceptId String   @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  concept Concept @relation(fields: [conceptId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, conceptId])
+  @@index([userId])
+  @@map("favorites")
+}
