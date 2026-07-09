@@ -22,7 +22,7 @@ final class OnboardingViewModel {
         ),
         OnboardingPageData(
             id: 2,
-            title: "미션마다\n컬렉션이 쌓입니다",
+            title: "어느새,\n하나의 컬렉션이 됩니다",
             subtitle: "분홍, 하늘, 밤하늘…\n사진이 모이면 나만의 컬렉션이 돼요.",
             visual: .photoGrid
         ),
