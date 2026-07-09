@@ -165,6 +165,14 @@ final class RecordRepository {
         try? modelContext.save()
         reload()
     }
+
+    func deleteAllRecords() {
+        for record in records {
+            modelContext.delete(record)
+        }
+        try? modelContext.save()
+        reload()
+    }
 }
 
 // MARK: - Preview Support

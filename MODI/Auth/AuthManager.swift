@@ -4,10 +4,13 @@ import UIKit
 
 enum AuthError: LocalizedError {
     case appleSignInFailed(String)
+    case nicknameUpdateFailed(String)
 
     var errorDescription: String? {
         switch self {
         case .appleSignInFailed(let message):
+            return message
+        case .nicknameUpdateFailed(let message):
             return message
         }
     }
@@ -92,6 +95,35 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         setGuest()
     }
 
+    func updateNickname(_ rawNickname: String) async throws {
+        guard session.isLoggedIn else {
+            throw AuthError.nicknameUpdateFailed("로그인 후 닉네임을 수정할 수 있어요.")
+        }
+
+        let nickname = rawNickname.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !nickname.isEmpty else {
+            throw AuthError.nicknameUpdateFailed("닉네임을 입력해주세요.")
+        }
+
+        guard let accessToken else {
+            setGuest()
+            throw AuthError.nicknameUpdateFailed("세션이 만료되었어요. 다시 로그인해주세요.")
+        }
+
+        do {
+            let updatedUser = try await usersAPIService.updateMyNickname(nickname, accessToken: accessToken)
+            let updatedSession = UserSession.loggedIn(
+                userId: updatedUser.id,
+                nickname: updatedUser.nickname
+            )
+            try persist(session: updatedSession, accessToken: accessToken)
+            session = updatedSession
+        } catch {
+            let message = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+            throw AuthError.nicknameUpdateFailed(message)
+        }
+    }
+
     /// Sign in with Apple 진행 후, 백엔드 인증까지 완료합니다.
     func signInWithApple() async throws -> UserSession {
         try await withCheckedThrowingContinuation { continuation in
@@ -150,7 +182,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             do {
                 let authResponse = try await authAPIService.signInWithApple(
                     identityToken: identityToken,
-                    nickname: nickname == "MODI Explorer" ? nil : nickname
+                    nickname: nickname == UserDisplayName.loggedInFallback ? nil : nickname
                 )
 
                 let newSession = UserSession.loggedIn(
@@ -234,7 +266,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             return storedNickname
         }
 
-        return "MODI Explorer"
+        return UserDisplayName.loggedInFallback
     }
 
     private static func loadSession(from storage: UserDefaults) -> UserSession {
@@ -245,7 +277,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         let userId = storage.string(forKey: StorageKeys.userId)
         guard let userId, !userId.isEmpty else { return .guest }
 
-        let nickname = storage.string(forKey: StorageKeys.nickname) ?? "MODI Explorer"
+        let nickname = storage.string(forKey: StorageKeys.nickname) ?? UserDisplayName.loggedInFallback
         return .loggedIn(userId: userId, nickname: nickname)
     }
 }

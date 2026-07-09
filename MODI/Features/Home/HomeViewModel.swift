@@ -5,8 +5,6 @@ import SwiftUI
 @Observable
 final class HomeViewModel {
 
-    let userName = "영임"
-
     private(set) var recentDiscoveries: [RecentDiscovery] = []
     private(set) var todaysMissionGallery: TodaysMissionCollectionGallery?
     private(set) var monthlyConcept = MonthlyConcept.empty

@@ -98,6 +98,8 @@ struct SettingsView: View {
     @State private var viewModel = SettingsViewModel()
     @State private var isSigningIn = false
     @State private var isDeletingAccount = false
+    @State private var isUpdatingNickname = false
+    @State private var nicknameDraft = ""
     @State private var signInErrorMessage: String?
     @State private var showSignOutConfirmation = false
     @State private var showDeleteAccountConfirmation = false
@@ -121,6 +123,12 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .onAppear {
+            syncNicknameDraftIfNeeded()
+        }
+        .onChange(of: authManager.session.nickname) {
+            syncNicknameDraftIfNeeded()
+        }
         .alert("로그아웃하시겠어요?", isPresented: $showSignOutConfirmation) {
             Button("취소", role: .cancel) {}
             Button("로그아웃", role: .destructive) {
@@ -143,9 +151,11 @@ struct SettingsView: View {
                 if authManager.session.isLoggedIn {
                     settingsValueRow(
                         icon: "person.fill",
-                        title: authManager.session.nickname ?? "MODI Explorer",
+                        title: authManager.session.displayName,
                         subtitle: "Apple로 로그인됨"
                     )
+                    dividerInset()
+                    nicknameEditorRow
                 } else {
                     settingsValueRow(
                         icon: "person.crop.circle.badge.questionmark",
@@ -158,6 +168,36 @@ struct SettingsView: View {
             }
             .appCardStyle(padding: 0)
         }
+    }
+
+    private var nicknameEditorRow: some View {
+        HStack(spacing: AppSpacing.sm) {
+            rowIcon("pencil")
+
+            TextField("닉네임 입력", text: $nicknameDraft)
+                .font(AppFont.body)
+                .textInputAutocapitalization(.never)
+                .disableAutocorrection(true)
+
+            Button {
+                updateNickname()
+            } label: {
+                if isUpdatingNickname {
+                    ProgressView()
+                        .tint(AppColor.Accent.primary)
+                        .frame(width: 22, height: 22)
+                } else {
+                    Text("저장")
+                        .font(AppFont.footnote)
+                        .fontWeight(.semibold)
+                }
+            }
+            .disabled(!canUpdateNickname)
+        }
+        .padding(.horizontal, AppSpacing.lg)
+        .padding(.vertical, AppSpacing.md)
+        .frame(minHeight: AppSpacing.minTouchTarget)
+        .background(AppColor.Surface.card)
     }
 
     private var notificationSection: some View {
@@ -510,6 +550,37 @@ struct SettingsView: View {
                 signInErrorMessage = error.localizedDescription
             }
             isSigningIn = false
+        }
+    }
+
+    private var canUpdateNickname: Bool {
+        let trimmed = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        return !isUpdatingNickname &&
+            !trimmed.isEmpty &&
+            trimmed != authManager.session.displayName
+    }
+
+    private func syncNicknameDraftIfNeeded() {
+        guard authManager.session.isLoggedIn else { return }
+        nicknameDraft = authManager.session.displayName
+    }
+
+    private func updateNickname() {
+        let nickname = nicknameDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !nickname.isEmpty else { return }
+
+        isUpdatingNickname = true
+        signInErrorMessage = nil
+
+        Task {
+            defer { isUpdatingNickname = false }
+
+            do {
+                try await authManager.updateNickname(nickname)
+                nicknameDraft = authManager.session.displayName
+            } catch {
+                signInErrorMessage = error.localizedDescription
+            }
         }
     }
 

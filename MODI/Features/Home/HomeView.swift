@@ -10,6 +10,7 @@ struct HomeView: View {
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(StreakManager.self) private var streakManager
     @Environment(DeepLinkCoordinator.self) private var deepLinkCoordinator
+    @Environment(AuthManager.self) private var authManager
     @State private var viewModel = HomeViewModel()
 
     private var isTodaysMissionCompleted: Bool {
@@ -99,7 +100,7 @@ struct HomeView: View {
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.Text.secondary)
 
-            Text("\(viewModel.userName)님")
+            Text(authManager.session.homeGreetingName)
                 .font(AppFont.title1)
                 .foregroundStyle(AppColor.Text.primary)
         }

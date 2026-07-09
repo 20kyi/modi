@@ -11,7 +11,7 @@ import { UserResponseDto } from '../users/dto/user-response.dto';
 import { AppleSignInDto } from './dto/apple-sign-in.dto';
 import { AuthResponseDto } from './dto/auth-response.dto';
 
-const DEFAULT_NICKNAME = 'MODI Explorer';
+const DEFAULT_NICKNAME = '탐험가';
 
 @Injectable()
 export class AuthService {
