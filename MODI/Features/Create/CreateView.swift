@@ -16,7 +16,6 @@ struct CreateView: View {
     @Environment(StreakManager.self) private var streakManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
 
-    @State private var showCompleted = false
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var editorPresentation: EditorPresentation?
@@ -30,11 +29,11 @@ struct CreateView: View {
     }
 
     private var isMissionCompleted: Bool {
-        showCompleted || missionManager.isTodaysMissionCompleted(repository: repository)
+        missionManager.isTodaysMissionCompleted(repository: repository)
     }
 
     private var canChangeMission: Bool {
-        !showCompleted && missionManager.canChangeMission(repository: repository)
+        missionManager.canChangeMission(repository: repository)
     }
 
     private var todaysRecord: MODIRecord? {
@@ -70,11 +69,7 @@ struct CreateView: View {
                         todayMission: missionManager.todaysMission,
                         concept: concept,
                         mission: todaysMission,
-                        onSaved: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                                showCompleted = true
-                            }
-                        },
+                        onSaved: {},
                         onSaveFailed: { _ in
                             saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                         }
@@ -94,11 +89,7 @@ struct CreateView: View {
                     PhotoEditorView(
                         image: presentation.image,
                         concept: concept,
-                        onSaved: {
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
-                                showCompleted = true
-                            }
-                        },
+                        onSaved: {},
                         onSaveFailed: { _ in
                             saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                         }
