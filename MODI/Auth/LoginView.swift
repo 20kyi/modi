@@ -12,11 +12,12 @@ struct LoginView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
-
             Spacer()
 
-            contentCard
+            VStack(spacing: AppSpacing.lg) {
+                header
+                contentCard
+            }
 
             Spacer()
         }
@@ -24,18 +25,20 @@ struct LoginView: View {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+        VStack(spacing: AppSpacing.sm) {
             Text("MODI")
                 .font(AppFont.headline)
                 .foregroundStyle(AppColor.Text.primary)
+                .frame(maxWidth: .infinity, alignment: .center)
 
             Text("작은 순간을 발견하고 기록하세요 ✨")
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.Text.secondary)
                 .lineSpacing(6)
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity, alignment: .center)
         }
         .appScreenPadding()
-        .padding(.top, AppSpacing.xxxl)
     }
 
     private var contentCard: some View {
@@ -51,20 +54,23 @@ struct LoginView: View {
             Button {
                 startAppleSignIn()
             } label: {
-                HStack(spacing: AppSpacing.md) {
-                    Image(systemName: "apple.logo")
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundStyle(AppColor.Text.onAccent)
+                ZStack {
+                    HStack(spacing: AppSpacing.md) {
+                        Image(systemName: "apple.logo")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(AppColor.Text.onAccent)
 
-                    Text("Apple로 시작하기")
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.Text.onAccent)
+                        Text("Apple로 시작하기")
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.Text.onAccent)
+                    }
 
-                    Spacer()
-
-                    if isSigningIn {
-                        ProgressView()
-                            .tint(AppColor.Text.onAccent)
+                    HStack {
+                        Spacer()
+                        if isSigningIn {
+                            ProgressView()
+                                .tint(AppColor.Text.onAccent)
+                        }
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
