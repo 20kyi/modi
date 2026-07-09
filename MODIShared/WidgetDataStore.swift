@@ -1,8 +1,11 @@
 import Foundation
+import UIKit
 
 enum WidgetDataStore {
     private static let snapshotKey = "modi.widget.dailySnapshot"
     private static let todayPhotoFileName = "today-photo.jpg"
+    private static let widgetPhotoMaxArea: CGFloat = 1_000_000
+    private static let widgetPhotoCompressionQuality: CGFloat = 0.82
 
     static var sharedDefaults: UserDefaults? {
         UserDefaults(suiteName: AppGroupConstants.identifier)
@@ -39,8 +42,9 @@ enum WidgetDataStore {
     @discardableResult
     static func saveTodayPhoto(_ imageData: Data) -> Bool {
         guard let url = todayPhotoURL else { return false }
+        let storableData = makeWidgetSizedPhotoData(from: imageData) ?? imageData
         do {
-            try imageData.write(to: url, options: .atomic)
+            try storableData.write(to: url, options: .atomic)
             return true
         } catch {
             return false
@@ -51,7 +55,16 @@ enum WidgetDataStore {
         guard let url = todayPhotoURL,
               FileManager.default.fileExists(atPath: url.path)
         else { return nil }
-        return try? Data(contentsOf: url)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        if let image = UIImage(data: data) {
+            let area = image.size.width * image.size.height
+            if area > widgetPhotoMaxArea,
+               let optimizedData = makeWidgetSizedPhotoData(from: data) {
+                try? optimizedData.write(to: url, options: .atomic)
+                return optimizedData
+            }
+        }
+        return data
     }
 
     static func removeTodayPhoto() {
@@ -59,7 +72,38 @@ enum WidgetDataStore {
         try? FileManager.default.removeItem(at: url)
     }
 
+    static func clearAll() {
+        sharedDefaults?.removeObject(forKey: snapshotKey)
+        removeTodayPhoto()
+    }
+
     private static var todayPhotoURL: URL? {
         containerURL?.appendingPathComponent(todayPhotoFileName)
+    }
+
+    private static func makeWidgetSizedPhotoData(from imageData: Data) -> Data? {
+        guard let image = UIImage(data: imageData) else { return nil }
+
+        let originalSize = image.size
+        let originalArea = max(originalSize.width * originalSize.height, 1)
+        guard originalArea > widgetPhotoMaxArea else {
+            return image.jpegData(compressionQuality: widgetPhotoCompressionQuality)
+        }
+
+        let scaleRatio = sqrt(widgetPhotoMaxArea / originalArea)
+        let targetSize = CGSize(
+            width: max(1, floor(originalSize.width * scaleRatio)),
+            height: max(1, floor(originalSize.height * scaleRatio))
+        )
+
+        let rendererFormat = UIGraphicsImageRendererFormat.default()
+        rendererFormat.scale = 1
+        rendererFormat.opaque = true
+        let renderer = UIGraphicsImageRenderer(size: targetSize, format: rendererFormat)
+        let resizedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+
+        return resizedImage.jpegData(compressionQuality: widgetPhotoCompressionQuality)
     }
 }
