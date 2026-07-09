@@ -24,11 +24,13 @@ export class AuthService {
 
   async signInWithApple(dto: AppleSignInDto): Promise<AuthResponseDto> {
     const appleSub = await this.verifyAppleIdentityToken(dto.identityToken);
-    const user = await this.upsertUser(appleSub, dto.nickname);
+    const { user, isNewUser } = await this.findOrCreateUser(appleSub, dto.nickname);
     const accessToken = await this.jwtService.signAsync({ sub: user.id });
 
     return {
       accessToken,
+      tokenType: 'Bearer',
+      isNewUser,
       user: UserResponseDto.from(user),
     };
   }
@@ -52,24 +54,29 @@ export class AuthService {
     }
   }
 
-  private async upsertUser(appleSub: string, nickname?: string): Promise<User> {
-    const existing = await this.prisma.user.findUnique({ where: { appleSub } });
+  private async findOrCreateUser(
+    appleSub: string,
+    nickname?: string,
+  ): Promise<{ user: User; isNewUser: boolean }> {
+    const existingUser = await this.prisma.user.findUnique({ where: { appleSub } });
 
-    if (existing) {
-      if (nickname && nickname !== existing.nickname) {
-        return this.prisma.user.update({
-          where: { id: existing.id },
+    if (existingUser) {
+      if (nickname && nickname !== existingUser.nickname) {
+        const updatedUser = await this.prisma.user.update({
+          where: { id: existingUser.id },
           data: { nickname },
         });
+        return { user: updatedUser, isNewUser: false };
       }
-      return existing;
+      return { user: existingUser, isNewUser: false };
     }
 
-    return this.prisma.user.create({
+    const newUser = await this.prisma.user.create({
       data: {
         appleSub,
         nickname: nickname ?? DEFAULT_NICKNAME,
       },
     });
+    return { user: newUser, isNewUser: true };
   }
 }
