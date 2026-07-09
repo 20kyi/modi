@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: modi-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: modi
+      POSTGRES_USER: modi
+      POSTGRES_PASSWORD: modi1234
+    ports:
+      - "5432:5432"
+    volumes:
+      - modi-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U modi -d modi"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+volumes:
+  modi-postgres-data:
