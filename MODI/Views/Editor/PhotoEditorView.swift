@@ -679,7 +679,7 @@ struct PhotoEditorView: View {
                     conceptEmoji: concept.emoji,
                     originalImageUrl: originalPhoto.jpegData(compressionQuality: 0.85)?.asDataURLString() ?? "",
                     editedImageUrl: renderedImage.jpegData(compressionQuality: 0.85)?.asDataURLString() ?? "",
-                    recordDate: Self.serverDateFormatter.string(from: recordDate ?? existingRecord?.discoveryDate ?? .now),
+                    recordDate: Self.localRecordDateString(from: recordDate ?? existingRecord?.discoveryDate ?? .now),
                     isEdited: wasEdited
                 )
                 Task {
@@ -719,14 +719,25 @@ struct PhotoEditorView: View {
         return CGRect(origin: origin, size: CGSize(width: side, height: side))
     }
 
-    private static let serverDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
+    private static func localRecordDateString(from date: Date) -> String {
+        let calendar = Calendar.autoupdatingCurrent
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+
+        guard let year = components.year,
+              let month = components.month,
+              let day = components.day
+        else {
+            // DateComponents 추출에 실패하면 현재 로컬 타임존 포맷터로 안전하게 폴백합니다.
+            let formatter = DateFormatter()
+            formatter.calendar = Calendar(identifier: .gregorian)
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = .autoupdatingCurrent
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.string(from: date)
+        }
+
+        return String(format: "%04d-%02d-%02d", year, month, day)
+    }
 }
 
 private extension Data {
