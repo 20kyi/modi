@@ -143,7 +143,9 @@ extension MODICollection {
             emoji: emoji,
             description: collectionDescription,
             category: collectionCategory,
-            type: collectionType == .custom ? .custom : .system
+            type: collectionType == .custom ? .custom : .system,
+            missionPrompt: missionPrompt,
+            themeColorHex: themeColorHex
         )
     }
 }

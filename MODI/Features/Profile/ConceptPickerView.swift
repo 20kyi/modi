@@ -78,6 +78,6 @@ struct ConceptPickerView: View {
 
 #Preview {
     NavigationStack {
-        ConceptPickerView(concepts: Concept.systemConcepts) { _ in }
+        ConceptPickerView(concepts: Concept.bundledFallback) { _ in }
     }
 }

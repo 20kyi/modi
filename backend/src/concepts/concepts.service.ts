@@ -6,6 +6,13 @@ import { PrismaService } from '../database/prisma.service';
 export class ConceptsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  findSystemConcepts(): Promise<Concept[]> {
+    return this.prisma.concept.findMany({
+      where: { type: ConceptType.SYSTEM },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   findAvailableConcepts(userId: string): Promise<Concept[]> {
     return this.prisma.concept.findMany({
       where: {

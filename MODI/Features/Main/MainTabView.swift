@@ -55,6 +55,10 @@ struct MainTabView: View {
                         )
                     }
                 }
+
+                Task {
+                    await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
+                }
             }
         }
     }
@@ -133,6 +137,7 @@ struct MainTabView: View {
             if !oldValue, newValue {
                 selectedTab = .home
                 Task {
+                    await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
                     await syncRecordsFromServer(
                         repository: repository,
                         collectionRepository: collectionRepository

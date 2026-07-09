@@ -16,9 +16,11 @@ final class MissionManager {
     private(set) var customConcepts: [Concept] = []
     private var todayMissions: [String: TodayMission] = [:]
     private let storage: UserDefaults
+    private let catalog: SystemConceptCatalog
+    private let conceptsAPIService: ConceptsAPIService
     private var activeScope: String
 
-    var systemConcepts: [Concept] { Concept.systemConcepts }
+    var systemConcepts: [Concept] { catalog.concepts }
 
     var allConcepts: [Concept] {
         systemConcepts + customConcepts
@@ -32,17 +34,37 @@ final class MissionManager {
         concept(for: todaysMission.conceptId)
     }
 
-    init(storage: UserDefaults = .standard) {
+    init(
+        storage: UserDefaults = .standard,
+        catalog: SystemConceptCatalog = .shared,
+        conceptsAPIService: ConceptsAPIService = .shared
+    ) {
         self.storage = storage
+        self.catalog = catalog
+        self.conceptsAPIService = conceptsAPIService
         activeScope = Self.currentScope(from: storage)
         load()
         migrateLegacyDataIfNeeded()
     }
 
+    // MARK: - Concept Sync
+
+    /// 서버에서 시스템 컨셉을 가져옵니다. 실패 시 캐시(또는 번들 fallback)를 유지합니다.
+    func refreshSystemConcepts(accessToken: String? = nil) async {
+        do {
+            let responses = try await conceptsAPIService.fetchConcepts(accessToken: accessToken)
+            let concepts = responses.compactMap(Concept.init(server:))
+            guard !concepts.isEmpty else { return }
+            catalog.apply(concepts)
+        } catch {
+            debugPrint("refreshSystemConcepts failed:", error.localizedDescription)
+        }
+    }
+
     // MARK: - Concept
 
     func concept(for id: UUID) -> Concept? {
-        Concept.concept(for: id, including: customConcepts)
+        Concept.concept(for: id, system: systemConcepts, including: customConcepts)
     }
 
     func concepts(in category: CollectionCategory) -> [Concept] {

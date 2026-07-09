@@ -14,6 +14,14 @@ enum ConceptType: String, Codable, CaseIterable, Identifiable {
         case .custom: "나만의 컨셉"
         }
     }
+
+    init?(serverValue: String) {
+        switch serverValue.uppercased() {
+        case "SYSTEM": self = .system
+        case "CUSTOM": self = .custom
+        default: return nil
+        }
+    }
 }
 
 // MARK: - Concept
@@ -27,18 +35,48 @@ struct Concept: Identifiable, Equatable, Codable, Hashable {
     let description: String
     let category: CollectionCategory
     let type: ConceptType
+    let missionPrompt: String
+    let themeColorHex: String
+
+    init(
+        id: UUID,
+        title: String,
+        emoji: String,
+        description: String,
+        category: CollectionCategory,
+        type: ConceptType,
+        missionPrompt: String = "",
+        themeColorHex: String = "E8ECF0"
+    ) {
+        self.id = id
+        self.title = title
+        self.emoji = emoji
+        self.description = description
+        self.category = category
+        self.type = type
+        self.missionPrompt = missionPrompt
+        self.themeColorHex = themeColorHex
+    }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
     }
-}
 
-// MARK: - UI Helpers
+    private enum CodingKeys: String, CodingKey {
+        case id, title, emoji, description, category, type, missionPrompt, themeColorHex
+    }
 
-extension Concept {
-    /// DailyMissionCard 등 기존 UI와 연결하기 위한 테마 색상.
-    var themeColorHex: String {
-        PhotoCollection.collection(for: id)?.themeColorHex
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        emoji = try container.decode(String.self, forKey: .emoji)
+        description = try container.decode(String.self, forKey: .description)
+        category = try container.decode(CollectionCategory.self, forKey: .category)
+        type = try container.decode(ConceptType.self, forKey: .type)
+        missionPrompt = try container.decodeIfPresent(String.self, forKey: .missionPrompt) ?? ""
+        themeColorHex = try container.decodeIfPresent(String.self, forKey: .themeColorHex)
+            ?? PhotoCollection.collection(for: id)?.themeColorHex
             ?? Self.fallbackThemeColorHex(for: category)
     }
 
@@ -61,23 +99,52 @@ extension Concept {
             emoji: collection.emoji,
             description: collection.description,
             category: collection.category,
-            type: type
+            type: type,
+            missionPrompt: collection.missionPrompt,
+            themeColorHex: collection.themeColorHex
+        )
+    }
+
+    init?(server: ServerConceptResponse) {
+        guard let id = UUID(uuidString: server.id),
+              let type = ConceptType(serverValue: server.type),
+              let category = CollectionCategory(serverValue: server.category)
+        else { return nil }
+
+        self.init(
+            id: id,
+            title: server.title,
+            emoji: server.emoji,
+            description: server.description,
+            category: category,
+            type: type,
+            missionPrompt: server.missionPrompt,
+            themeColorHex: server.themeColorHex
         )
     }
 }
 
-// MARK: - Mock Data
+// MARK: - Lookup
 
 extension Concept {
-    /// Color Collection (6) + Nature Collection (5)
-    static let systemConcepts: [Concept] = PhotoCollection.builtIn.map {
+    static func concept(
+        for id: UUID,
+        system: [Concept] = SystemConceptCatalog.shared.concepts,
+        including custom: [Concept] = []
+    ) -> Concept? {
+        (system + custom).first { $0.id == id }
+    }
+}
+
+// MARK: - Bundled Fallback
+
+extension Concept {
+    /// 네트워크·캐시 모두 없을 때 사용하는 번들 기본값.
+    static let bundledFallback: [Concept] = PhotoCollection.builtIn.map {
         Concept(from: $0, type: .system)
     }
 
-    static let colorConcepts: [Concept] = systemConcepts.filter { $0.category == .color }
-    static let natureConcepts: [Concept] = systemConcepts.filter { $0.category == .nature }
-
-    static let mock = systemConcepts[6] // Cloud Hunter
+    static let mock = bundledFallback[6] // Cloud Hunter
 
     static let mockCustom = Concept(
         id: UUID(uuidString: "C3000001-0000-0000-0000-000000000001")!,
@@ -87,8 +154,17 @@ extension Concept {
         category: .custom,
         type: .custom
     )
+}
 
-    static func concept(for id: UUID, including custom: [Concept] = []) -> Concept? {
-        (systemConcepts + custom).first { $0.id == id }
+// MARK: - Server Category Bridge
+
+extension CollectionCategory {
+    init?(serverValue: String) {
+        switch serverValue.uppercased() {
+        case "COLOR": self = .color
+        case "NATURE": self = .nature
+        case "CUSTOM": self = .custom
+        default: return nil
+        }
     }
 }

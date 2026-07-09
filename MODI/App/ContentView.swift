@@ -33,6 +33,12 @@ struct ContentView: View {
         }
         .onChange(of: authManager.session) {
             missionManager.syncSessionScope()
+            Task {
+                await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
+            }
+        }
+        .task {
+            await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
         }
         .onOpenURL { url in
             deepLinkCoordinator.handle(url)
