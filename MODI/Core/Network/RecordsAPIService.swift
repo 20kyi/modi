@@ -48,4 +48,12 @@ struct RecordsAPIService: Sendable {
             accessToken: accessToken
         )
     }
+
+    func deleteMyRecord(recordId: String, accessToken: String) async throws {
+        try await client.requestVoid(
+            "records/me/\(recordId)",
+            method: "DELETE",
+            accessToken: accessToken
+        )
+    }
 }

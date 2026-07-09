@@ -32,7 +32,9 @@ export class RecordResponseDto {
   @ApiProperty()
   updatedAt!: Date;
 
-  static from(record: ModiRecord & { concept: { title: string; emoji: string } }): RecordResponseDto {
+  static from(
+    record: ModiRecord & { concept: { title: string; emoji: string } },
+  ): RecordResponseDto {
     return {
       id: record.id,
       conceptId: record.conceptId,

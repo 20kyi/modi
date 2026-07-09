@@ -24,7 +24,10 @@ export class CreateRecordDto {
   @IsString()
   editedImageUrl!: string;
 
-  @ApiProperty({ description: '발견 날짜(YYYY-MM-DD 또는 ISO)', example: '2026-07-09' })
+  @ApiProperty({
+    description: '발견 날짜(YYYY-MM-DD 또는 ISO)',
+    example: '2026-07-09',
+  })
   @IsDateString()
   recordDate!: string;
 

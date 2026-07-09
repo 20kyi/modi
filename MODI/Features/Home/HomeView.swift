@@ -18,7 +18,19 @@ struct HomeView: View {
     }
 
     private var todaysMission: DailyMission {
-        missionManager.dailyMission(for: .now, isCompleted: isTodaysMissionCompleted)
+        let todaysRecords = recordRepository.fetchRecords(on: .now)
+            .sorted { $0.createdAt > $1.createdAt }
+
+        if let completedConceptId = todaysRecords.first?.conceptId,
+           let completedConcept = missionManager.concept(for: completedConceptId) {
+            return DailyMission(
+                from: completedConcept,
+                date: .now,
+                isCompleted: true
+            )
+        }
+
+        return missionManager.dailyMission(for: .now, isCompleted: false)
             ?? .mock
     }
 

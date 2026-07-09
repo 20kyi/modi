@@ -13,6 +13,7 @@ private struct RecordEditorPresentation: Identifiable {
 
 struct RecordDetailView: View {
 
+    @Environment(AuthManager.self) private var authManager
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
@@ -23,6 +24,7 @@ struct RecordDetailView: View {
     let collection: MODICollection
 
     @State private var showDeleteAlert = false
+    @State private var deleteErrorMessage: String?
     @State private var editorPresentation: RecordEditorPresentation?
 
     var body: some View {
@@ -83,9 +85,18 @@ struct RecordDetailView: View {
         }
         .alert("이 기록을 삭제할까요?", isPresented: $showDeleteAlert) {
             Button("삭제", role: .destructive) {
-                deleteRecord()
+                Task {
+                    await deleteRecord()
+                }
             }
             Button("취소", role: .cancel) {}
+        }
+        .alert("삭제 실패", isPresented: deleteFailedAlertIsPresented) {
+            Button("확인", role: .cancel) {
+                deleteErrorMessage = nil
+            }
+        } message: {
+            Text(deleteErrorMessage ?? "기록을 삭제하지 못했어요.")
         }
     }
 
@@ -163,14 +174,52 @@ struct RecordDetailView: View {
         editorPresentation = RecordEditorPresentation(image: image, record: record)
     }
 
-    private func deleteRecord() {
-        repository.deleteRecord(record)
-        collectionRepository.reload()
-        streakManager.refresh(
-            recordRepository: repository,
-            collectionRepository: collectionRepository
+    private var deleteFailedAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { deleteErrorMessage != nil },
+            set: { if !$0 { deleteErrorMessage = nil } }
         )
-        dismiss()
+    }
+
+    private func deleteRecord() async {
+        do {
+            if authManager.session.isLoggedIn,
+               let accessToken = authManager.accessToken {
+                let remoteRecordID = try await resolveRemoteRecordID(for: record, accessToken: accessToken)
+                try await RecordsAPIService.shared.deleteMyRecord(
+                    recordId: remoteRecordID,
+                    accessToken: accessToken
+                )
+            }
+
+            repository.deleteRecord(record)
+            collectionRepository.reload()
+            streakManager.refresh(
+                recordRepository: repository,
+                collectionRepository: collectionRepository
+            )
+            dismiss()
+        } catch {
+            deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func resolveRemoteRecordID(for record: MODIRecord, accessToken: String) async throws -> String {
+        if let serverId = record.serverId {
+            return serverId
+        }
+
+        // Legacy local rows may not have serverId. Find the matching server row by recordDate.
+        let serverRecords = try await RecordsAPIService.shared.fetchMyRecords(accessToken: accessToken)
+        let calendar = Calendar(identifier: .gregorian)
+        if let matched = serverRecords.first(where: {
+            calendar.isDate($0.recordDate, inSameDayAs: record.discoveryDate)
+        }) {
+            repository.updateServerID(for: record, serverID: matched.id)
+            return matched.id
+        }
+
+        return record.id.uuidString
     }
 }
 
@@ -199,6 +248,7 @@ struct RecordNavigationValue: Hashable {
     .environment(repository)
     .environment(collectionRepository)
     .environment(StreakManager.mock)
+    .environment(AuthManager.mock)
 }
 
 #Preview("Without User Text") {
@@ -215,4 +265,5 @@ struct RecordNavigationValue: Hashable {
     .environment(repository)
     .environment(collectionRepository)
     .environment(StreakManager.mock)
+    .environment(AuthManager.mock)
 }

@@ -8,6 +8,8 @@ import SwiftData
 final class MODIRecord {
 
     var id: UUID
+    /// 서버 records.id (UUID 문자열). 비로그인 로컬 데이터는 nil일 수 있음.
+    var serverId: String?
     @Attribute(.externalStorage)
     var imageData: Data
     @Attribute(.externalStorage)

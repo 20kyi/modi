@@ -597,6 +597,7 @@ struct SettingsView: View {
         Task {
             do {
                 try await authManager.deleteAccount()
+                clearLocalUserData()
                 hasCompletedOnboarding = false
             } catch {
                 signInErrorMessage = error.localizedDescription

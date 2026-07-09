@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConceptCategory, ConceptType } from '../generated/prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { CreateRecordDto } from './dto/create-record.dto';
@@ -26,7 +26,9 @@ export class RecordsService {
 
   async upsertMyRecord(userId: string, dto: CreateRecordDto) {
     const date = new Date(dto.recordDate);
-    const recordDate = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    const recordDate = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
     await this.ensureConceptExists(userId, dto);
 
     return this.prisma.record.upsert({
@@ -61,7 +63,23 @@ export class RecordsService {
     });
   }
 
-  private async ensureConceptExists(userId: string, dto: CreateRecordDto): Promise<void> {
+  async deleteMyRecord(userId: string, recordId: string): Promise<void> {
+    const deleted = await this.prisma.record.deleteMany({
+      where: {
+        id: recordId,
+        userId,
+      },
+    });
+
+    if (deleted.count === 0) {
+      throw new NotFoundException('삭제할 기록을 찾을 수 없어요.');
+    }
+  }
+
+  private async ensureConceptExists(
+    userId: string,
+    dto: CreateRecordDto,
+  ): Promise<void> {
     const existing = await this.prisma.concept.findUnique({
       where: { id: dto.conceptId },
       select: { id: true },

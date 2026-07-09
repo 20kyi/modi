@@ -6,11 +6,17 @@ import Observation
 @Observable
 final class MissionManager {
 
-    private static let customConceptsKey = "modi.customConcepts"
-    private static let todayMissionsKey = "modi.todayMissions"
+    private static let customConceptsKeyPrefix = "modi.customConcepts"
+    private static let todayMissionsKeyPrefix = "modi.todayMissions"
+    private static let legacyCustomConceptsKey = "modi.customConcepts"
+    private static let legacyTodayMissionsKey = "modi.todayMissions"
+    private static let authUserIdKey = "modi_auth_userId"
+    private static let guestScope = "guest"
 
     private(set) var customConcepts: [Concept] = []
     private var todayMissions: [String: TodayMission] = [:]
+    private let storage: UserDefaults
+    private var activeScope: String
 
     var systemConcepts: [Concept] { Concept.systemConcepts }
 
@@ -26,8 +32,11 @@ final class MissionManager {
         concept(for: todaysMission.conceptId)
     }
 
-    init() {
+    init(storage: UserDefaults = .standard) {
+        self.storage = storage
+        activeScope = Self.currentScope(from: storage)
         load()
+        migrateLegacyDataIfNeeded()
     }
 
     // MARK: - Concept
@@ -177,32 +186,75 @@ final class MissionManager {
     // MARK: - Persistence
 
     private func load() {
-        if let data = UserDefaults.standard.data(forKey: Self.customConceptsKey),
+        if let data = storage.data(forKey: customConceptsKey),
            let decoded = try? JSONDecoder().decode([Concept].self, from: data) {
             customConcepts = decoded
+        } else {
+            customConcepts = []
         }
 
-        if let data = UserDefaults.standard.data(forKey: Self.todayMissionsKey),
+        if let data = storage.data(forKey: todayMissionsKey),
            let decoded = try? JSONDecoder().decode([String: TodayMission].self, from: data) {
             todayMissions = decoded
+        } else {
+            todayMissions = [:]
         }
     }
 
     private func saveCustomConcepts() {
         guard let data = try? JSONEncoder().encode(customConcepts) else { return }
-        UserDefaults.standard.set(data, forKey: Self.customConceptsKey)
+        storage.set(data, forKey: customConceptsKey)
     }
 
     private func saveTodayMissions() {
         guard let data = try? JSONEncoder().encode(todayMissions) else { return }
-        UserDefaults.standard.set(data, forKey: Self.todayMissionsKey)
+        storage.set(data, forKey: todayMissionsKey)
+    }
+
+    private var customConceptsKey: String {
+        "\(Self.customConceptsKeyPrefix).\(activeScope)"
+    }
+
+    private var todayMissionsKey: String {
+        "\(Self.todayMissionsKeyPrefix).\(activeScope)"
+    }
+
+    private static func currentScope(from storage: UserDefaults) -> String {
+        let userId = storage.string(forKey: authUserIdKey)?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let userId, !userId.isEmpty else { return guestScope }
+        return userId
+    }
+
+    private func migrateLegacyDataIfNeeded() {
+        guard storage.data(forKey: customConceptsKey) == nil,
+              storage.data(forKey: todayMissionsKey) == nil
+        else { return }
+
+        if let legacyCustomConcepts = storage.data(forKey: Self.legacyCustomConceptsKey) {
+            storage.set(legacyCustomConcepts, forKey: customConceptsKey)
+        }
+
+        if let legacyTodayMissions = storage.data(forKey: Self.legacyTodayMissionsKey) {
+            storage.set(legacyTodayMissions, forKey: todayMissionsKey)
+        }
+
+        storage.removeObject(forKey: Self.legacyCustomConceptsKey)
+        storage.removeObject(forKey: Self.legacyTodayMissionsKey)
+        load()
+    }
+
+    func syncSessionScope() {
+        let scope = Self.currentScope(from: storage)
+        guard scope != activeScope else { return }
+        activeScope = scope
+        load()
     }
 
     func resetForSignedOutState() {
+        syncSessionScope()
         customConcepts = []
         todayMissions = [:]
-        UserDefaults.standard.removeObject(forKey: Self.customConceptsKey)
-        UserDefaults.standard.removeObject(forKey: Self.todayMissionsKey)
     }
 }
 

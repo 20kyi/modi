@@ -202,7 +202,9 @@ final class RecordRepository {
                 collection = newCollection
             }
 
+            let localRecordID = UUID(uuidString: serverRecord.id) ?? UUID()
             let record = MODIRecord(
+                id: localRecordID,
                 imageData: editedData,
                 conceptId: conceptID,
                 conceptTitle: serverRecord.conceptTitle,
@@ -211,12 +213,19 @@ final class RecordRepository {
                 recordDate: serverRecord.recordDate,
                 isEdited: serverRecord.isEdited
             )
+            record.serverId = serverRecord.id
             record.originalImageData = Data.fromDataURLString(serverRecord.originalImageUrl)
             record.collection = collection
             modelContext.insert(record)
         }
         try? modelContext.save()
         collectionRepository.reload()
+        reload()
+    }
+
+    func updateServerID(for record: MODIRecord, serverID: String) {
+        record.serverId = serverID
+        try? modelContext.save()
         reload()
     }
 }

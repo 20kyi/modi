@@ -631,6 +631,7 @@ struct PhotoEditorView: View {
             let linkedCollection = collection ?? collectionRepository.ensureCollection(for: concept)
             let isNewRecord = existingRecord == nil
             let previousCount = repository.photoCount(for: linkedCollection.id)
+            let targetRecord: MODIRecord
 
             if let existingRecord {
                 try repository.updateRecord(
@@ -641,8 +642,9 @@ struct PhotoEditorView: View {
                     isEdited: wasEdited
                 )
                 collectionRepository.linkRecord(existingRecord, to: linkedCollection)
+                targetRecord = existingRecord
             } else {
-                _ = try repository.saveRecord(
+                targetRecord = try repository.saveRecord(
                     image: renderedImage,
                     originalImage: originalPhoto,
                     concept: concept,
@@ -682,7 +684,13 @@ struct PhotoEditorView: View {
                 )
                 Task {
                     do {
-                        _ = try await RecordsAPIService.shared.upsertMyRecord(request, accessToken: accessToken)
+                        let serverRecord = try await RecordsAPIService.shared.upsertMyRecord(
+                            request,
+                            accessToken: accessToken
+                        )
+                        await MainActor.run {
+                            repository.updateServerID(for: targetRecord, serverID: serverRecord.id)
+                        }
                     } catch {
                         debugPrint("upsertMyRecord failed:", error.localizedDescription)
                     }

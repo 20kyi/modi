@@ -28,6 +28,12 @@ struct ContentView: View {
         .environment(missionManager)
         .environment(authManager)
         .environment(deepLinkCoordinator)
+        .onAppear {
+            missionManager.syncSessionScope()
+        }
+        .onChange(of: authManager.session) {
+            missionManager.syncSessionScope()
+        }
         .onOpenURL { url in
             deepLinkCoordinator.handle(url)
         }

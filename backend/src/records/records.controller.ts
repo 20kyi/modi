@@ -1,5 +1,18 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { User } from '../generated/prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -29,5 +42,15 @@ export class RecordsController {
   ): Promise<RecordResponseDto> {
     const record = await this.recordsService.upsertMyRecord(user.id, dto);
     return RecordResponseDto.from(record);
+  }
+
+  @Delete('me/:recordId')
+  @ApiOperation({ summary: '내 기록 삭제' })
+  @ApiParam({ name: 'recordId', format: 'uuid' })
+  async deleteMyRecord(
+    @CurrentUser() user: User,
+    @Param('recordId') recordId: string,
+  ): Promise<void> {
+    await this.recordsService.deleteMyRecord(user.id, recordId);
   }
 }

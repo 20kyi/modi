@@ -11,6 +11,7 @@ private struct CollectionEditorPresentation: Identifiable {
 
 struct CollectionDetailView: View {
 
+    @Environment(AuthManager.self) private var authManager
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
@@ -22,6 +23,7 @@ struct CollectionDetailView: View {
     @State private var recordPendingDeletion: MODIRecord?
     @State private var editorPresentation: CollectionEditorPresentation?
     @State private var sharePayload: ShareImagePayload?
+    @State private var deleteErrorMessage: String?
 
     init(collection: MODICollection) {
         self.modiCollection = collection
@@ -102,19 +104,22 @@ struct CollectionDetailView: View {
         }
         .alert("이 사진을 삭제할까요?", isPresented: deletionAlertIsPresented, presenting: recordPendingDeletion) { record in
             Button("삭제", role: .destructive) {
-                repository.deleteRecord(record)
-                collectionRepository.reload()
-                streakManager.refresh(
-                    recordRepository: repository,
-                    collectionRepository: collectionRepository
-                )
-                recordPendingDeletion = nil
+                Task {
+                    await deleteRecord(record)
+                }
             }
             Button("취소", role: .cancel) {
                 recordPendingDeletion = nil
             }
         } message: { _ in
             Text("삭제한 사진은 복구할 수 없어요.")
+        }
+        .alert("삭제 실패", isPresented: deleteFailedAlertIsPresented) {
+            Button("확인", role: .cancel) {
+                deleteErrorMessage = nil
+            }
+        } message: {
+            Text(deleteErrorMessage ?? "사진을 삭제하지 못했어요.")
         }
         .sheet(item: $sharePayload) { payload in
             CollectionShareOptionsSheet(image: payload.image)
@@ -126,6 +131,13 @@ struct CollectionDetailView: View {
         Binding(
             get: { recordPendingDeletion != nil },
             set: { if !$0 { recordPendingDeletion = nil } }
+        )
+    }
+
+    private var deleteFailedAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { deleteErrorMessage != nil },
+            set: { if !$0 { deleteErrorMessage = nil } }
         )
     }
 
@@ -254,6 +266,47 @@ struct CollectionDetailView: View {
 
         sharePayload = ShareImagePayload(image: image)
     }
+
+    private func deleteRecord(_ record: MODIRecord) async {
+        do {
+            if authManager.session.isLoggedIn,
+               let accessToken = authManager.accessToken {
+                let remoteRecordID = try await resolveRemoteRecordID(for: record, accessToken: accessToken)
+                try await RecordsAPIService.shared.deleteMyRecord(
+                    recordId: remoteRecordID,
+                    accessToken: accessToken
+                )
+            }
+
+            repository.deleteRecord(record)
+            collectionRepository.reload()
+            streakManager.refresh(
+                recordRepository: repository,
+                collectionRepository: collectionRepository
+            )
+            recordPendingDeletion = nil
+        } catch {
+            deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func resolveRemoteRecordID(for record: MODIRecord, accessToken: String) async throws -> String {
+        if let serverId = record.serverId {
+            return serverId
+        }
+
+        // Legacy local rows may not have serverId. Find the matching server row by recordDate.
+        let serverRecords = try await RecordsAPIService.shared.fetchMyRecords(accessToken: accessToken)
+        let calendar = Calendar(identifier: .gregorian)
+        if let matched = serverRecords.first(where: {
+            calendar.isDate($0.recordDate, inSameDayAs: record.discoveryDate)
+        }) {
+            repository.updateServerID(for: record, serverID: matched.id)
+            return matched.id
+        }
+
+        return record.id.uuidString
+    }
 }
 
 // MARK: - MODI Record Tile
@@ -291,6 +344,7 @@ private struct MODIRecordTile: View {
     .environment(collectionRepository)
     .environment(StreakManager.mock)
     .environment(TitleCelebrationManager())
+    .environment(AuthManager.mock)
     .preferredColorScheme(.light)
 }
 
@@ -311,6 +365,7 @@ private struct MODIRecordTile: View {
     .environment(collectionRepository)
     .environment(StreakManager.mock)
     .environment(TitleCelebrationManager())
+    .environment(AuthManager.mock)
     .preferredColorScheme(.dark)
 }
 
@@ -331,5 +386,6 @@ private struct MODIRecordTile: View {
     .environment(collectionRepository)
     .environment(StreakManager.mock)
     .environment(TitleCelebrationManager.mock)
+    .environment(AuthManager.mock)
     .preferredColorScheme(.light)
 }

@@ -1,7 +1,4 @@
-import {
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import appleSignin from 'apple-signin-auth';
@@ -36,7 +33,9 @@ export class AuthService {
     };
   }
 
-  private async verifyAppleIdentityToken(identityToken: string): Promise<string> {
+  private async verifyAppleIdentityToken(
+    identityToken: string,
+  ): Promise<string> {
     try {
       const payload = await appleSignin.verifyIdToken(identityToken, {
         audience: this.appleClientId,
