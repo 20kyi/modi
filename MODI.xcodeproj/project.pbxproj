@@ -57,6 +57,16 @@
 		A1B2C3D42FFD4F1E00916401 /* MODIWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = MODIWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A1B2C3D42FFD4F1E0091640F /* Exceptions for "MODIWidget" folder in "MODIWidget" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = A1B2C3D42FFD4F1E00916403 /* MODIWidget */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		7C4092382FFD4F1B009164B8 /* MODI */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
@@ -87,17 +97,6 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		A1B2C3D42FFD4F1E0091640F /* Exceptions for "MODIWidget" folder in "MODIWidget" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-				MODIWidget.entitlements,
-			);
-			target = A1B2C3D42FFD4F1E00916403 /* MODIWidget */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		7C4092332FFD4F1B009164B8 /* Frameworks */ = {

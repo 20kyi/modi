@@ -21,6 +21,10 @@ struct CollectionShareCardView: View {
         Array(records.sorted { $0.createdAt > $1.createdAt }.prefix(6))
     }
 
+    private var progress: CollectionProgress {
+        CollectionProgress.make(conceptID: collection.id, totalDiscoveries: records.count)
+    }
+
     var body: some View {
         ZStack {
             LinearGradient(
@@ -63,6 +67,12 @@ struct CollectionShareCardView: View {
                 .font(AppFont.Rounded.title)
                 .foregroundStyle(AppColor.Text.primary)
                 .multilineTextAlignment(.center)
+
+            if let titleName = progress.currentTitle?.name {
+                Text(titleName)
+                    .font(AppFont.Rounded.headline)
+                    .foregroundStyle(AppColor.Text.secondary)
+            }
 
             Text(collection.discoveryCountLabel)
                 .font(AppFont.subheadline)
@@ -107,16 +117,15 @@ struct CollectionShareCardView: View {
 
     private var progressSection: some View {
         VStack(spacing: AppSpacing.sm) {
-            if collection.isCollectionComplete {
-                Text("COMPLETE ✨")
-                    .font(AppFont.Rounded.headline)
-                    .foregroundStyle(AppColor.Text.primary)
-            } else {
-                ProgressView(value: collection.completionRate)
-                    .tint(AppColor.Accent.primary)
-                    .scaleEffect(x: 1, y: 1.6, anchor: .center)
+            CollectionProgressBar(progress: progress.progress, height: 5, animated: false)
 
-                Text(collection.progressStatusLabel)
+            if let nextLabel = collection.nextTitleProgressLabel {
+                Text(nextLabel)
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.Text.secondary)
+                    .multilineTextAlignment(.center)
+            } else if records.count > 0 {
+                Text("Keep growing your collection")
                     .font(AppFont.footnote)
                     .foregroundStyle(AppColor.Text.secondary)
             }
@@ -153,17 +162,17 @@ extension CollectionShareCardView {
 
 #Preview("In Progress") {
     CollectionShareCardView(
-        collection: previewCollection(currentCount: 12),
+        collection: previewCollection(),
         records: previewRecords(count: 5)
     )
     .padding()
     .background(AppColor.Background.grouped)
 }
 
-#Preview("Complete") {
+#Preview("With Title") {
     CollectionShareCardView(
-        collection: previewCollection(currentCount: 20),
-        records: previewRecords(count: 6)
+        collection: previewCollection(),
+        records: previewRecords(count: 12)
     )
     .padding()
     .background(AppColor.Background.grouped)
@@ -171,14 +180,11 @@ extension CollectionShareCardView {
 
 // MARK: - Preview Helpers
 
-private func previewCollection(currentCount: Int) -> MODICollection {
-    let collection = MODICollection.from(
+private func previewCollection() -> MODICollection {
+    MODICollection.from(
         photoCollection: PhotoCollection.builtIn[6],
         type: .system
     )
-    collection.targetCount = 20
-    _ = currentCount
-    return collection
 }
 
 private func previewRecords(count: Int) -> [MODIRecord] {

@@ -4,14 +4,9 @@ struct CollectionCard: View {
 
     let collection: MODICollection
     let photoCount: Int
-    var latestRecordDate: Date?
 
-    private var latestDateLabel: String? {
-        guard let latestRecordDate else { return nil }
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.dateFormat = "M월 d일"
-        return formatter.string(from: latestRecordDate)
+    private var progress: CollectionProgress {
+        CollectionProgress.make(conceptID: collection.id, totalDiscoveries: photoCount)
     }
 
     var body: some View {
@@ -35,34 +30,50 @@ struct CollectionCard: View {
                     }
                 }
 
-            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                Text(collection.title)
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.Text.primary)
-                    .lineLimit(1)
-
-                if photoCount > 0 {
-                    Text("사진 \(photoCount)장")
-                        .font(AppFont.caption1)
-                        .foregroundStyle(AppColor.Text.secondary)
-                        .lineLimit(1)
-
-                    if let latestDateLabel {
-                        Text("최근 \(latestDateLabel)")
-                            .font(AppFont.caption2)
-                            .foregroundStyle(AppColor.Text.tertiary)
-                            .lineLimit(1)
-                    }
-                } else {
-                    Text(collection.missionPrompt)
-                        .font(AppFont.caption1)
-                        .foregroundStyle(AppColor.Text.secondary)
-                        .lineLimit(2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            if photoCount > 0 {
+                filledSection
+            } else {
+                emptySection
             }
         }
         .appCardStyle(padding: AppSpacing.md)
+    }
+
+    private var filledSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+            Text(collection.title)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.Text.primary)
+                .lineLimit(1)
+
+            Text(cardSubtitle)
+                .font(AppFont.caption1)
+                .foregroundStyle(AppColor.Text.secondary)
+                .lineLimit(1)
+        }
+    }
+
+    private var cardSubtitle: String {
+        let countLabel = photoCount == 1 ? "1 Discovery" : "\(photoCount) Discoveries"
+        if let titleName = progress.currentTitle?.name {
+            return "\(countLabel) · \(titleName)"
+        }
+        return countLabel
+    }
+
+    private var emptySection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+            Text(collection.title)
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.Text.primary)
+                .lineLimit(1)
+
+            Text(collection.missionPrompt)
+                .font(AppFont.caption1)
+                .foregroundStyle(AppColor.Text.secondary)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
@@ -78,36 +89,40 @@ extension CollectionCard {
     }
 }
 
-#Preview("Light") {
+#Preview("With Records — Light") {
     let collection = MODICollection.from(
-        photoCollection: PhotoCollection.builtIn[0],
+        photoCollection: PhotoCollection.builtIn[6],
         type: .system
     )
 
-    return CollectionCard(
-        collection: collection,
-        photoCount: 3,
-        latestRecordDate: .now
-    )
-    .frame(width: 170)
-    .appScreenPadding()
-    .appScreenBackground()
-    .preferredColorScheme(.light)
+    return CollectionCard(collection: collection, photoCount: 12)
+        .frame(width: 170)
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
 }
 
-#Preview("Dark") {
+#Preview("With Records — Dark") {
     let collection = MODICollection.from(
-        photoCollection: PhotoCollection.builtIn[0],
+        photoCollection: PhotoCollection.builtIn[6],
         type: .system
     )
 
-    return CollectionCard(
-        collection: collection,
-        photoCount: 3,
-        latestRecordDate: .now
+    return CollectionCard(collection: collection, photoCount: 12)
+        .frame(width: 170)
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.dark)
+}
+
+#Preview("Empty") {
+    let collection = MODICollection.from(
+        photoCollection: PhotoCollection.builtIn[6],
+        type: .system
     )
-    .frame(width: 170)
-    .appScreenPadding()
-    .appScreenBackground()
-    .preferredColorScheme(.dark)
+
+    return CollectionCard(collection: collection, photoCount: 0)
+        .frame(width: 170)
+        .appScreenPadding()
+        .appScreenBackground()
 }

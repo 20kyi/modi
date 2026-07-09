@@ -27,6 +27,7 @@ struct PastDiscoveryFlowView: View {
     @Environment(RecordRepository.self) private var recordRepository
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(StreakManager.self) private var streakManager
+    @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
 
     @State private var photoSelectionContext: PhotoSelectionContext?
     @State private var editorPresentation: PastDiscoveryEditorPresentation?
@@ -83,6 +84,7 @@ struct PastDiscoveryFlowView: View {
                 .environment(recordRepository)
                 .environment(collectionRepository)
                 .environment(streakManager)
+                .environment(titleCelebrationManager)
             }
             .alert("사진을 저장하지 못했어요", isPresented: saveErrorIsPresented) {
                 Button("확인", role: .cancel) {

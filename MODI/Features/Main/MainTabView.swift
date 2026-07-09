@@ -22,6 +22,7 @@ struct MainTabView: View {
     @State private var repository: RecordRepository?
     @State private var collectionRepository: CollectionRepository?
     @State private var streakManager = StreakManager()
+    @State private var titleCelebrationManager = TitleCelebrationManager()
     @State private var selectedTab: MainTab = .home
 
     var body: some View {
@@ -52,7 +53,9 @@ struct MainTabView: View {
         repository: RecordRepository,
         collectionRepository: CollectionRepository
     ) -> some View {
-        TabView(selection: $selectedTab) {
+        @Bindable var celebrationManager = titleCelebrationManager
+
+        return TabView(selection: $selectedTab) {
             HomeView(
                 missionManager: missionManager,
                 onCreateTapped: { selectedTab = .create }
@@ -88,6 +91,16 @@ struct MainTabView: View {
         .environment(repository)
         .environment(collectionRepository)
         .environment(streakManager)
+        .environment(titleCelebrationManager)
+        .sheet(item: $celebrationManager.pendingCelebration) { celebration in
+            TitleCelebrationSheet(
+                celebration: celebration,
+                onContinue: { titleCelebrationManager.dismiss() },
+                onShare: { titleCelebrationManager.dismiss() }
+            )
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        }
         .task {
             if notificationManager.isEnabled {
                 await notificationManager.scheduleDailyNotifications(missionManager: missionManager)

@@ -28,6 +28,7 @@ final class ProfileViewModel {
     private(set) var recordedDayEmojis: [String: String] = [:]
     private(set) var monthlyConcept = MonthlyConcept.empty
     private(set) var collectionSummaries: [ProfileCollectionSummary] = []
+    private(set) var highestTitle: ProfileHighestTitle?
 
     let settingsItems: [ProfileSettingsItem] = [
         ProfileSettingsItem(title: "알림 설정", icon: "bell.fill", isPremium: false, destination: .notifications),
@@ -44,6 +45,10 @@ final class ProfileViewModel {
         recordedDayEmojis = Self.makeRecordedDayEmojis(from: recordRepository.fetchAllRecords())
         monthlyConcept = Self.makeMonthlyConcept(from: recordRepository.fetchAllRecords())
         collectionSummaries = Self.makeCollectionSummaries(from: collectionRepository)
+        highestTitle = Self.makeHighestTitle(
+            from: collectionRepository,
+            recordRepository: recordRepository
+        )
     }
 
     // MARK: - Builders
@@ -100,6 +105,37 @@ final class ProfileViewModel {
                     momentCount: collection.photoCount
                 )
             }
+    }
+
+    private static func makeHighestTitle(
+        from collectionRepository: CollectionRepository,
+        recordRepository: RecordRepository
+    ) -> ProfileHighestTitle? {
+        let candidates: [ProfileHighestTitle] = collectionRepository.collections.compactMap { collection in
+            let records = recordRepository.fetchRecords(for: collection)
+            guard records.count > 0,
+                  let title = collection.currentTitle
+            else { return nil }
+
+            let sortedRecords = records.sorted { $0.discoveryDate < $1.discoveryDate }
+            let acquiredIndex = min(title.milestone, sortedRecords.count) - 1
+            guard acquiredIndex >= 0, acquiredIndex < sortedRecords.count else { return nil }
+
+            return ProfileHighestTitle(
+                title: title,
+                collectionTitle: collection.title,
+                emoji: collection.emoji,
+                themeColorHex: collection.themeColorHex,
+                acquiredDate: sortedRecords[acquiredIndex].discoveryDate
+            )
+        }
+
+        return candidates.max { lhs, rhs in
+            if lhs.title.milestone != rhs.title.milestone {
+                return lhs.title.milestone < rhs.title.milestone
+            }
+            return lhs.acquiredDate < rhs.acquiredDate
+        }
     }
 }
 

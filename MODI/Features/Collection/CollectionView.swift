@@ -139,7 +139,7 @@ struct CollectionView: View {
 }
 
 #Preview("Light") {
-    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true, sampleDiscoveryCount: 12)
     let collectionRepository = CollectionRepository(modelContext: container.mainContext)
     collectionRepository.bootstrap()
     return CollectionView()
@@ -147,11 +147,12 @@ struct CollectionView: View {
         .environment(CollectionStore())
         .environment(repository)
         .environment(collectionRepository)
+        .environment(TitleCelebrationManager())
         .preferredColorScheme(.light)
 }
 
 #Preview("Dark") {
-    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let (container, repository) = RecordPreviewData.makeRepository(withSampleData: true, sampleDiscoveryCount: 12)
     let collectionRepository = CollectionRepository(modelContext: container.mainContext)
     collectionRepository.bootstrap()
     return CollectionView()
@@ -159,5 +160,6 @@ struct CollectionView: View {
         .environment(CollectionStore())
         .environment(repository)
         .environment(collectionRepository)
+        .environment(TitleCelebrationManager())
         .preferredColorScheme(.dark)
 }

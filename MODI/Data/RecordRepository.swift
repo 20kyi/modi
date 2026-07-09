@@ -174,7 +174,8 @@ enum RecordPreviewData {
     @MainActor
     static func makeRepository(
         withSampleData: Bool = false,
-        includeUserText: Bool = false
+        includeUserText: Bool = false,
+        sampleDiscoveryCount: Int = 3
     ) -> (ModelContainer, RecordRepository) {
         let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
         let schema = Schema([MODIRecord.self, MODICollection.self])
@@ -190,7 +191,8 @@ enum RecordPreviewData {
                 in: container.mainContext,
                 concept: .mock,
                 collection: collection,
-                includeUserText: includeUserText
+                includeUserText: includeUserText,
+                count: sampleDiscoveryCount
             )
             repository.reload()
         }
@@ -203,10 +205,12 @@ enum RecordPreviewData {
         in context: ModelContext,
         concept: Concept,
         collection: MODICollection,
-        includeUserText: Bool = false
+        includeUserText: Bool = false,
+        count: Int = 3
     ) {
-        let colors: [UIColor] = [.systemPink, .systemBlue, .systemTeal]
-        for (index, color) in colors.enumerated() {
+        let colors: [UIColor] = [.systemPink, .systemBlue, .systemTeal, .systemIndigo, .systemCyan, .systemMint]
+        for index in 0..<count {
+            let color = colors[index % colors.count]
             let size = CGSize(width: 200, height: 200)
             let renderer = UIGraphicsImageRenderer(size: size)
             let image = renderer.image { context in

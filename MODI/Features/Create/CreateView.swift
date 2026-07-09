@@ -14,6 +14,7 @@ struct CreateView: View {
     @Environment(MissionManager.self) private var missionManager
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
+    @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
 
     @State private var showCompleted = false
     @State private var showCamera = false
@@ -66,6 +67,7 @@ struct CreateView: View {
                     )
                     .environment(repository)
                     .environment(streakManager)
+                    .environment(titleCelebrationManager)
                 }
             }
             .sheet(isPresented: $showPhotoLibrary) {
@@ -89,6 +91,7 @@ struct CreateView: View {
                     )
                     .environment(repository)
                     .environment(streakManager)
+                    .environment(titleCelebrationManager)
                 }
             }
             .alert("사진을 저장하지 못했어요", isPresented: saveErrorIsPresented) {

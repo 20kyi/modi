@@ -18,6 +18,7 @@ struct PhotoEditorView: View {
     @Environment(RecordRepository.self) private var repository
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(StreakManager.self) private var streakManager
+    @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
 
     @State private var elements: [EditorElement] = []
     @State private var selectedElementID: UUID?
@@ -627,6 +628,8 @@ struct PhotoEditorView: View {
 
         do {
             let linkedCollection = collection ?? collectionRepository.ensureCollection(for: concept)
+            let isNewRecord = existingRecord == nil
+            let previousCount = repository.photoCount(for: linkedCollection.id)
 
             if let existingRecord {
                 try repository.updateRecord(
@@ -653,6 +656,18 @@ struct PhotoEditorView: View {
                 recordRepository: repository,
                 collectionRepository: collectionRepository
             )
+
+            if isNewRecord {
+                let newCount = repository.photoCount(for: linkedCollection.id)
+                titleCelebrationManager.evaluateMilestone(
+                    conceptID: linkedCollection.id,
+                    collectionTitle: linkedCollection.title,
+                    collectionEmoji: linkedCollection.emoji,
+                    previousCount: previousCount,
+                    newCount: newCount
+                )
+            }
+
             onSaved()
             dismiss()
         } catch {
@@ -891,46 +906,58 @@ private struct EditorRenderCanvas: View {
 
 // MARK: - Preview
 
-#Preview("With Concept · Light") {
-    let (container, repository) = RecordPreviewData.makeRepository()
-    let size = CGSize(width: 300, height: 400)
-    let renderer = UIGraphicsImageRenderer(size: size)
-    let sampleImage = renderer.image { context in
-        UIColor.systemTeal.setFill()
-        context.fill(CGRect(origin: .zero, size: size))
+private enum PhotoEditorPreviewSupport {
+    @MainActor
+    static func makeSampleImage() -> UIImage {
+        let size = CGSize(width: 300, height: 400)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor.systemTeal.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
     }
 
+    @MainActor
+    static func makePreviewContainer() -> (ModelContainer, RecordRepository, CollectionRepository) {
+        let (container, repository) = RecordPreviewData.makeRepository()
+        let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+        collectionRepository.bootstrap()
+        return (container, repository, collectionRepository)
+    }
+}
+
+#Preview("With Concept · Light") {
+    let (container, repository, collectionRepository) = PhotoEditorPreviewSupport.makePreviewContainer()
+
     return PhotoEditorView(
-        image: sampleImage,
+        image: PhotoEditorPreviewSupport.makeSampleImage(),
         concept: .mock
     ) {}
     .modelContainer(container)
     .environment(repository)
-    .environment(CollectionRepository(modelContext: container.mainContext))
+    .environment(collectionRepository)
+    .environment(StreakManager.mock)
+    .environment(TitleCelebrationManager())
     .preferredColorScheme(.light)
 }
 
 #Preview("With Concept · Dark") {
-    let (container, repository) = RecordPreviewData.makeRepository()
-    let size = CGSize(width: 300, height: 400)
-    let renderer = UIGraphicsImageRenderer(size: size)
-    let sampleImage = renderer.image { context in
-        UIColor.systemTeal.setFill()
-        context.fill(CGRect(origin: .zero, size: size))
-    }
+    let (container, repository, collectionRepository) = PhotoEditorPreviewSupport.makePreviewContainer()
 
     return PhotoEditorView(
-        image: sampleImage,
+        image: PhotoEditorPreviewSupport.makeSampleImage(),
         concept: .mock
     ) {}
     .modelContainer(container)
     .environment(repository)
-    .environment(CollectionRepository(modelContext: container.mainContext))
+    .environment(collectionRepository)
+    .environment(StreakManager.mock)
+    .environment(TitleCelebrationManager())
     .preferredColorScheme(.dark)
 }
 
 #Preview("Without Concept · Light") {
-    let (container, repository) = RecordPreviewData.makeRepository()
+    let (container, repository, collectionRepository) = PhotoEditorPreviewSupport.makePreviewContainer()
     let size = CGSize(width: 300, height: 400)
     let renderer = UIGraphicsImageRenderer(size: size)
     let sampleImage = renderer.image { context in
@@ -941,12 +968,14 @@ private struct EditorRenderCanvas: View {
     return PhotoEditorView(image: sampleImage) {}
         .modelContainer(container)
         .environment(repository)
-        .environment(CollectionRepository(modelContext: container.mainContext))
+        .environment(collectionRepository)
+        .environment(StreakManager.mock)
+        .environment(TitleCelebrationManager())
         .preferredColorScheme(.light)
 }
 
 #Preview("Without Concept · Dark") {
-    let (container, repository) = RecordPreviewData.makeRepository()
+    let (container, repository, collectionRepository) = PhotoEditorPreviewSupport.makePreviewContainer()
     let size = CGSize(width: 300, height: 400)
     let renderer = UIGraphicsImageRenderer(size: size)
     let sampleImage = renderer.image { context in
@@ -957,6 +986,8 @@ private struct EditorRenderCanvas: View {
     return PhotoEditorView(image: sampleImage) {}
         .modelContainer(container)
         .environment(repository)
-        .environment(CollectionRepository(modelContext: container.mainContext))
+        .environment(collectionRepository)
+        .environment(StreakManager.mock)
+        .environment(TitleCelebrationManager())
         .preferredColorScheme(.dark)
 }

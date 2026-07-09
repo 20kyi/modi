@@ -16,6 +16,7 @@ struct RecordDetailView: View {
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
+    @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
     @Environment(\.dismiss) private var dismiss
 
     let record: MODIRecord
@@ -78,6 +79,7 @@ struct RecordDetailView: View {
             .environment(repository)
             .environment(collectionRepository)
             .environment(streakManager)
+            .environment(titleCelebrationManager)
         }
         .alert("이 기록을 삭제할까요?", isPresented: $showDeleteAlert) {
             Button("삭제", role: .destructive) {

@@ -90,30 +90,42 @@ extension MODICollection {
         photoCount
     }
 
-    var completionRate: Double {
-        guard targetCount > 0 else { return 0 }
-        return min(1.0, Double(currentCount) / Double(targetCount))
+    var collectionProgress: CollectionProgress {
+        CollectionProgress.make(conceptID: id, totalDiscoveries: currentCount)
     }
 
-    var isCollectionComplete: Bool {
-        currentCount >= targetCount
+    var currentTitle: CollectionTitle? {
+        collectionProgress.currentTitle
+    }
+
+    var currentTitleName: String? {
+        currentTitle?.name
+    }
+
+    var progressionRate: Double {
+        collectionProgress.progress
+    }
+
+    var discoveriesUntilNextTitle: Int? {
+        collectionProgress.discoveriesUntilNext
     }
 
     var discoveryCountLabel: String {
         let count = currentCount
-        return count == 1 ? "1 discovery" : "\(count) discoveries"
+        return count == 1 ? "1 Discovery" : "\(count) Discoveries"
     }
 
-    var progressStatusLabel: String {
-        isCollectionComplete
-            ? "COMPLETE ✨"
-            : "\(Int((completionRate * 100).rounded()))% completed"
+    var nextTitleProgressLabel: String? {
+        guard let until = discoveriesUntilNextTitle,
+              let nextTitleName = ConceptTitleRegistry.nextTitleName(for: id, discoveries: currentCount)
+        else { return nil }
+
+        return "\(until) Discoveries until \(nextTitleName)"
     }
 
-    var progressDetailLabel: String {
-        isCollectionComplete
-            ? "COMPLETE ✨"
-            : "\(currentCount) / \(targetCount) discoveries"
+    var nextTitleCardLabel: String? {
+        guard let until = discoveriesUntilNextTitle else { return nil }
+        return "\(until) Discoveries"
     }
 
     var latestRecordDate: Date? {

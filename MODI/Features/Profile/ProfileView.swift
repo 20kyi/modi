@@ -13,6 +13,7 @@ struct ProfileView: View {
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(MissionManager.self) private var missionManager
     @Environment(AuthManager.self) private var authManager
+    @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
     @State private var viewModel = ProfileViewModel()
     @State private var selectedCalendarDay: SelectedCalendarDay?
     @State private var pastDiscoveryPresentation: PastDiscoveryPresentation?
@@ -51,6 +52,7 @@ struct ProfileView: View {
                     }
 
                     discoveryCalendarSection
+                    highestTitleSection
                     monthlyConceptSection
                     settingsSection
                 }
@@ -89,6 +91,7 @@ struct ProfileView: View {
                 .environment(recordRepository)
                 .environment(collectionRepository)
                 .environment(streakManager)
+                .environment(titleCelebrationManager)
             }
             .fullScreenCover(isPresented: $isShowingLogin) {
                 LoginView {
@@ -120,6 +123,59 @@ struct ProfileView: View {
             )
                 .appCardStyle()
         }
+    }
+
+    // MARK: - Highest Title
+
+    private var highestTitleSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            sectionHeader(title: "가장 높은 Title")
+
+            if let highestTitle = viewModel.highestTitle {
+                HStack(spacing: AppSpacing.lg) {
+                    Text("🏅")
+                        .font(.system(size: 32))
+
+                    VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                        Text(highestTitle.title.name)
+                            .font(AppFont.title3)
+                            .foregroundStyle(AppColor.Text.primary)
+
+                        HStack(spacing: AppSpacing.xs) {
+                            Text(highestTitle.emoji)
+                            Text(highestTitle.collectionTitle)
+                                .font(AppFont.footnote)
+                                .foregroundStyle(AppColor.Text.secondary)
+                        }
+
+                        Text(highestTitleAcquiredLabel(highestTitle.acquiredDate))
+                            .font(AppFont.caption1)
+                            .foregroundStyle(AppColor.Text.tertiary)
+                    }
+
+                    Spacer()
+                }
+                .appCardStyle()
+            } else {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text("아직 획득한 Title이 없어요")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.Text.secondary)
+
+                    Text("10개의 발견을 기록하면 첫 Title을 받을 수 있어요")
+                        .font(AppFont.caption1)
+                        .foregroundStyle(AppColor.Text.tertiary)
+                }
+                .appCardStyle()
+            }
+        }
+    }
+
+    private func highestTitleAcquiredLabel(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy.M.d"
+        return "\(formatter.string(from: date)) 획득"
     }
 
     // MARK: - Monthly Concept
