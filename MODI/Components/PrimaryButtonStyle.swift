@@ -16,6 +16,24 @@ struct PrimaryButtonStyle: ButtonStyle {
     }
 }
 
+struct ThemeButtonStyle: ButtonStyle {
+    let palette: AppColor.ThemePalette
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFont.headline)
+            .foregroundStyle(palette.onAccent)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.md)
+            .background(
+                configuration.isPressed ? palette.pressed : palette.accent,
+                in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+            )
+            .appShadow(.subtle)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -29,6 +47,16 @@ struct SecondaryButtonStyle: ButtonStyle {
             )
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
+}
+
+#Preview("Theme · Light") {
+    let palette = AppColor.themePalette(from: "F8DDE8")
+
+    return Button("기록하기") {}
+        .buttonStyle(ThemeButtonStyle(palette: palette))
+        .padding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
 }
 
 #Preview("Primary · Light") {

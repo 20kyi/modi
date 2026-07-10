@@ -133,6 +133,55 @@ enum AppColor {
         static let shimmer = AppColor.dynamic(light: "FFFFFF", dark: "FFFFFF", lightAlpha: 0.60, darkAlpha: 0.22)
     }
 
+    // MARK: Theme Palette
+
+    /// 미션·컬렉션 테마 컬러에서 버튼·완료 상태용 accent를 파생합니다.
+    struct ThemePalette {
+        let accent: Color
+        let pressed: Color
+        let softFill: Color
+        let completedForeground: Color
+        let onAccent: Color
+    }
+
+    static func themePalette(from themeColorHex: String) -> ThemePalette {
+        let lightBase = UIColor(hex: themeColorHex)
+        let darkBase = lightBase.blended(with: UIColor(hex: "111316"), t: 0.62)
+
+        let lightAccent = lightBase.blended(with: UIColor(hex: "2E3842"), t: 0.48)
+        let lightPressed = lightBase.blended(with: UIColor(hex: "1C2228"), t: 0.58)
+        let darkAccent = darkBase.blended(with: UIColor(hex: "C8D4E0"), t: 0.30)
+        let darkPressed = darkBase.blended(with: UIColor(hex: "DCE4EC"), t: 0.20)
+
+        let accent = dynamicUIColor(light: lightAccent, dark: darkAccent)
+        let pressed = dynamicUIColor(light: lightPressed, dark: darkPressed)
+
+        return ThemePalette(
+            accent: Color(uiColor: accent),
+            pressed: Color(uiColor: pressed),
+            softFill: Color(
+                uiColor: UIColor { trait in
+                    let base = trait.userInterfaceStyle == .dark ? darkBase : lightBase
+                    let alpha: CGFloat = trait.userInterfaceStyle == .dark ? 0.42 : 0.55
+                    return base.withAlphaComponent(alpha)
+                }
+            ),
+            completedForeground: Color(uiColor: accent),
+            onAccent: Color(
+                uiColor: UIColor { trait in
+                    let uiAccent = trait.userInterfaceStyle == .dark ? darkAccent : lightAccent
+                    return uiAccent.contrastingTextColor()
+                }
+            )
+        )
+    }
+
+    private static func dynamicUIColor(light: UIColor, dark: UIColor) -> UIColor {
+        UIColor { trait in
+            trait.userInterfaceStyle == .dark ? dark : light
+        }
+    }
+
     // MARK: Semantic Roles
 
     enum Role {
@@ -206,5 +255,26 @@ private extension UIColor {
             blue: b1 * (1 - clampedT) + b2 * clampedT,
             alpha: a1 * (1 - clampedT) + a2 * clampedT
         )
+    }
+
+    var relativeLuminance: CGFloat {
+        var red: CGFloat = 0
+        var green: CGFloat = 0
+        var blue: CGFloat = 0
+        var alpha: CGFloat = 0
+
+        guard getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+            return 0.5
+        }
+
+        func channel(_ value: CGFloat) -> CGFloat {
+            value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+        }
+
+        return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue)
+    }
+
+    func contrastingTextColor() -> UIColor {
+        relativeLuminance > 0.55 ? UIColor(hex: "1C1C1E") : UIColor(hex: "FFFFFF")
     }
 }

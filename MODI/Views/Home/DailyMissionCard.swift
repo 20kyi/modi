@@ -7,6 +7,10 @@ struct DailyMissionCard: View {
     var canChangeMission: Bool = false
     var onChangeMissionTapped: (() -> Void)?
 
+    private var palette: AppColor.ThemePalette {
+        AppColor.themePalette(from: mission.themeColorHex)
+    }
+
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
             Text(mission.emoji)
@@ -26,22 +30,14 @@ struct DailyMissionCard: View {
             }
 
             if mission.isCompleted {
-                Label("미션 완료", systemImage: "checkmark.circle.fill")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.Semantic.success)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, AppSpacing.md)
-                    .background(
-                        AppColor.Semantic.success.opacity(0.12),
-                        in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                    )
+                MissionCompletedBadge(palette: palette)
             } else {
                 VStack(spacing: AppSpacing.sm) {
                     if let onRecordTapped {
                         Button(action: onRecordTapped) {
                             Text("기록하기")
                         }
-                        .buttonStyle(PrimaryButtonStyle())
+                        .buttonStyle(ThemeButtonStyle(palette: palette))
                     }
 
                     if canChangeMission, let onChangeMissionTapped {
@@ -63,6 +59,49 @@ struct DailyMissionCard: View {
                 .strokeBorder(mission.themeColor.opacity(0.6), lineWidth: 1)
         }
         .appShadow(.medium)
+    }
+}
+
+// MARK: - Mission Completed Badge
+
+private struct MissionCompletedBadge: View {
+    let palette: AppColor.ThemePalette
+
+    @State private var isAnimated = false
+
+    var body: some View {
+        HStack(spacing: AppSpacing.sm) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 20, weight: .semibold))
+                .symbolEffect(.bounce, value: isAnimated)
+                .scaleEffect(isAnimated ? 1 : 0.6)
+                .opacity(isAnimated ? 1 : 0)
+
+            Text("미션 완료")
+                .font(AppFont.headline)
+        }
+        .foregroundStyle(palette.completedForeground)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, AppSpacing.md)
+        .background {
+            ZStack {
+                palette.softFill
+
+                palette.accent.opacity(0.10)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+        }
+        .overlay {
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .strokeBorder(palette.accent.opacity(0.28), lineWidth: 1)
+        }
+        .scaleEffect(isAnimated ? 1 : 0.97)
+        .opacity(isAnimated ? 1 : 0.85)
+        .onAppear {
+            withAnimation(.spring(response: 0.48, dampingFraction: 0.72)) {
+                isAnimated = true
+            }
+        }
     }
 }
 
@@ -92,4 +131,21 @@ struct DailyMissionCard: View {
         .appScreenPadding()
         .appScreenBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("완료 · Pink") {
+    DailyMissionCard(
+        mission: DailyMission(
+            title: "Pink Love",
+            emoji: "🩷",
+            description: "분홍빛 순간을 찾아보세요",
+            category: .nature,
+            themeColorHex: "F8DDE8",
+            collectionID: UUID(),
+            isCompleted: true
+        )
+    )
+    .appScreenPadding()
+    .appScreenBackground()
+    .preferredColorScheme(.light)
 }

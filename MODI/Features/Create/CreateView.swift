@@ -168,7 +168,9 @@ struct CreateView: View {
     }
 
     private func completedView(concept: Concept) -> some View {
-        VStack(spacing: AppSpacing.xl) {
+        let palette = AppColor.themePalette(from: concept.themeColorHex)
+
+        return VStack(spacing: AppSpacing.xl) {
             Spacer()
 
             if let record = todaysRecord {
@@ -184,7 +186,8 @@ struct CreateView: View {
             } else {
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 64))
-                    .foregroundStyle(AppColor.Semantic.success)
+                    .foregroundStyle(palette.completedForeground)
+                    .symbolEffect(.bounce)
             }
 
             VStack(spacing: AppSpacing.sm) {
@@ -208,7 +211,11 @@ struct CreateView: View {
             }
             .padding(AppSpacing.lg)
             .frame(maxWidth: .infinity)
-            .background(Color(hex: concept.themeColorHex).opacity(0.35), in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+            .background(palette.softFill, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    .strokeBorder(palette.accent.opacity(0.28), lineWidth: 1)
+            }
 
             Spacer()
         }
