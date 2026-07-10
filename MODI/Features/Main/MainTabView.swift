@@ -25,41 +25,21 @@ struct MainTabView: View {
     @State private var streakManager = StreakManager()
     @State private var titleCelebrationManager = TitleCelebrationManager()
     @State private var selectedTab: MainTab = .home
+    @State private var isBootstrapping = true
+    @AppStorage("modi.openCollectionAfterInitialLoad") private var openCollectionAfterInitialLoad = false
 
     var body: some View {
         Group {
-            if let repository, let collectionRepository {
+            if isBootstrapping {
+                DataLoadingView()
+                    .transition(.opacity)
+            } else if let repository, let collectionRepository {
                 tabView(repository: repository, collectionRepository: collectionRepository)
-            } else {
-                ProgressView()
+                    .transition(.opacity)
             }
         }
-        .onAppear {
-            if repository == nil {
-                let recordRepository = RecordRepository(modelContext: modelContext)
-                let collectionRepo = CollectionRepository(modelContext: modelContext)
-                collectionRepo.bootstrap()
-                collectionStore.configure(collectionRepository: collectionRepo)
-                repository = recordRepository
-                collectionRepository = collectionRepo
-                streakManager.refresh(
-                    recordRepository: recordRepository,
-                    collectionRepository: collectionRepo
-                )
-
-                if authManager.session.isLoggedIn {
-                    Task {
-                        await syncRecordsFromServer(
-                            repository: recordRepository,
-                            collectionRepository: collectionRepo
-                        )
-                    }
-                }
-
-                Task {
-                    await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
-                }
-            }
+        .task {
+            await performBootstrapIfNeeded()
         }
     }
 
@@ -134,20 +114,82 @@ struct MainTabView: View {
                 )
                 return
             }
-            if !oldValue, newValue {
-                selectedTab = .home
-                Task {
-                    await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
-                    await syncRecordsFromServer(
-                        repository: repository,
-                        collectionRepository: collectionRepository
-                    )
-                }
+            guard !oldValue, newValue else { return }
+
+            Task {
+                await loadLoggedInUserData(
+                    repository: repository,
+                    collectionRepository: collectionRepository,
+                    navigateToCollection: true
+                )
             }
         }
         .onChange(of: deepLinkCoordinator.pendingDestination) { _, destination in
             guard destination == .todayMission else { return }
             selectedTab = .home
+        }
+    }
+
+    private func performBootstrapIfNeeded() async {
+        guard repository == nil else {
+            withAnimation(.easeInOut(duration: 0.35)) {
+                isBootstrapping = false
+            }
+            return
+        }
+
+        let recordRepository = RecordRepository(modelContext: modelContext)
+        let collectionRepo = CollectionRepository(modelContext: modelContext)
+        collectionRepo.bootstrap()
+        collectionStore.configure(collectionRepository: collectionRepo)
+        repository = recordRepository
+        collectionRepository = collectionRepo
+        streakManager.refresh(
+            recordRepository: recordRepository,
+            collectionRepository: collectionRepo
+        )
+
+        if authManager.session.isLoggedIn {
+            let shouldOpenCollection = openCollectionAfterInitialLoad
+            await loadLoggedInUserData(
+                repository: recordRepository,
+                collectionRepository: collectionRepo,
+                navigateToCollection: shouldOpenCollection
+            )
+            return
+        }
+
+        await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
+
+        withAnimation(.easeInOut(duration: 0.35)) {
+            isBootstrapping = false
+        }
+    }
+
+    private func loadLoggedInUserData(
+        repository: RecordRepository,
+        collectionRepository: CollectionRepository,
+        navigateToCollection: Bool
+    ) async {
+        withAnimation(.easeInOut(duration: 0.35)) {
+            isBootstrapping = true
+        }
+
+        await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
+        await syncRecordsFromServer(
+            repository: repository,
+            collectionRepository: collectionRepository
+        )
+
+        if navigateToCollection {
+            openCollectionAfterInitialLoad = false
+            withAnimation(.easeInOut(duration: 0.35)) {
+                selectedTab = .collection
+            }
+        }
+
+        withAnimation(.easeInOut(duration: 0.35)) {
+            isBootstrapping = false
         }
     }
 

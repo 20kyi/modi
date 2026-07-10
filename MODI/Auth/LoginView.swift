@@ -7,6 +7,7 @@ struct LoginView: View {
     /// 온보딩/프로필 진입 후, 로그인 선택을 완료하면 호출됩니다.
     let onComplete: () -> Void
 
+    @AppStorage("modi.openCollectionAfterInitialLoad") private var openCollectionAfterInitialLoad = false
     @State private var isSigningIn = false
     @State private var errorMessage: String?
 
@@ -98,6 +99,7 @@ struct LoginView: View {
         Task {
             do {
                 _ = try await authManager.signInWithApple()
+                openCollectionAfterInitialLoad = true
                 onComplete()
             } catch {
                 errorMessage = error.localizedDescription
