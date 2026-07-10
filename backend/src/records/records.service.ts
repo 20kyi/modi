@@ -38,6 +38,24 @@ export class RecordsService {
     const recordDate = new Date(
       Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
     );
+
+    const existingRecord = await this.prisma.record.findUnique({
+      where: {
+        userId_recordDate: {
+          userId,
+          recordDate,
+        },
+      },
+      select: {
+        originalImageUrl: true,
+        editedImageUrl: true,
+      },
+    });
+
+    if (existingRecord) {
+      await this.ensureReplacedImagesUploaded(dto, existingRecord);
+    }
+
     await this.ensureConceptExists(userId, dto);
 
     const record = await this.prisma.record.upsert({
@@ -70,6 +88,14 @@ export class RecordsService {
         },
       },
     });
+
+    if (existingRecord) {
+      const replacedImageKeys = this.collectReplacedStoredImageKeys(
+        existingRecord,
+        dto,
+      );
+      await this.uploadService.deleteStoredImageObjects(...replacedImageKeys);
+    }
 
     return this.toRecordResponseDto(record);
   }
@@ -158,6 +184,83 @@ export class RecordsService {
         throw new BadRequestException('유효하지 않은 이미지 키예요.');
       }
     }
+  }
+
+  private async ensureReplacedImagesUploaded(
+    dto: CreateRecordDto,
+    existingRecord: {
+      originalImageUrl: string;
+      editedImageUrl: string;
+    },
+  ): Promise<void> {
+    const checks: Promise<boolean>[] = [];
+
+    if (
+      this.hasImageKeyChanged(
+        existingRecord.originalImageUrl,
+        dto.originalImageKey,
+      )
+    ) {
+      checks.push(
+        this.uploadService.verifyStoredImageObjectExists(dto.originalImageKey),
+      );
+    }
+
+    if (
+      this.hasImageKeyChanged(
+        existingRecord.editedImageUrl,
+        dto.editedImageKey,
+      )
+    ) {
+      checks.push(
+        this.uploadService.verifyStoredImageObjectExists(dto.editedImageKey),
+      );
+    }
+
+    if (checks.length === 0) {
+      return;
+    }
+
+    const results = await Promise.all(checks);
+    if (results.some((exists) => !exists)) {
+      throw new BadRequestException('새 이미지 업로드가 완료되지 않았어요.');
+    }
+  }
+
+  private collectReplacedStoredImageKeys(
+    existingRecord: {
+      originalImageUrl: string;
+      editedImageUrl: string;
+    },
+    dto: CreateRecordDto,
+  ): string[] {
+    const replaced: string[] = [];
+
+    if (
+      this.hasImageKeyChanged(
+        existingRecord.originalImageUrl,
+        dto.originalImageKey,
+      )
+    ) {
+      replaced.push(existingRecord.originalImageUrl);
+    }
+
+    if (
+      this.hasImageKeyChanged(existingRecord.editedImageUrl, dto.editedImageKey)
+    ) {
+      replaced.push(existingRecord.editedImageUrl);
+    }
+
+    return replaced;
+  }
+
+  private hasImageKeyChanged(stored: string, nextKey: string): boolean {
+    const currentKey =
+      this.uploadService.resolveStoredImageKey(stored) ?? stored;
+    const resolvedNextKey =
+      this.uploadService.resolveStoredImageKey(nextKey) ?? nextKey;
+
+    return currentKey !== resolvedNextKey;
   }
 
   private async ensureConceptExists(

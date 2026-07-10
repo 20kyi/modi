@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -117,6 +118,44 @@ export class UploadService {
     ];
 
     await Promise.all(keys.map((key) => this.deleteObject(key)));
+  }
+
+  async verifyStoredImageObjectExists(stored: string): Promise<boolean> {
+    const key = this.resolveStoredImageKey(stored);
+    if (!key) {
+      return false;
+    }
+
+    return this.objectExists(key);
+  }
+
+  private async objectExists(key: string): Promise<boolean> {
+    const bucket = this.configService.getOrThrow<string>('aws.s3Bucket');
+
+    try {
+      await this.s3Client.send(
+        new HeadObjectCommand({
+          Bucket: bucket,
+          Key: key,
+        }),
+      );
+      return true;
+    } catch (error) {
+      if (this.isS3NotFoundError(error)) {
+        return false;
+      }
+
+      throw error;
+    }
+  }
+
+  private isS3NotFoundError(error: unknown): boolean {
+    return (
+      typeof error === 'object' &&
+      error !== null &&
+      'name' in error &&
+      (error.name === 'NotFound' || error.name === 'NoSuchKey')
+    );
   }
 
   private async deleteObject(key: string): Promise<void> {
