@@ -10,9 +10,8 @@ async function bootstrap() {
   app.enableShutdownHooks();
   const configService = app.get(ConfigService);
 
-  // data URL 이미지 payload(기록 업로드)를 처리할 수 있도록 body size limit을 늘립니다.
-  app.use(json({ limit: '15mb' }));
-  app.use(urlencoded({ extended: true, limit: '15mb' }));
+  app.use(json({ limit: '1mb' }));
+  app.use(urlencoded({ extended: true, limit: '1mb' }));
 
   app.useGlobalPipes(
     new ValidationPipe({

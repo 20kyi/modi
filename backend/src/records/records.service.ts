@@ -1,13 +1,93 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConceptCategory, ConceptType } from '../generated/prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { UploadService } from '../upload/upload.service';
 import { CreateRecordDto } from './dto/create-record.dto';
+import { RecordResponseDto } from './dto/record-response.dto';
+
+type RecordWithConcept = Awaited<
+  ReturnType<RecordsService['findMyRecordEntities']>
+>[number];
 
 @Injectable()
 export class RecordsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly uploadService: UploadService,
+  ) {}
 
-  findMyRecords(userId: string) {
+  async findMyRecords(userId: string): Promise<RecordResponseDto[]> {
+    const records = await this.findMyRecordEntities(userId);
+
+    return Promise.all(
+      records.map((record) => this.toRecordResponseDto(record)),
+    );
+  }
+
+  async upsertMyRecord(
+    userId: string,
+    dto: CreateRecordDto,
+  ): Promise<RecordResponseDto> {
+    this.validateImageKeys(userId, dto);
+
+    const date = new Date(dto.recordDate);
+    const recordDate = new Date(
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+    );
+    await this.ensureConceptExists(userId, dto);
+
+    const record = await this.prisma.record.upsert({
+      where: {
+        userId_recordDate: {
+          userId,
+          recordDate,
+        },
+      },
+      update: {
+        conceptId: dto.conceptId,
+        originalImageUrl: dto.originalImageKey,
+        editedImageUrl: dto.editedImageKey,
+        isEdited: dto.isEdited,
+      },
+      create: {
+        userId,
+        conceptId: dto.conceptId,
+        originalImageUrl: dto.originalImageKey,
+        editedImageUrl: dto.editedImageKey,
+        recordDate,
+        isEdited: dto.isEdited,
+      },
+      include: {
+        concept: {
+          select: {
+            title: true,
+            emoji: true,
+          },
+        },
+      },
+    });
+
+    return this.toRecordResponseDto(record);
+  }
+
+  async deleteMyRecord(userId: string, recordId: string): Promise<void> {
+    const deleted = await this.prisma.record.deleteMany({
+      where: {
+        id: recordId,
+        userId,
+      },
+    });
+
+    if (deleted.count === 0) {
+      throw new NotFoundException('삭제할 기록을 찾을 수 없어요.');
+    }
+  }
+
+  private findMyRecordEntities(userId: string) {
     return this.prisma.record.findMany({
       where: { userId },
       include: {
@@ -24,55 +104,46 @@ export class RecordsService {
     });
   }
 
-  async upsertMyRecord(userId: string, dto: CreateRecordDto) {
-    const date = new Date(dto.recordDate);
-    const recordDate = new Date(
-      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
-    );
-    await this.ensureConceptExists(userId, dto);
+  private async toRecordResponseDto(
+    record: RecordWithConcept,
+  ): Promise<RecordResponseDto> {
+    const imageUrls = await this.createPresignedImageUrls(record);
 
-    return this.prisma.record.upsert({
-      where: {
-        userId_recordDate: {
-          userId,
-          recordDate,
-        },
-      },
-      update: {
-        conceptId: dto.conceptId,
-        originalImageUrl: dto.originalImageUrl,
-        editedImageUrl: dto.editedImageUrl,
-        isEdited: dto.isEdited,
-      },
-      create: {
-        userId,
-        conceptId: dto.conceptId,
-        originalImageUrl: dto.originalImageUrl,
-        editedImageUrl: dto.editedImageUrl,
-        recordDate,
-        isEdited: dto.isEdited,
-      },
-      include: {
-        concept: {
-          select: {
-            title: true,
-            emoji: true,
-          },
-        },
-      },
-    });
+    return RecordResponseDto.from(record, imageUrls);
   }
 
-  async deleteMyRecord(userId: string, recordId: string): Promise<void> {
-    const deleted = await this.prisma.record.deleteMany({
-      where: {
-        id: recordId,
-        userId,
-      },
-    });
+  private async createPresignedImageUrls(record: RecordWithConcept): Promise<{
+    originalImageUrl: string;
+    editedImageUrl: string;
+  }> {
+    const [originalImageUrl, editedImageUrl] = await Promise.all([
+      this.resolveImageUrl(record.originalImageUrl),
+      this.resolveImageUrl(record.editedImageUrl),
+    ]);
 
-    if (deleted.count === 0) {
-      throw new NotFoundException('삭제할 기록을 찾을 수 없어요.');
+    return { originalImageUrl, editedImageUrl };
+  }
+
+  private async resolveImageUrl(stored: string): Promise<string> {
+    if (stored.startsWith('data:')) {
+      return stored;
+    }
+
+    const key = this.uploadService.resolveStoredImageKey(stored);
+    if (!key) {
+      throw new BadRequestException('저장된 이미지 키를 확인할 수 없어요.');
+    }
+
+    return this.uploadService.createPresignedGetUrl(key);
+  }
+
+  private validateImageKeys(userId: string, dto: CreateRecordDto): void {
+    const keys = [dto.originalImageKey, dto.editedImageKey];
+
+    for (const key of keys) {
+      if (!this.uploadService.validateRecordImageKey(userId, key)) {
+        throw new BadRequestException('유효하지 않은 이미지 키예요.');
+      }
     }
   }
 

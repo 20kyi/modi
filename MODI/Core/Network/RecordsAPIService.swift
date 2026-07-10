@@ -17,8 +17,8 @@ struct UpsertRecordRequest: Encodable {
     let conceptId: String
     let conceptTitle: String
     let conceptEmoji: String
-    let originalImageUrl: String
-    let editedImageUrl: String
+    let originalImageKey: String
+    let editedImageKey: String
     let recordDate: String
     let isEdited: Bool
 }

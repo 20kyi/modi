@@ -673,17 +673,40 @@ struct PhotoEditorView: View {
 
             if authManager.session.isLoggedIn,
                let accessToken = authManager.accessToken {
-                let request = UpsertRecordRequest(
-                    conceptId: concept.id.uuidString,
-                    conceptTitle: concept.title,
-                    conceptEmoji: concept.emoji,
-                    originalImageUrl: originalPhoto.jpegData(compressionQuality: 0.85)?.asDataURLString() ?? "",
-                    editedImageUrl: renderedImage.jpegData(compressionQuality: 0.85)?.asDataURLString() ?? "",
-                    recordDate: Self.localRecordDateString(from: recordDate ?? existingRecord?.discoveryDate ?? .now),
-                    isEdited: wasEdited
+                let recordDateString = Self.localRecordDateString(
+                    from: recordDate ?? existingRecord?.discoveryDate ?? .now
                 )
                 Task {
                     do {
+                        guard let originalData = originalPhoto.jpegData(compressionQuality: 0.85),
+                              let editedData = renderedImage.jpegData(compressionQuality: 0.85)
+                        else {
+                            return
+                        }
+
+                        let presignedURLs = try await UploadAPIService.shared.createRecordPresignedURLs(
+                            recordDate: recordDateString,
+                            accessToken: accessToken
+                        )
+
+                        try await UploadAPIService.shared.uploadImage(
+                            data: originalData,
+                            to: presignedURLs.original.uploadUrl
+                        )
+                        try await UploadAPIService.shared.uploadImage(
+                            data: editedData,
+                            to: presignedURLs.edited.uploadUrl
+                        )
+
+                        let request = UpsertRecordRequest(
+                            conceptId: concept.id.uuidString,
+                            conceptTitle: concept.title,
+                            conceptEmoji: concept.emoji,
+                            originalImageKey: presignedURLs.original.key,
+                            editedImageKey: presignedURLs.edited.key,
+                            recordDate: recordDateString,
+                            isEdited: wasEdited
+                        )
                         let serverRecord = try await RecordsAPIService.shared.upsertMyRecord(
                             request,
                             accessToken: accessToken
@@ -692,7 +715,7 @@ struct PhotoEditorView: View {
                             repository.updateServerID(for: targetRecord, serverID: serverRecord.id)
                         }
                     } catch {
-                        debugPrint("upsertMyRecord failed:", error.localizedDescription)
+                        debugPrint("record upload failed:", error.localizedDescription)
                     }
                 }
             }
@@ -739,13 +762,6 @@ struct PhotoEditorView: View {
         return String(format: "%04d-%02d-%02d", year, month, day)
     }
 }
-
-private extension Data {
-    func asDataURLString() -> String {
-        "data:image/jpeg;base64,\(base64EncodedString())"
-    }
-}
-
 // MARK: - Editor Element Overlay
 
 private struct EditorElementOverlay: View {

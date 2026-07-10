@@ -188,7 +188,10 @@ struct MainTabView: View {
         guard let accessToken = authManager.accessToken else { return }
         do {
             let records = try await RecordsAPIService.shared.fetchMyRecords(accessToken: accessToken)
-            repository.replaceAllRecordsFromServer(records, collectionRepository: collectionRepository)
+            await repository.replaceAllRecordsFromServer(
+                records,
+                collectionRepository: collectionRepository
+            )
             streakManager.refresh(
                 recordRepository: repository,
                 collectionRepository: collectionRepository

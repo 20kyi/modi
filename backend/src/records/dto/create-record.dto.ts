@@ -16,13 +16,19 @@ export class CreateRecordDto {
   @IsString()
   conceptEmoji!: string;
 
-  @ApiProperty({ description: '원본 이미지 data URL 문자열' })
+  @ApiProperty({
+    description: '원본 이미지 S3 object key (upload API 응답의 key)',
+    example: 'dev/users/{userId}/records/2026-07-09/{uuid}-original.jpg',
+  })
   @IsString()
-  originalImageUrl!: string;
+  originalImageKey!: string;
 
-  @ApiProperty({ description: '편집 이미지 data URL 문자열' })
+  @ApiProperty({
+    description: '편집 이미지 S3 object key (upload API 응답의 key)',
+    example: 'dev/users/{userId}/records/2026-07-09/{uuid}-edited.jpg',
+  })
   @IsString()
-  editedImageUrl!: string;
+  editedImageKey!: string;
 
   @ApiProperty({
     description: '발견 날짜(YYYY-MM-DD 또는 ISO)',

@@ -177,11 +177,11 @@ final class RecordRepository {
     func replaceAllRecordsFromServer(
         _ serverRecords: [ServerRecordResponse],
         collectionRepository: CollectionRepository
-    ) {
+    ) async {
         deleteAllRecords()
         for serverRecord in serverRecords {
             guard let conceptID = UUID(uuidString: serverRecord.conceptId),
-                  let editedData = Data.fromDataURLString(serverRecord.editedImageUrl)
+                  let editedData = await Data.fromImageReference(serverRecord.editedImageUrl)
             else { continue }
 
             let collection: MODICollection
@@ -214,7 +214,7 @@ final class RecordRepository {
                 isEdited: serverRecord.isEdited
             )
             record.serverId = serverRecord.id
-            record.originalImageData = Data.fromDataURLString(serverRecord.originalImageUrl)
+            record.originalImageData = await Data.fromImageReference(serverRecord.originalImageUrl)
             record.collection = collection
             modelContext.insert(record)
         }
@@ -227,16 +227,6 @@ final class RecordRepository {
         record.serverId = serverID
         try? modelContext.save()
         reload()
-    }
-}
-
-private extension Data {
-    static func fromDataURLString(_ value: String) -> Data? {
-        if let commaIndex = value.firstIndex(of: ",") {
-            let payload = String(value[value.index(after: commaIndex)...])
-            return Data(base64Encoded: payload)
-        }
-        return Data(base64Encoded: value)
     }
 }
 

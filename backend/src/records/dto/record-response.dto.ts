@@ -14,10 +14,14 @@ export class RecordResponseDto {
   @ApiProperty()
   conceptEmoji!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: '원본 이미지 Presigned GET URL',
+  })
   originalImageUrl!: string;
 
-  @ApiProperty()
+  @ApiProperty({
+    description: '편집 이미지 Presigned GET URL',
+  })
   editedImageUrl!: string;
 
   @ApiProperty()
@@ -34,14 +38,15 @@ export class RecordResponseDto {
 
   static from(
     record: ModiRecord & { concept: { title: string; emoji: string } },
+    imageUrls: { originalImageUrl: string; editedImageUrl: string },
   ): RecordResponseDto {
     return {
       id: record.id,
       conceptId: record.conceptId,
       conceptTitle: record.concept.title,
       conceptEmoji: record.concept.emoji,
-      originalImageUrl: record.originalImageUrl,
-      editedImageUrl: record.editedImageUrl,
+      originalImageUrl: imageUrls.originalImageUrl,
+      editedImageUrl: imageUrls.editedImageUrl,
       recordDate: record.recordDate,
       isEdited: record.isEdited,
       createdAt: record.createdAt,
