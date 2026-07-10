@@ -75,16 +75,29 @@ export class RecordsService {
   }
 
   async deleteMyRecord(userId: string, recordId: string): Promise<void> {
-    const deleted = await this.prisma.record.deleteMany({
+    const record = await this.prisma.record.findFirst({
       where: {
         id: recordId,
         userId,
       },
+      select: {
+        originalImageUrl: true,
+        editedImageUrl: true,
+      },
     });
 
-    if (deleted.count === 0) {
+    if (!record) {
       throw new NotFoundException('삭제할 기록을 찾을 수 없어요.');
     }
+
+    await this.prisma.record.delete({
+      where: { id: recordId },
+    });
+
+    await this.uploadService.deleteStoredImageObjects(
+      record.originalImageUrl,
+      record.editedImageUrl,
+    );
   }
 
   private findMyRecordEntities(userId: string) {

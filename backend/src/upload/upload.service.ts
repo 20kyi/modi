@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   PutObjectCommand,
   S3Client,
@@ -13,6 +14,7 @@ import type { PresignedImageUrlDto } from './dto/presigned-image-url.dto';
 
 @Injectable()
 export class UploadService {
+  private readonly logger = new Logger(UploadService.name);
   private readonly s3Client: S3Client;
 
   constructor(private readonly configService: ConfigService) {
@@ -103,6 +105,36 @@ export class UploadService {
     const expectedPrefix = `${prefix}/users/${userId}/records/`;
 
     return key.startsWith(expectedPrefix);
+  }
+
+  async deleteStoredImageObjects(...storedKeys: string[]): Promise<void> {
+    const keys = [
+      ...new Set(
+        storedKeys
+          .map((stored) => this.resolveStoredImageKey(stored))
+          .filter((key): key is string => key !== null),
+      ),
+    ];
+
+    await Promise.all(keys.map((key) => this.deleteObject(key)));
+  }
+
+  private async deleteObject(key: string): Promise<void> {
+    const bucket = this.configService.getOrThrow<string>('aws.s3Bucket');
+
+    try {
+      await this.s3Client.send(
+        new DeleteObjectCommand({
+          Bucket: bucket,
+          Key: key,
+        }),
+      );
+    } catch (error) {
+      this.logger.error(
+        `S3 객체 삭제 실패 (key: ${key})`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
   }
 
   private async createPresignedPutUrl(params: {
