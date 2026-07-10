@@ -55,9 +55,9 @@ struct HomeView: View {
                         )
                         .id(HomeScrollAnchor.todayMission)
 
-                        recentDiscoverySection
-
                         collectionPreviewSection
+
+                        recentDiscoverySection
 
                         monthlyConceptSection
                     }
