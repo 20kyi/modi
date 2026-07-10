@@ -191,3 +191,85 @@ extension PhotoCollection {
         }
     }
 }
+
+// MARK: - Heart Emoji Presets
+
+extension PhotoCollection {
+
+    /// 하트 이모지 선택 시 커스텀 컬렉션 폼 자동 채움용. Color Collection 문구를 우선 사용합니다.
+    static func heartCollectionPreset(for emoji: String) -> PhotoCollection? {
+        if let colorCollection = builtIn.first(where: { $0.category == .color && $0.emoji == emoji }) {
+            return colorCollection
+        }
+        return additionalHeartPresets[emoji]
+    }
+
+    private static let additionalHeartPresets: [String: PhotoCollection] = [
+        "❤️": PhotoCollection(
+            id: UUID(uuidString: "C4000001-0000-0000-0000-000000000001")!,
+            title: "Red Love",
+            emoji: "❤️",
+            category: .color,
+            description: "따뜻한 빨간 순간을 모아요",
+            missionPrompt: "빨간색을 찍으세요",
+            themeColorHex: "F5D0D0",
+            isBuiltIn: false,
+            sourceTemplateID: nil
+        ),
+        "🧡": PhotoCollection(
+            id: UUID(uuidString: "C4000001-0000-0000-0000-000000000002")!,
+            title: "Orange Day",
+            emoji: "🧡",
+            category: .color,
+            description: "밝고 따뜻한 주황 하루를 담아요",
+            missionPrompt: "주황색을 찍으세요",
+            themeColorHex: "F9E0C8",
+            isBuiltIn: false,
+            sourceTemplateID: nil
+        ),
+        "🖤": PhotoCollection(
+            id: UUID(uuidString: "C4000001-0000-0000-0000-000000000003")!,
+            title: "Black Mood",
+            emoji: "🖤",
+            category: .color,
+            description: "깊고 차분한 검은 순간을 남겨요",
+            missionPrompt: "검은색을 찍으세요",
+            themeColorHex: "D8D8DC",
+            isBuiltIn: false,
+            sourceTemplateID: nil
+        ),
+        "🤎": PhotoCollection(
+            id: UUID(uuidString: "C4000001-0000-0000-0000-000000000004")!,
+            title: "Brown Life",
+            emoji: "🤎",
+            category: .color,
+            description: "포근한 갈색의 일상을 수집해요",
+            missionPrompt: "갈색을 찍으세요",
+            themeColorHex: "E8DDD4",
+            isBuiltIn: false,
+            sourceTemplateID: nil
+        ),
+        "🩵": PhotoCollection(
+            id: UUID(uuidString: "C4000001-0000-0000-0000-000000000005")!,
+            title: "Sky Mood",
+            emoji: "🩵",
+            category: .color,
+            description: "맑고 산뜻한 하늘빛 순간을 모아보세요",
+            missionPrompt: "하늘색을 찍으세요",
+            themeColorHex: "D0E8F5",
+            isBuiltIn: false,
+            sourceTemplateID: nil
+        ),
+        "🩶": PhotoCollection(
+            id: UUID(uuidString: "C4000001-0000-0000-0000-000000000006")!,
+            title: "Grey Moment",
+            emoji: "🩶",
+            category: .color,
+            description: "고요한 회색의 하루를 기록해요",
+            missionPrompt: "회색을 찍으세요",
+            themeColorHex: "E8E8EC",
+            isBuiltIn: false,
+            sourceTemplateID: nil
+        )
+    ]
+}
