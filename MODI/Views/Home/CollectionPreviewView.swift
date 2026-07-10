@@ -5,12 +5,7 @@ struct CollectionPreviewView: View {
     let gallery: TodaysMissionCollectionGallery
     var onCreateTapped: (() -> Void)?
 
-    @State private var focusedRecordID: UUID?
-    @State private var autoScrollTask: Task<Void, Never>?
-
-    private var shouldAutoScroll: Bool {
-        gallery.records.count >= 3
-    }
+    private let thumbnailSize: CGFloat = 108
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -25,28 +20,17 @@ struct CollectionPreviewView: View {
                     action: onCreateTapped
                 )
             } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: AppSpacing.itemGap) {
-                        ForEach(gallery.records, id: \.id) { record in
-                            NavigationLink(value: RecordNavigationValue(id: record.id)) {
-                                photoThumbnail(record)
-                            }
-                            .buttonStyle(.plain)
-                            .id(record.id)
-                        }
+                HorizontalMarqueeView(
+                    items: gallery.records,
+                    itemWidth: thumbnailSize,
+                    itemHeight: thumbnailSize,
+                    spacing: AppSpacing.itemGap,
+                    speed: MarqueeScrollSpeed.homeCollection
+                ) { record in
+                    NavigationLink(value: RecordNavigationValue(id: record.id)) {
+                        photoThumbnail(record)
                     }
-                    .scrollTargetLayout()
-                }
-                .scrollTargetBehavior(.viewAligned)
-                .scrollPosition(id: $focusedRecordID)
-                .onAppear {
-                    resetAutoScroll()
-                }
-                .onDisappear {
-                    stopAutoScroll()
-                }
-                .onChange(of: gallery.records.map(\.id)) { _, _ in
-                    resetAutoScroll()
+                    .buttonStyle(.plain)
                 }
             }
         }
@@ -82,57 +66,12 @@ struct CollectionPreviewView: View {
 
     private func photoThumbnail(_ record: MODIRecord) -> some View {
         Color.clear
-            .frame(width: 108, height: 108)
+            .frame(width: thumbnailSize, height: thumbnailSize)
             .background(gallery.themeColor)
             .overlay {
                 MODIRecordImage(record: record, contentMode: .fill)
             }
             .modiRecordClipShape(for: record)
-    }
-
-    private func resetAutoScroll() {
-        stopAutoScroll()
-        focusedRecordID = gallery.records.first?.id
-        startAutoScrollIfNeeded()
-    }
-
-    // 자동 스크롤 시작
-    private func startAutoScrollIfNeeded() {
-        guard shouldAutoScroll else { return }
-
-        autoScrollTask = Task {
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1)) // 1초마다 자동 스크롤
-
-                guard !Task.isCancelled else { break }
-
-                await MainActor.run {
-                    advanceFocus()
-                }
-            }
-        }
-    }
-
-    private func stopAutoScroll() {
-        autoScrollTask?.cancel()
-        autoScrollTask = nil
-    }
-
-    private func advanceFocus() {
-        let recordIDs = gallery.records.map(\.id)
-        guard recordIDs.count >= 3 else { return }
-
-        guard let currentID = focusedRecordID,
-              let currentIndex = recordIDs.firstIndex(of: currentID)
-        else {
-            focusedRecordID = recordIDs.first
-            return
-        }
-
-        let nextIndex = (currentIndex + 1) % recordIDs.count
-        withAnimation(.easeInOut(duration: 0.65)) {
-            focusedRecordID = recordIDs[nextIndex]
-        }
     }
 }
 

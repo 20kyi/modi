@@ -33,7 +33,7 @@ enum CollectionShareVideoRenderer {
     private enum Config {
         static let videoSize = CGSize(width: 1080, height: 1920)
         static let fps: Int32 = 30
-        static let scrollSpeed: CGFloat = 160
+        static let scrollSpeed: CGFloat = MarqueeScrollSpeed.shareVideo
         static let photoGap: CGFloat = 24
         static let rowGap: CGFloat = 36
         static let cornerRadius: CGFloat = AppRadius.md
@@ -293,14 +293,12 @@ enum CollectionShareVideoRenderer {
 
     private static func periodTileWidth(for single: [PhotoItem], minimumWidth: CGFloat) -> CGFloat {
         guard !single.isEmpty else { return 0 }
-        return contentWidth(for: periodTile(from: single, minimumWidth: minimumWidth))
-    }
-
-    /// 컬렉션 순서를 유지한 채 화면을 채울 만큼만 반복한 1주기 타일.
-    private static func periodTile(from single: [PhotoItem], minimumWidth: CGFloat) -> [PhotoItem] {
-        guard !single.isEmpty else { return [] }
-        let requiredWidth = max(minimumWidth, contentWidth(for: single))
-        return repeatedItems(single, minimumWidth: requiredWidth)
+        return HorizontalMarqueeLayout.periodTile(
+            from: single,
+            itemWidth: { $0.size.width },
+            spacing: Config.photoGap,
+            minimumWidth: minimumWidth
+        ).loopPeriod
     }
 
     private static func makeMarqueeRow(
@@ -313,35 +311,19 @@ enum CollectionShareVideoRenderer {
             return RowLayout(periodTile: [], loopPeriod: loopPeriod, centerY: centerY, maxHeight: maxHeight)
         }
 
-        let tile = periodTile(from: single, minimumWidth: loopPeriod)
-        let actualPeriod = max(contentWidth(for: tile), 1)
+        let layout = HorizontalMarqueeLayout.periodTile(
+            from: single,
+            itemWidth: { $0.size.width },
+            spacing: Config.photoGap,
+            minimumWidth: loopPeriod
+        )
 
         return RowLayout(
-            periodTile: tile,
-            loopPeriod: actualPeriod,
+            periodTile: layout.tile,
+            loopPeriod: layout.loopPeriod,
             centerY: centerY,
             maxHeight: maxHeight
         )
-    }
-
-    private static func repeatedItems(
-        _ items: [PhotoItem],
-        minimumWidth: CGFloat
-    ) -> [PhotoItem] {
-        guard !items.isEmpty else { return [] }
-
-        var result: [PhotoItem] = []
-        while contentWidth(for: result) < minimumWidth {
-            result.append(contentsOf: items)
-        }
-        return result
-    }
-
-    private static func contentWidth(for items: [PhotoItem]) -> CGFloat {
-        guard !items.isEmpty else { return 0 }
-        let widths = items.reduce(CGFloat.zero) { $0 + $1.size.width }
-        let gaps = Config.photoGap * CGFloat(items.count - 1)
-        return widths + gaps
     }
 
     // MARK: - Image Preparation
@@ -481,15 +463,7 @@ enum CollectionShareVideoRenderer {
         guard row.loopPeriod > 0, !row.periodTile.isEmpty else { return }
 
         let period = row.loopPeriod
-        let normalizedOffset = scrollOffset.truncatingRemainder(dividingBy: period)
-
-        // offset=0 → 첫 컬렉션 이미지가 왼쪽(x=0)부터 보이고, 타일이 화면을 채웁니다.
-        var originX = -normalizedOffset
-
-        // 스크롤 중에도 뷰포트 좌측이 비지 않도록 타일을 왼쪽으로 확장합니다.
-        while originX > 0 {
-            originX -= period
-        }
+        let originX = HorizontalMarqueeLayout.originX(scrollOffset: scrollOffset, loopPeriod: period)
 
         let drawLimit = Config.videoSize.width + period
         var x = originX
