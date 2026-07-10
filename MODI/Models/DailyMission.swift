@@ -197,6 +197,7 @@ struct MissionEntry: Codable, Equatable, Identifiable {
 
 struct RecentDiscovery: Identifiable, Equatable {
     let id: UUID
+    let record: MODIRecord
     let emoji: String
     let title: String
     let subtitle: String
@@ -204,35 +205,26 @@ struct RecentDiscovery: Identifiable, Equatable {
     let themeColorHex: String
 
     var themeColor: Color { Color(hex: themeColorHex) }
+
+    static func == (lhs: RecentDiscovery, rhs: RecentDiscovery) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 extension RecentDiscovery {
-    static let mockList: [RecentDiscovery] = [
-        RecentDiscovery(
-            id: UUID(uuidString: "D2000001-0000-0000-0000-000000000001")!,
-            emoji: "☁️",
-            title: "뭉게구름",
-            subtitle: "Cloud Hunter",
-            relativeDate: "어제",
-            themeColorHex: "E4ECF4"
-        ),
-        RecentDiscovery(
-            id: UUID(uuidString: "D2000001-0000-0000-0000-000000000002")!,
-            emoji: "🩷",
-            title: "분홍 꽃잎",
-            subtitle: "Pink Love",
-            relativeDate: "2일 전",
-            themeColorHex: "F8DDE8"
-        ),
-        RecentDiscovery(
-            id: UUID(uuidString: "D2000001-0000-0000-0000-000000000003")!,
-            emoji: "🪴",
-            title: "창가 화분",
-            subtitle: "Little Plant",
-            relativeDate: "3일 전",
-            themeColorHex: "DCE8D4"
-        )
-    ]
+    static func mockList(from records: [MODIRecord]) -> [RecentDiscovery] {
+        records.prefix(3).map { record in
+            RecentDiscovery(
+                id: record.id,
+                record: record,
+                emoji: record.conceptEmoji,
+                title: record.conceptTitle,
+                subtitle: record.collection?.title ?? "MODI 발견",
+                relativeDate: "어제",
+                themeColorHex: record.collection?.themeColorHex ?? "E8ECF0"
+            )
+        }
+    }
 }
 
 // MARK: - TodaysMissionCollectionGallery

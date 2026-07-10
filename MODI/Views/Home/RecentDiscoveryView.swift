@@ -20,18 +20,17 @@ struct RecentDiscoveryView: View {
 
     private func discoveryRow(_ discovery: RecentDiscovery) -> some View {
         HStack(spacing: AppSpacing.md) {
-            Text(discovery.emoji)
-                .font(.system(size: 24))
-                .frame(width: 48, height: 48)
-                .background(
-                    discovery.themeColor.opacity(0.5),
-                    in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                )
+            photoThumbnail(discovery)
 
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                Text(discovery.title)
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.Text.primary)
+                HStack(spacing: AppSpacing.xs) {
+                    Text(discovery.emoji)
+                        .font(AppFont.headline)
+
+                    Text(discovery.title)
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.Text.primary)
+                }
 
                 Text(discovery.subtitle)
                     .font(AppFont.footnote)
@@ -51,10 +50,24 @@ struct RecentDiscoveryView: View {
         )
         .shadow(color: AppShadow.subtle.color, radius: AppShadow.subtle.radius, x: 0, y: AppShadow.subtle.yOffset)
     }
+
+    private func photoThumbnail(_ discovery: RecentDiscovery) -> some View {
+        Color.clear
+            .frame(width: 48, height: 48)
+            .background(discovery.themeColor)
+            .overlay {
+                MODIRecordImage(record: discovery.record, contentMode: .fill)
+            }
+            .modiRecordClipShape(for: discovery.record)
+    }
 }
 
 #Preview {
-    RecentDiscoveryView(discoveries: RecentDiscovery.mockList)
+    let (_, repository) = RecordPreviewData.makeRepository(withSampleData: true)
+    let records = repository.fetchAllRecords()
+        .sorted { $0.discoveryDate > $1.discoveryDate }
+
+    return RecentDiscoveryView(discoveries: RecentDiscovery.mockList(from: records))
         .appScreenPadding()
         .appScreenBackground()
 }

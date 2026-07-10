@@ -72,6 +72,7 @@ final class HomeViewModel {
             .map { record in
                 RecentDiscovery(
                     id: record.id,
+                    record: record,
                     emoji: record.collection?.emoji ?? record.conceptEmoji,
                     title: record.conceptTitle,
                     subtitle: discoverySubtitle(for: record),
