@@ -29,51 +29,32 @@ struct CollectionCard: View {
                             .padding(AppSpacing.sm)
                     }
                 }
+                .overlay(alignment: .bottomLeading) {
+                    if let badgeName = progress.currentTitle?.name {
+                        Text(badgeName)
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.Text.primary)
+                            .padding(.horizontal, AppSpacing.sm)
+                            .padding(.vertical, AppSpacing.xxs)
+                            .background(.ultraThinMaterial, in: Capsule())
+                            .padding(AppSpacing.sm)
+                    }
+                }
 
-            if photoCount > 0 {
-                filledSection
-            } else {
-                emptySection
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                Text(collection.title)
+                    .font(AppFont.subheadline)
+                    .foregroundStyle(AppColor.Text.primary)
+                    .lineLimit(1)
+
+                Text(collection.missionPrompt)
+                    .font(AppFont.caption1)
+                    .foregroundStyle(AppColor.Text.secondary)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
         .appCardStyle(padding: AppSpacing.md)
-    }
-
-    private var filledSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-            Text(collection.title)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.Text.primary)
-                .lineLimit(1)
-
-            Text(cardSubtitle)
-                .font(AppFont.caption1)
-                .foregroundStyle(AppColor.Text.secondary)
-                .lineLimit(1)
-        }
-    }
-
-    private var cardSubtitle: String {
-        let countLabel = photoCount == 1 ? "1 Discovery" : "\(photoCount) Discoveries"
-        if let titleName = progress.currentTitle?.name {
-            return "\(countLabel) · \(titleName)"
-        }
-        return countLabel
-    }
-
-    private var emptySection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-            Text(collection.title)
-                .font(AppFont.subheadline)
-                .foregroundStyle(AppColor.Text.primary)
-                .lineLimit(1)
-
-            Text(collection.missionPrompt)
-                .font(AppFont.caption1)
-                .foregroundStyle(AppColor.Text.secondary)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
     }
 }
 
