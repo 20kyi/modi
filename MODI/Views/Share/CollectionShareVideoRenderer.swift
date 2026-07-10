@@ -72,8 +72,10 @@ enum CollectionShareVideoRenderer {
     static func render(
         collection: MODICollection,
         records: [MODIRecord],
-        progress: (@Sendable (Double) -> Void)? = nil
+        onStage: (@Sendable (VideoGenerationStage) -> Void)? = nil
     ) async throws -> URL {
+        reportStage(.preparingCollection, handler: onStage)
+
         let images = records
             .sorted { $0.createdAt > $1.createdAt }
             .compactMap(\.displayImage)
@@ -89,7 +91,7 @@ enum CollectionShareVideoRenderer {
         )
 
         return try await Task.detached(priority: .userInitiated) {
-            try renderVideo(images: images, labels: labels, progress: progress)
+            try renderVideo(images: images, labels: labels, onStage: onStage)
         }.value
     }
 
@@ -98,12 +100,12 @@ enum CollectionShareVideoRenderer {
     private static func renderVideo(
         images: [UIImage],
         labels: VideoLabels,
-        progress: (@Sendable (Double) -> Void)?
+        onStage: (@Sendable (VideoGenerationStage) -> Void)?
     ) throws -> URL {
-        reportProgress(0, handler: progress)
+        reportStage(.preparingCollection, handler: onStage)
 
         let marquee = buildMarqueeLayout(from: images)
-        reportProgress(0.08, handler: progress)
+        reportStage(.generatingAnimation, handler: onStage)
 
         let loopDuration = TimeInterval(marquee.loopPeriod / Config.scrollSpeed)
         let totalFrames = max(2, Int(round(loopDuration * Double(Config.fps))))
@@ -143,6 +145,7 @@ enum CollectionShareVideoRenderer {
         }
 
         writer.startSession(atSourceTime: .zero)
+        reportStage(.renderingVideo, handler: onStage)
 
         for frameIndex in 0..<totalFrames {
             while !writerInput.isReadyForMoreMediaData {
@@ -177,15 +180,10 @@ enum CollectionShareVideoRenderer {
             guard adaptor.append(pixelBuffer, withPresentationTime: time) else {
                 throw RenderError.frameAppendFailed
             }
-
-            let frameProgress = 0.08 + 0.87 * Double(frameIndex + 1) / Double(totalFrames)
-            if frameIndex == 0 || frameIndex == totalFrames - 1 || frameIndex % 2 == 0 {
-                reportProgress(frameProgress, handler: progress)
-            }
         }
 
         writerInput.markAsFinished()
-        reportProgress(0.96, handler: progress)
+        reportStage(.saving, handler: onStage)
 
         let semaphore = DispatchSemaphore(value: 0)
         writer.finishWriting {
@@ -197,18 +195,16 @@ enum CollectionShareVideoRenderer {
             throw writer.error ?? RenderError.frameAppendFailed
         }
 
-        reportProgress(1, handler: progress)
         return outputURL
     }
 
-    private static func reportProgress(
-        _ value: Double,
-        handler: (@Sendable (Double) -> Void)?
+    private static func reportStage(
+        _ stage: VideoGenerationStage,
+        handler: (@Sendable (VideoGenerationStage) -> Void)?
     ) {
         guard let handler else { return }
-        let clamped = min(max(value, 0), 1)
         DispatchQueue.main.async {
-            handler(clamped)
+            handler(stage)
         }
     }
 

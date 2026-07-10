@@ -17,7 +17,6 @@ struct CollectionShareOptionsSheet: View {
     @State private var player: AVQueuePlayer?
     @State private var playerLooper: AVPlayerLooper?
     @State private var isGeneratingVideo = false
-    @State private var videoProgress: Double = 0
     @State private var showShareSheet = false
     @State private var isSaving = false
     @State private var saveSuccess = false
@@ -133,35 +132,29 @@ struct CollectionShareOptionsSheet: View {
             }
 
         case .video:
-            Group {
-                if let player {
-                    VideoPlayer(player: player)
-                } else if isGeneratingVideo {
-                    VStack(spacing: AppSpacing.md) {
-                        ProgressView(value: videoProgress)
-                            .progressViewStyle(.linear)
-                            .tint(AppColor.Accent.primary)
-                            .frame(width: 200)
-
-                        Text("영상 생성 중… \(Int((videoProgress * 100).rounded()))%")
-                            .font(AppFont.caption1)
-                            .foregroundStyle(AppColor.Text.secondary)
-                            .monospacedDigit()
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
+            if isGeneratingVideo {
+                VideoGenerationProgressView()
+                    .frame(maxWidth: .infinity, minHeight: 280)
+                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+                    .appShadow(.medium)
+                    .padding(.horizontal, AppSpacing.xxl)
+            } else {
+                Group {
+                    if let player {
+                        VideoPlayer(player: player)
+                    } else {
+                        ContentUnavailableView(
+                            "영상을 만들 수 없어요",
+                            systemImage: "film",
+                            description: Text("다시 시도해 주세요.")
+                        )
                     }
-                } else {
-                    ContentUnavailableView(
-                        "영상을 만들 수 없어요",
-                        systemImage: "film",
-                        description: Text("다시 시도해 주세요.")
-                    )
                 }
+                .aspectRatio(9 / 16, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+                .appShadow(.medium)
+                .padding(.horizontal, AppSpacing.xxl)
             }
-            .aspectRatio(9 / 16, contentMode: .fit)
-            .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
-            .appShadow(.medium)
-            .padding(.horizontal, AppSpacing.xxl)
         }
     }
 
@@ -237,16 +230,13 @@ struct CollectionShareOptionsSheet: View {
         guard videoURL == nil, !isGeneratingVideo else { return }
 
         isGeneratingVideo = true
-        videoProgress = 0
 
         Task { @MainActor in
             do {
                 let url = try await CollectionShareVideoRenderer.render(
                     collection: collection,
                     records: records
-                ) { progress in
-                    videoProgress = progress
-                }
+                )
                 videoURL = url
                 startLoopingPlayer(with: url)
             } catch {
