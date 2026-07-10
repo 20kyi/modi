@@ -16,11 +16,13 @@ struct CollectionDetailView: View {
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
+    @Environment(\.dismiss) private var dismiss
 
     private let photoCollection: PhotoCollection?
     private let modiCollection: MODICollection?
 
     @State private var recordPendingDeletion: MODIRecord?
+    @State private var showsDeleteCollectionConfirmation = false
     @State private var editorPresentation: CollectionEditorPresentation?
     @State private var sharePayload: CollectionSharePayload?
     @State private var shareErrorMessage: String?
@@ -60,6 +62,10 @@ struct CollectionDetailView: View {
         CollectionProgress.make(conceptID: collection.id, totalDiscoveries: records.count)
     }
 
+    private var isCustomCollection: Bool {
+        collection.collectionType == .custom
+    }
+
     private let columns = Array(
         repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
         count: 3
@@ -82,13 +88,33 @@ struct CollectionDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    presentShareSheet()
-                } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 16, weight: .semibold))
+                HStack(spacing: AppSpacing.sm) {
+                    Button {
+                        presentShareSheet()
+                    } label: {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .accessibilityLabel("공유하기")
+
+                    if isCustomCollection {
+                        Menu {
+                            NavigationLink {
+                                AddCollectionView(editingCollection: collection)
+                            } label: {
+                                Label("컬렉션 수정", systemImage: "pencil")
+                            }
+
+                            Button("컬렉션 삭제", systemImage: "trash", role: .destructive) {
+                                showsDeleteCollectionConfirmation = true
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis.circle")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .accessibilityLabel("컬렉션 관리")
+                    }
                 }
-                .accessibilityLabel("공유하기")
             }
         }
         .fullScreenCover(item: $editorPresentation) { presentation in
@@ -114,6 +140,20 @@ struct CollectionDetailView: View {
             }
         } message: { _ in
             Text("삭제한 사진은 복구할 수 없어요.")
+        }
+        .alert("이 컬렉션을 삭제할까요?", isPresented: $showsDeleteCollectionConfirmation) {
+            Button("삭제", role: .destructive) {
+                Task {
+                    await deleteCollection()
+                }
+            }
+            Button("취소", role: .cancel) {}
+        } message: {
+            if records.isEmpty {
+                Text("삭제한 컬렉션은 복구할 수 없어요.")
+            } else {
+                Text("컬렉션과 함께 \(records.count)장의 사진도 모두 삭제돼요. 복구할 수 없어요.")
+            }
         }
         .alert("삭제 실패", isPresented: deleteFailedAlertIsPresented) {
             Button("확인", role: .cancel) {
@@ -291,15 +331,7 @@ struct CollectionDetailView: View {
 
     private func deleteRecord(_ record: MODIRecord) async {
         do {
-            if authManager.session.isLoggedIn,
-               let accessToken = authManager.accessToken {
-                let remoteRecordID = try await resolveRemoteRecordID(for: record, accessToken: accessToken)
-                try await RecordsAPIService.shared.deleteMyRecord(
-                    recordId: remoteRecordID,
-                    accessToken: accessToken
-                )
-            }
-
+            try await deleteRemoteRecordIfNeeded(record)
             repository.deleteRecord(record)
             collectionRepository.reload()
             streakManager.refresh(
@@ -310,6 +342,39 @@ struct CollectionDetailView: View {
         } catch {
             deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    private func deleteCollection() async {
+        guard isCustomCollection else { return }
+
+        do {
+            for record in records {
+                try await deleteRemoteRecordIfNeeded(record)
+            }
+
+            collectionRepository.deleteCustomCollection(collection)
+            repository.reload()
+            streakManager.refresh(
+                recordRepository: repository,
+                collectionRepository: collectionRepository
+            )
+            showsDeleteCollectionConfirmation = false
+            dismiss()
+        } catch {
+            deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        }
+    }
+
+    private func deleteRemoteRecordIfNeeded(_ record: MODIRecord) async throws {
+        guard authManager.session.isLoggedIn,
+              let accessToken = authManager.accessToken
+        else { return }
+
+        let remoteRecordID = try await resolveRemoteRecordID(for: record, accessToken: accessToken)
+        try await RecordsAPIService.shared.deleteMyRecord(
+            recordId: remoteRecordID,
+            accessToken: accessToken
+        )
     }
 
     private func resolveRemoteRecordID(for record: MODIRecord, accessToken: String) async throws -> String {
@@ -347,6 +412,29 @@ private struct MODIRecordTile: View {
             }
             .modiRecordClipShape(for: record)
     }
+}
+
+#Preview("Custom Collection") {
+    let configuration = ModelConfiguration(isStoredInMemoryOnly: true)
+    let schema = Schema([MODIRecord.self, MODICollection.self])
+    let container = try! ModelContainer(for: schema, configurations: configuration)
+    let collectionRepository = CollectionPreviewData.makeRepository(
+        modelContext: container.mainContext,
+        withSampleData: true
+    )
+    let repository = RecordRepository(modelContext: container.mainContext)
+    let collection = collectionRepository.customCollections[0]
+
+    return NavigationStack {
+        CollectionDetailView(collection: collection)
+    }
+    .modelContainer(container)
+    .environment(repository)
+    .environment(collectionRepository)
+    .environment(StreakManager.mock)
+    .environment(TitleCelebrationManager())
+    .environment(AuthManager.mock)
+    .preferredColorScheme(.light)
 }
 
 #Preview("Light") {

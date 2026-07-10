@@ -116,6 +116,39 @@ final class CollectionRepository {
         collections.contains { $0.sourceTemplateID == templateID }
     }
 
+    func updateCustomCollection(
+        _ collection: MODICollection,
+        title: String,
+        emoji: String,
+        missionPrompt: String,
+        description: String,
+        themeColorHex: String
+    ) {
+        guard collection.collectionType == .custom else { return }
+
+        collection.title = title
+        collection.emoji = emoji
+        collection.missionPrompt = missionPrompt
+        collection.collectionDescription = description
+        collection.themeColorHex = themeColorHex
+
+        for record in collection.records ?? [] {
+            record.conceptTitle = title
+            record.conceptEmoji = emoji
+        }
+
+        try? modelContext.save()
+        reload()
+    }
+
+    func deleteCustomCollection(_ collection: MODICollection) {
+        guard collection.collectionType == .custom else { return }
+
+        modelContext.delete(collection)
+        try? modelContext.save()
+        reload()
+    }
+
     // MARK: - Record Linking
 
     @discardableResult
