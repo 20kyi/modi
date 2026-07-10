@@ -127,7 +127,8 @@ struct CollectionDetailView: View {
                 collection: payload.collection,
                 records: payload.records
             )
-            .presentationDetents([.medium, .large])
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         }
         .alert("공유할 수 없어요", isPresented: shareErrorAlertIsPresented) {
             Button("확인", role: .cancel) {

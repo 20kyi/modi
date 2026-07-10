@@ -57,8 +57,7 @@ struct CollectionShareOptionsSheet: View {
                 }
 
                 previewSection
-
-                Spacer()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 actionButtons
             }
@@ -123,18 +122,19 @@ struct CollectionShareOptionsSheet: View {
                 Image(uiImage: shareImage)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
                     .appShadow(.medium)
                     .padding(.horizontal, AppSpacing.xxl)
             } else {
                 ProgressView("이미지 준비 중…")
-                    .frame(maxWidth: .infinity, minHeight: 280)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
 
         case .video:
             if isGeneratingVideo {
                 VideoGenerationProgressView()
-                    .frame(maxWidth: .infinity, minHeight: 280)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
                     .appShadow(.medium)
                     .padding(.horizontal, AppSpacing.xxl)
@@ -150,6 +150,7 @@ struct CollectionShareOptionsSheet: View {
                         )
                     }
                 }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .aspectRatio(9 / 16, contentMode: .fit)
                 .clipShape(RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
                 .appShadow(.medium)
