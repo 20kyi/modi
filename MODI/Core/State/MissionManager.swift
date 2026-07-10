@@ -6,14 +6,12 @@ import Observation
 @Observable
 final class MissionManager {
 
-    private static let customConceptsKeyPrefix = "modi.customConcepts"
     private static let todayMissionsKeyPrefix = "modi.todayMissions"
-    private static let legacyCustomConceptsKey = "modi.customConcepts"
     private static let legacyTodayMissionsKey = "modi.todayMissions"
     private static let authUserIdKey = "modi_auth_userId"
     private static let guestScope = "guest"
 
-    private(set) var customConcepts: [Concept] = []
+    private var collectionRepository: CollectionRepository?
     private var todayMissions: [String: TodayMission] = [:]
     private let storage: UserDefaults
     private let catalog: SystemConceptCatalog
@@ -21,6 +19,11 @@ final class MissionManager {
     private var activeScope: String
 
     var systemConcepts: [Concept] { catalog.concepts }
+
+    /// 커스텀 Concept는 `CollectionRepository`(SwiftData)에서 읽습니다.
+    var customConcepts: [Concept] {
+        collectionRepository?.customCollections.map(\.concept) ?? []
+    }
 
     var allConcepts: [Concept] {
         systemConcepts + customConcepts
@@ -45,6 +48,10 @@ final class MissionManager {
         activeScope = Self.currentScope(from: storage)
         load()
         migrateLegacyDataIfNeeded()
+    }
+
+    func configure(collectionRepository: CollectionRepository) {
+        self.collectionRepository = collectionRepository
     }
 
     // MARK: - Concept Sync
@@ -74,31 +81,6 @@ final class MissionManager {
         default:
             systemConcepts.filter { $0.category == category }
         }
-    }
-
-    func addCustomConcept(
-        title: String,
-        emoji: String,
-        description: String
-    ) {
-        let concept = Concept(
-            id: UUID(),
-            title: title,
-            emoji: emoji,
-            description: description,
-            category: .custom,
-            type: .custom
-        )
-        registerCustomConcept(concept)
-    }
-
-    func registerCustomConcept(_ concept: Concept) {
-        guard concept.type == .custom,
-              !customConcepts.contains(where: { $0.id == concept.id })
-        else { return }
-
-        customConcepts.append(concept)
-        saveCustomConcepts()
     }
 
     // MARK: - Today Mission
@@ -208,13 +190,6 @@ final class MissionManager {
     // MARK: - Persistence
 
     private func load() {
-        if let data = storage.data(forKey: customConceptsKey),
-           let decoded = try? JSONDecoder().decode([Concept].self, from: data) {
-            customConcepts = decoded
-        } else {
-            customConcepts = []
-        }
-
         if let data = storage.data(forKey: todayMissionsKey),
            let decoded = try? JSONDecoder().decode([String: TodayMission].self, from: data) {
             todayMissions = decoded
@@ -223,18 +198,9 @@ final class MissionManager {
         }
     }
 
-    private func saveCustomConcepts() {
-        guard let data = try? JSONEncoder().encode(customConcepts) else { return }
-        storage.set(data, forKey: customConceptsKey)
-    }
-
     private func saveTodayMissions() {
         guard let data = try? JSONEncoder().encode(todayMissions) else { return }
         storage.set(data, forKey: todayMissionsKey)
-    }
-
-    private var customConceptsKey: String {
-        "\(Self.customConceptsKeyPrefix).\(activeScope)"
     }
 
     private var todayMissionsKey: String {
@@ -249,19 +215,12 @@ final class MissionManager {
     }
 
     private func migrateLegacyDataIfNeeded() {
-        guard storage.data(forKey: customConceptsKey) == nil,
-              storage.data(forKey: todayMissionsKey) == nil
-        else { return }
-
-        if let legacyCustomConcepts = storage.data(forKey: Self.legacyCustomConceptsKey) {
-            storage.set(legacyCustomConcepts, forKey: customConceptsKey)
-        }
+        guard storage.data(forKey: todayMissionsKey) == nil else { return }
 
         if let legacyTodayMissions = storage.data(forKey: Self.legacyTodayMissionsKey) {
             storage.set(legacyTodayMissions, forKey: todayMissionsKey)
         }
 
-        storage.removeObject(forKey: Self.legacyCustomConceptsKey)
         storage.removeObject(forKey: Self.legacyTodayMissionsKey)
         load()
     }
@@ -275,7 +234,6 @@ final class MissionManager {
 
     func resetForSignedOutState() {
         syncSessionScope()
-        customConcepts = []
         todayMissions = [:]
     }
 }
@@ -285,11 +243,6 @@ final class MissionManager {
 extension MissionManager {
     static var mock: MissionManager {
         let manager = MissionManager()
-        manager.addCustomConcept(
-            title: Concept.mockCustom.title,
-            emoji: Concept.mockCustom.emoji,
-            description: Concept.mockCustom.description
-        )
         manager.selectConcept(Concept.mock, for: .now)
         return manager
     }

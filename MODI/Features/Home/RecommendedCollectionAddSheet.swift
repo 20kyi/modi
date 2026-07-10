@@ -4,7 +4,6 @@ import SwiftUI
 struct RecommendedCollectionAddSheet: View {
 
     @Environment(CollectionRepository.self) private var collectionRepository
-    @Environment(MissionManager.self) private var missionManager
     @Environment(\.dismiss) private var dismiss
 
     let template: RecommendedCollectionTemplate
@@ -67,9 +66,6 @@ struct RecommendedCollectionAddSheet: View {
                 } else {
                     Button("컬렉션에 추가하기") {
                         collectionRepository.addCustomCollection(from: template)
-                        if let collection = collectionRepository.customCollections.first(where: { $0.sourceTemplateID == template.id }) {
-                            missionManager.registerCustomConcept(collection.concept)
-                        }
                         dismiss()
                     }
                     .buttonStyle(PrimaryButtonStyle())

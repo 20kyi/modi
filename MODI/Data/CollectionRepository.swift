@@ -9,6 +9,8 @@ import SwiftData
 final class CollectionRepository {
 
     private static let legacyCustomCollectionsKey = "modi.customCollections"
+    private static let legacyCustomConceptsKey = "modi.customConcepts"
+    private static let legacyCustomConceptsKeyPrefix = "modi.customConcepts."
 
     private let modelContext: ModelContext
     private(set) var collections: [MODICollection] = []
@@ -23,6 +25,7 @@ final class CollectionRepository {
         reload()
         seedSystemCollectionsIfNeeded()
         migrateLegacyCustomCollectionsIfNeeded()
+        migrateLegacyCustomConceptsIfNeeded()
         linkOrphanedRecords()
         reload()
     }
@@ -58,6 +61,11 @@ final class CollectionRepository {
 
     func photoCount(for collectionID: UUID) -> Int {
         collection(for: collectionID)?.photoCount ?? 0
+    }
+
+    /// Concept 선택 UI용: 시스템 Concept + SwiftData 커스텀 컬렉션.
+    func pickerConcepts(systemConcepts: [Concept]) -> [Concept] {
+        systemConcepts + customCollections.map(\.concept)
     }
 
     func latestRecordDate(for collectionID: UUID) -> Date? {
@@ -152,6 +160,45 @@ final class CollectionRepository {
         }
 
         try? modelContext.save()
+    }
+
+    /// `MissionManager`가 UserDefaults에 저장하던 커스텀 Concept를 SwiftData로 이전합니다.
+    private func migrateLegacyCustomConceptsIfNeeded() {
+        var legacyConcepts: [Concept] = []
+
+        if let data = UserDefaults.standard.data(forKey: Self.legacyCustomConceptsKey),
+           let decoded = try? JSONDecoder().decode([Concept].self, from: data) {
+            legacyConcepts.append(contentsOf: decoded)
+        }
+
+        for key in UserDefaults.standard.dictionaryRepresentation().keys
+            where key.hasPrefix(Self.legacyCustomConceptsKeyPrefix) {
+            guard let data = UserDefaults.standard.data(forKey: key),
+                  let decoded = try? JSONDecoder().decode([Concept].self, from: data)
+            else { continue }
+            legacyConcepts.append(contentsOf: decoded)
+        }
+
+        guard !legacyConcepts.isEmpty else { return }
+
+        let existingIDs = Set(collections.map(\.id))
+        var didInsert = false
+
+        for concept in legacyConcepts where concept.type == .custom && !existingIDs.contains(concept.id) {
+            let collection = MODICollection.from(concept: concept)
+            modelContext.insert(collection)
+            didInsert = true
+        }
+
+        if didInsert {
+            try? modelContext.save()
+        }
+
+        UserDefaults.standard.removeObject(forKey: Self.legacyCustomConceptsKey)
+        for key in UserDefaults.standard.dictionaryRepresentation().keys
+            where key.hasPrefix(Self.legacyCustomConceptsKeyPrefix) {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
     }
 
     private func migrateLegacyCustomCollectionsIfNeeded() {

@@ -47,7 +47,7 @@ struct PastDiscoveryFlowView: View {
                     .padding(.top, AppSpacing.sm)
                     .padding(.bottom, AppSpacing.xs)
 
-                ConceptPickerView(concepts: missionManager.allConcepts) { concept in
+                ConceptPickerView(concepts: collectionRepository.pickerConcepts(systemConcepts: missionManager.systemConcepts)) { concept in
                     photoSelectionContext = PhotoSelectionContext(concept: concept)
                 }
             }
@@ -142,6 +142,13 @@ struct PastDiscoveryFlowView: View {
     let (container, repository) = RecordPreviewData.makeRepository()
     let collectionRepository = CollectionRepository(modelContext: container.mainContext)
     collectionRepository.bootstrap()
+    _ = collectionRepository.addCustomCollection(
+        title: Concept.mockCustom.title,
+        emoji: Concept.mockCustom.emoji,
+        missionPrompt: Concept.mockCustom.description,
+        description: Concept.mockCustom.description,
+        themeColorHex: "E8ECF0"
+    )
 
     return PastDiscoveryFlowView(selectedDate: Calendar.current.date(byAdding: .day, value: -3, to: .now)!) {}
         .modelContainer(container)

@@ -142,6 +142,7 @@ struct MainTabView: View {
         let collectionRepo = CollectionRepository(modelContext: modelContext)
         collectionRepo.bootstrap()
         collectionStore.configure(collectionRepository: collectionRepo)
+        missionManager.configure(collectionRepository: collectionRepo)
         repository = recordRepository
         collectionRepository = collectionRepo
         streakManager.refresh(
