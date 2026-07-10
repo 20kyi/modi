@@ -75,7 +75,7 @@ struct EarnedTitleDetailModal: View {
             }
 
             collectionSection
-            missionSection
+            achievementSection
             acquisitionSection
         }
         .padding(.horizontal, AppSpacing.lg)
@@ -101,9 +101,9 @@ struct EarnedTitleDetailModal: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
-    private var missionSection: some View {
-        Text(earnedTitle.missionDescription)
-            .font(AppFont.body)
+    private var achievementSection: some View {
+        Text(earnedTitle.achievementDescription)
+            .font(AppFont.footnote) // 타이틀 획득 조건
             .foregroundStyle(AppColor.Text.primary)
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity, alignment: .center)

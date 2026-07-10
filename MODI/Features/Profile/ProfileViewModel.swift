@@ -99,11 +99,7 @@ final class ProfileViewModel {
                 collectionTitle: collection.title,
                 emoji: collection.emoji,
                 themeColorHex: collection.themeColorHex,
-                acquiredDate: acquiringRecord.discoveryDate,
-                missionDescription: Self.missionDescription(
-                    for: acquiringRecord,
-                    collection: collection
-                )
+                acquiredDate: acquiringRecord.discoveryDate
             )
         }
 
@@ -113,25 +109,5 @@ final class ProfileViewModel {
             }
             return lhs.acquiredDate > rhs.acquiredDate
         }
-    }
-
-    private static func missionDescription(
-        for record: MODIRecord,
-        collection: MODICollection
-    ) -> String {
-        if !collection.missionPrompt.isEmpty {
-            return collection.missionPrompt
-        }
-
-        if let photoCollection = PhotoCollection.collection(for: collection.id),
-           !photoCollection.missionPrompt.isEmpty {
-            return photoCollection.missionPrompt
-        }
-
-        if !collection.collectionDescription.isEmpty {
-            return collection.collectionDescription
-        }
-
-        return record.conceptTitle
     }
 }

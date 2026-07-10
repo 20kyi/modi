@@ -233,7 +233,10 @@ struct ProfileHighestTitle: Identifiable, Equatable {
     let emoji: String
     let themeColorHex: String
     let acquiredDate: Date
-    let missionDescription: String
+
+    var achievementDescription: String {
+        "\(title.milestone)개의 발견으로 \(title.name) 획득" // 타이틀 획득 조건
+    }
 }
 
 // MARK: - Mock Data
@@ -262,8 +265,7 @@ extension ProfileHighestTitle {
         collectionTitle: "Cloud Hunter",
         emoji: "☁️",
         themeColorHex: "E4ECF4",
-        acquiredDate: Calendar.current.date(byAdding: .day, value: -3, to: .now)!,
-        missionDescription: "하늘을 찍으세요"
+        acquiredDate: Calendar.current.date(byAdding: .day, value: -3, to: .now)!
     )
 
     static let mockList: [ProfileHighestTitle] = [
@@ -274,8 +276,7 @@ extension ProfileHighestTitle {
             collectionTitle: "Blue Mood",
             emoji: "💙",
             themeColorHex: "D4E4F7",
-            acquiredDate: Calendar.current.date(byAdding: .day, value: -10, to: .now)!,
-            missionDescription: "파란색을 찍으세요"
+            acquiredDate: Calendar.current.date(byAdding: .day, value: -10, to: .now)!
         )
     ]
 }
