@@ -59,6 +59,7 @@ struct EarnedTitleDetailModal: View {
 
     // MARK: - Modal Card
 
+    /// 타이틀 배지 상세 모달 카드
     private var modalCard: some View {
         VStack(spacing: AppSpacing.lg) {
             HStack {
@@ -88,6 +89,9 @@ struct EarnedTitleDetailModal: View {
 
     // MARK: - Content
 
+    // MARK: - Collection Section
+
+    /// 타이틀 이미지
     private var collectionSection: some View {
         VStack(spacing: AppSpacing.sm) {
             Text(earnedTitle.emoji)
@@ -101,6 +105,9 @@ struct EarnedTitleDetailModal: View {
         .frame(maxWidth: .infinity, alignment: .center)
     }
 
+    // MARK: - Achievement Section
+
+    /// 타이틀 획득 조건
     private var achievementSection: some View {
         Text(earnedTitle.achievementDescription)
             .font(AppFont.footnote) // 타이틀 획득 조건
@@ -109,6 +116,9 @@ struct EarnedTitleDetailModal: View {
             .frame(maxWidth: .infinity, alignment: .center)
     }
 
+    // MARK: - Acquisition Section
+
+    /// 타이틀 획득 일자
     private var acquisitionSection: some View {
         Text(formattedAcquiredDate)
             .font(AppFont.caption2)
@@ -119,6 +129,7 @@ struct EarnedTitleDetailModal: View {
 
     // MARK: - Helpers
 
+    /// 타이틀 획득 일자 포맷팅
     private var formattedAcquiredDate: String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
