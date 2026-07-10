@@ -186,8 +186,8 @@ struct ProfileView: View {
                 } label: {
                     settingsRow(icon: "gearshape.fill", title: "설정 열기", iconColor: AppColor.Accent.primary)
                 }
+                .buttonStyle(.plain)
             }
-            .buttonStyle(.plain)
             .appCardStyle(padding: 0)
         }
     }
@@ -203,15 +203,13 @@ struct ProfileView: View {
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.Text.primary)
 
-            Spacer()
+            Spacer(minLength: 0)
 
             Image(systemName: "chevron.right")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(AppColor.Text.tertiary)
         }
-        .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
-        .frame(minHeight: AppSpacing.minTouchTarget)
+        .settingsRowStyle()
     }
 
     // MARK: - Helpers
@@ -246,12 +244,19 @@ struct ProfileView: View {
 
 private struct ProfileTitleCard: View {
 
+    private enum Layout {
+        static let emojiHeight: CGFloat = 26
+        static let titleHeight: CGFloat = 26
+        static let dateHeight: CGFloat = 24
+    }
+
     let earnedTitle: ProfileHighestTitle
 
     var body: some View {
         VStack(spacing: AppSpacing.xs) {
             Text(ProgressMilestone.hintEmoji(for: earnedTitle.title.milestone))
                 .font(.system(size: 22))
+                .frame(height: Layout.emojiHeight)
 
             Text(earnedTitle.title.name)
                 .font(AppFont.caption2)
@@ -259,13 +264,14 @@ private struct ProfileTitleCard: View {
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: Layout.titleHeight, maxHeight: Layout.titleHeight, alignment: .center)
 
             Text(acquiredDateLabel)
                 .font(.system(size: 10))
                 .foregroundStyle(AppColor.Text.tertiary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
+                .frame(maxWidth: .infinity, minHeight: Layout.dateHeight, maxHeight: Layout.dateHeight, alignment: .center)
         }
         .frame(maxWidth: .infinity)
         .appCardStyle(padding: AppSpacing.sm)

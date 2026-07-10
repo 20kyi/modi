@@ -106,6 +106,16 @@ extension View {
         padding(.horizontal, AppSpacing.screenHorizontal)
     }
 
+    /// Full-width settings row with a comfortable tap target.
+    func settingsRowStyle(alignment: Alignment = .leading) -> some View {
+        self
+            .padding(.horizontal, AppSpacing.lg)
+            .padding(.vertical, AppSpacing.lg)
+            .frame(maxWidth: .infinity, alignment: alignment)
+            .frame(minHeight: AppSpacing.settingsRowHeight)
+            .contentShape(Rectangle())
+    }
+
     /// Hairline divider color.
     func appDivider() -> some View {
         overlay(alignment: .bottom) {
