@@ -233,6 +233,7 @@ struct ProfileHighestTitle: Identifiable, Equatable {
     let emoji: String
     let themeColorHex: String
     let acquiredDate: Date
+    let missionDescription: String
 }
 
 // MARK: - Mock Data
@@ -261,7 +262,8 @@ extension ProfileHighestTitle {
         collectionTitle: "Cloud Hunter",
         emoji: "☁️",
         themeColorHex: "E4ECF4",
-        acquiredDate: Calendar.current.date(byAdding: .day, value: -3, to: .now)!
+        acquiredDate: Calendar.current.date(byAdding: .day, value: -3, to: .now)!,
+        missionDescription: "하늘을 찍으세요"
     )
 
     static let mockList: [ProfileHighestTitle] = [
@@ -272,7 +274,8 @@ extension ProfileHighestTitle {
             collectionTitle: "Blue Mood",
             emoji: "💙",
             themeColorHex: "D4E4F7",
-            acquiredDate: Calendar.current.date(byAdding: .day, value: -10, to: .now)!
+            acquiredDate: Calendar.current.date(byAdding: .day, value: -10, to: .now)!,
+            missionDescription: "파란색을 찍으세요"
         )
     ]
 }

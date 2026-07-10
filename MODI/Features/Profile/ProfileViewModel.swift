@@ -91,13 +91,19 @@ final class ProfileViewModel {
             let acquiredIndex = min(title.milestone, sortedRecords.count) - 1
             guard acquiredIndex >= 0, acquiredIndex < sortedRecords.count else { return nil }
 
+            let acquiringRecord = sortedRecords[acquiredIndex]
+
             return ProfileHighestTitle(
                 id: collection.id,
                 title: title,
                 collectionTitle: collection.title,
                 emoji: collection.emoji,
                 themeColorHex: collection.themeColorHex,
-                acquiredDate: sortedRecords[acquiredIndex].discoveryDate
+                acquiredDate: acquiringRecord.discoveryDate,
+                missionDescription: Self.missionDescription(
+                    for: acquiringRecord,
+                    collection: collection
+                )
             )
         }
 
@@ -107,5 +113,25 @@ final class ProfileViewModel {
             }
             return lhs.acquiredDate > rhs.acquiredDate
         }
+    }
+
+    private static func missionDescription(
+        for record: MODIRecord,
+        collection: MODICollection
+    ) -> String {
+        if !collection.missionPrompt.isEmpty {
+            return collection.missionPrompt
+        }
+
+        if let photoCollection = PhotoCollection.collection(for: collection.id),
+           !photoCollection.missionPrompt.isEmpty {
+            return photoCollection.missionPrompt
+        }
+
+        if !collection.collectionDescription.isEmpty {
+            return collection.collectionDescription
+        }
+
+        return record.conceptTitle
     }
 }

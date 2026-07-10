@@ -14,6 +14,7 @@ struct ProfileView: View {
     @Environment(MissionManager.self) private var missionManager
     @Environment(AuthManager.self) private var authManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
+    @Environment(EarnedTitleModalPresenter.self) private var earnedTitleModalPresenter
     @State private var viewModel = ProfileViewModel()
     @State private var selectedCalendarDay: SelectedCalendarDay?
     @State private var pastDiscoveryPresentation: PastDiscoveryPresentation?
@@ -157,7 +158,12 @@ struct ProfileView: View {
             } else {
                 LazyVGrid(columns: titleGridColumns, spacing: AppSpacing.gridGutter) {
                     ForEach(viewModel.earnedTitles) { earnedTitle in
-                        ProfileTitleCard(earnedTitle: earnedTitle)
+                        Button {
+                            earnedTitleModalPresenter.present(earnedTitle)
+                        } label: {
+                            ProfileTitleCard(earnedTitle: earnedTitle)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -300,6 +306,7 @@ private struct ProfileTitleCard: View {
         .environment(repository)
         .environment(collectionRepository)
         .environment(streakManager)
+        .environment(EarnedTitleModalPresenter.mock)
     .preferredColorScheme(.light)
 }
 
@@ -318,5 +325,6 @@ private struct ProfileTitleCard: View {
         .environment(repository)
         .environment(collectionRepository)
         .environment(streakManager)
+        .environment(EarnedTitleModalPresenter.mock)
         .preferredColorScheme(.dark)
 }

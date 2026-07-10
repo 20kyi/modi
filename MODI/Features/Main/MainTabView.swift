@@ -24,6 +24,7 @@ struct MainTabView: View {
     @State private var collectionRepository: CollectionRepository?
     @State private var streakManager = StreakManager()
     @State private var titleCelebrationManager = TitleCelebrationManager()
+    @State private var earnedTitleModalPresenter = EarnedTitleModalPresenter()
     @State private var selectedTab: MainTab = .home
     @State private var isBootstrapping = true
     @AppStorage("modi.openCollectionAfterInitialLoad") private var openCollectionAfterInitialLoad = false
@@ -48,6 +49,7 @@ struct MainTabView: View {
         collectionRepository: CollectionRepository
     ) -> some View {
         @Bindable var celebrationManager = titleCelebrationManager
+        @Bindable var earnedTitlePresenter = earnedTitleModalPresenter
 
         return TabView(selection: $selectedTab) {
             HomeView(
@@ -86,6 +88,15 @@ struct MainTabView: View {
         .environment(collectionRepository)
         .environment(streakManager)
         .environment(titleCelebrationManager)
+        .environment(earnedTitleModalPresenter)
+        .overlay {
+            if let presentation = earnedTitlePresenter.presentation {
+                EarnedTitleDetailModal(earnedTitle: presentation.earnedTitle) {
+                    earnedTitleModalPresenter.dismiss()
+                }
+                .id(presentation.id)
+            }
+        }
         .sheet(item: $celebrationManager.pendingCelebration) { celebration in
             TitleCelebrationSheet(
                 celebration: celebration,
