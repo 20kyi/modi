@@ -612,6 +612,7 @@ struct PhotoEditorView: View {
             )
             let renderer = ImageRenderer(content: content)
             renderer.scale = UIScreen.main.scale
+            renderer.isOpaque = true
             renderedImage = renderer.uiImage ?? originalPhoto
         } else {
             renderedImage = originalPhoto
@@ -920,6 +921,9 @@ private struct EditorRenderCanvas: View {
 
     var body: some View {
         ZStack {
+            Rectangle()
+                .fill(canvasBackgroundColor)
+
             if frameStyle != .none {
                 RoundedRectangle(cornerRadius: frameStyle.cornerRadius, style: .continuous)
                     .fill(frameStyle.borderColor(themeColor: themeColor))
@@ -954,7 +958,15 @@ private struct EditorRenderCanvas: View {
             }
         }
         .frame(width: canvasSize.width, height: canvasSize.height)
-        .clipShape(RoundedRectangle(cornerRadius: frameStyle.cornerRadius, style: .continuous))
+    }
+
+    private var canvasBackgroundColor: Color {
+        switch frameStyle {
+        case .none:
+            .white
+        case .classic, .rounded, .accent:
+            frameStyle.borderColor(themeColor: themeColor)
+        }
     }
 
     private var photoContentSize: CGSize {

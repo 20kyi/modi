@@ -179,7 +179,7 @@ struct CreateView: View {
                     .overlay {
                         MODIRecordImage(record: record, contentMode: .fill)
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
+                    .modiRecordClipShape(for: record)
                     .appShadow(.medium)
             } else {
                 Image(systemName: "checkmark.circle.fill")

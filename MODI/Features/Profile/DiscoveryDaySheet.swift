@@ -97,7 +97,7 @@ struct DiscoveryDaySheet: View {
         HStack(spacing: AppSpacing.md) {
             MODIRecordImage(record: record, contentMode: .fill)
                 .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+                .modiRecordClipShape(for: record)
 
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 HStack(spacing: AppSpacing.xs) {

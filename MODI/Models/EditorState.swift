@@ -175,6 +175,38 @@ extension MODIRecord {
         UIImage(data: imageData)
     }
 
+    /// 저장된 편집 이미지에 프레임이 베이크되어 있으면 true.
+    var hasBakedInFrame: Bool {
+        guard wasEdited, let editorState else { return false }
+        return editorState.resolvedFrameStyle != .none
+    }
+
+    /// 컬렉션·공유 등에서 적용할 모서리 반경. 프레임이 있으면 프레임 반경을 사용합니다.
+    func displayCornerRadius(forDisplaySize size: CGSize) -> CGFloat {
+        guard let editorState,
+              editorState.canvasWidth > 0,
+              editorState.canvasHeight > 0
+        else {
+            return AppRadius.photo
+        }
+
+        let canvasShortSide = min(editorState.canvasWidth, editorState.canvasHeight)
+        let displayShortSide = min(size.width, size.height)
+        let scale = displayShortSide / canvasShortSide
+
+        let referenceRadius: CGFloat
+        let frameStyle = editorState.resolvedFrameStyle
+        if frameStyle != .none {
+            referenceRadius = frameStyle.cornerRadius
+        } else if wasEdited {
+            referenceRadius = AppRadius.photo
+        } else {
+            return AppRadius.photo
+        }
+
+        return referenceRadius * scale
+    }
+
     /// 편집기에 추가한 텍스트 요소 내용.
     var userWrittenTexts: [String] {
         guard let editorState else { return [] }

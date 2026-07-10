@@ -51,6 +51,7 @@ enum CollectionShareVideoRenderer {
     private struct PhotoItem {
         let image: UIImage
         let size: CGSize
+        let appliesRoundedClip: Bool
     }
 
     private struct RowLayout {
@@ -78,7 +79,10 @@ enum CollectionShareVideoRenderer {
 
         let images = records
             .sorted { $0.createdAt > $1.createdAt }
-            .compactMap(\.displayImage)
+            .compactMap { record -> (UIImage, Bool)? in
+                guard let image = record.displayImage else { return nil }
+                return (image, !record.hasBakedInFrame)
+            }
 
         guard !images.isEmpty else {
             throw RenderError.noPhotos
@@ -98,7 +102,7 @@ enum CollectionShareVideoRenderer {
     // MARK: - Video Generation
 
     private static func renderVideo(
-        images: [UIImage],
+        images: [(UIImage, appliesRoundedClip: Bool)],
         labels: VideoLabels,
         onStage: (@Sendable (VideoGenerationStage) -> Void)?
     ) throws -> URL {
@@ -210,7 +214,7 @@ enum CollectionShareVideoRenderer {
 
     // MARK: - Layout
 
-    private static func buildMarqueeLayout(from images: [UIImage]) -> MarqueeLayout {
+    private static func buildMarqueeLayout(from images: [(UIImage, appliesRoundedClip: Bool)]) -> MarqueeLayout {
         let (row1Single, row2Single, row1MaxHeight, row2MaxHeight, topY) = buildSingleRows(from: images)
         let loopPeriod = alignedLoopPeriod(row1: row1Single, row2: row2Single)
 
@@ -232,21 +236,22 @@ enum CollectionShareVideoRenderer {
     }
 
     private static func buildSingleRows(
-        from images: [UIImage]
+        from images: [(UIImage, appliesRoundedClip: Bool)]
     ) -> (row1: [PhotoItem], row2: [PhotoItem], row1MaxHeight: CGFloat, row2MaxHeight: CGFloat, topY: CGFloat) {
         var row1Items: [PhotoItem] = []
         var row2Items: [PhotoItem] = []
 
-        for (index, image) in images.enumerated() {
+        for (index, source) in images.enumerated() {
             let rowIndex = index % 2
             let scale = Config.heightScales[(index / 2) % Config.heightScales.count]
             let height = Config.baseRowHeights[rowIndex] * scale
-            let aspect = max(image.size.width, 1) / max(image.size.height, 1)
+            let aspect = max(source.0.size.width, 1) / max(source.0.size.height, 1)
             let width = height * aspect
             let size = CGSize(width: width, height: height)
             let item = PhotoItem(
-                image: preparedImage(from: image, targetSize: size),
-                size: size
+                image: preparedImage(from: source.0, targetSize: size),
+                size: size,
+                appliesRoundedClip: source.appliesRoundedClip
             )
 
             if rowIndex == 0 {
@@ -350,7 +355,9 @@ enum CollectionShareVideoRenderer {
         format.scale = 1
         format.opaque = true
 
-        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            Config.backgroundColor.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
             image.draw(in: CGRect(origin: .zero, size: size))
         }
     }
@@ -497,7 +504,7 @@ enum CollectionShareVideoRenderer {
                 )
 
                 if rect.maxX > 0, rect.minX < Config.videoSize.width {
-                    drawRoundedImage(item.image, in: rect, context: context)
+                    drawImage(item.image, in: rect, appliesRoundedClip: item.appliesRoundedClip, context: context)
                 }
 
                 x += item.size.width + Config.photoGap
@@ -505,10 +512,19 @@ enum CollectionShareVideoRenderer {
         }
     }
 
-    private static func drawRoundedImage(_ image: UIImage, in rect: CGRect, context: CGContext) {
+    private static func drawImage(
+        _ image: UIImage,
+        in rect: CGRect,
+        appliesRoundedClip: Bool,
+        context: CGContext
+    ) {
         context.saveGState()
-        let path = UIBezierPath(roundedRect: rect, cornerRadius: Config.cornerRadius)
-        path.addClip()
+        if appliesRoundedClip {
+            let path = UIBezierPath(roundedRect: rect, cornerRadius: Config.cornerRadius)
+            path.addClip()
+        }
+        Config.backgroundColor.setFill()
+        UIRectFill(rect)
         image.draw(in: rect)
         context.restoreGState()
     }

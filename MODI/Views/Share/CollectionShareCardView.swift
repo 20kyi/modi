@@ -96,23 +96,25 @@ struct CollectionShareCardView: View {
 
     @ViewBuilder
     private func photoCell(at index: Int) -> some View {
-        Group {
-            if index < displayRecords.count {
-                MODIRecordImage(record: displayRecords[index])
-                    .aspectRatio(1, contentMode: .fill)
-            } else {
-                RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                    .fill(collection.themeColor.opacity(0.45))
-                    .overlay {
-                        Image(systemName: "photo")
-                            .font(.system(size: 14, weight: .light))
-                            .foregroundStyle(AppColor.Text.tertiary)
-                    }
-            }
+        if index < displayRecords.count {
+            let record = displayRecords[index]
+            MODIRecordImage(record: record)
+                .aspectRatio(1, contentMode: .fill)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .modiRecordClipShape(for: record)
+        } else {
+            RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                .fill(collection.themeColor.opacity(0.45))
+                .overlay {
+                    Image(systemName: "photo")
+                        .font(.system(size: 14, weight: .light))
+                        .foregroundStyle(AppColor.Text.tertiary)
+                }
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1, contentMode: .fit)
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
         }
-        .frame(maxWidth: .infinity)
-        .aspectRatio(1, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous))
     }
 
     private var progressSection: some View {

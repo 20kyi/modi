@@ -120,7 +120,7 @@ struct MonthlyMODIView: View {
                     NavigationLink(value: RecordNavigationValue(id: record.id)) {
                         MODIRecordImage(record: record, contentMode: .fill)
                             .aspectRatio(1, contentMode: .fill)
-                            .appPhotoStyle()
+                            .modiRecordClipShape(for: record)
                     }
                     .buttonStyle(.plain)
                 }

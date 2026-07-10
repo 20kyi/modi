@@ -23,6 +23,24 @@ struct MODIRecordImage: View {
     }
 }
 
+extension View {
+    /// 기록 이미지 표시 시 프레임 베이크 여부에 맞는 모서리 클립을 적용합니다.
+    func modiRecordClipShape(for record: MODIRecord) -> some View {
+        clipShape(RecordDisplayClipShape(record: record))
+    }
+}
+
+private struct RecordDisplayClipShape: Shape {
+    let record: MODIRecord
+
+    func path(in rect: CGRect) -> Path {
+        RoundedRectangle(
+            cornerRadius: record.displayCornerRadius(forDisplaySize: rect.size),
+            style: .continuous
+        ).path(in: rect)
+    }
+}
+
 #Preview {
     let (_, repository) = RecordPreviewData.makeRepository(withSampleData: true)
     return MODIRecordImage(record: repository.fetchAllRecords()[0])

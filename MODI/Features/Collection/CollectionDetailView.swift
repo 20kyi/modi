@@ -345,7 +345,7 @@ private struct MODIRecordTile: View {
             .overlay {
                 MODIRecordImage(record: record, contentMode: .fill)
             }
-            .clipShape(RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous))
+            .modiRecordClipShape(for: record)
     }
 }
 
