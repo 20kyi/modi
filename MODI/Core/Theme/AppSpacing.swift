@@ -41,6 +41,9 @@ enum AppSpacing {
 
     /// Minimum touch target per HIG (44pt).
     static let minTouchTarget: CGFloat = 44
+
+    /// Comfortable height for settings list rows.
+    static let settingsRowHeight: CGFloat = 52
 }
 
 // MARK: - EdgeInsets Presets

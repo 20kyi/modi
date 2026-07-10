@@ -201,8 +201,8 @@ struct SettingsView: View {
             .disabled(!canUpdateNickname)
         }
         .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
-        .frame(minHeight: AppSpacing.minTouchTarget)
+        .padding(.vertical, AppSpacing.lg)
+        .frame(minHeight: AppSpacing.settingsRowHeight)
         .background(AppColor.Surface.card)
     }
 
@@ -397,13 +397,35 @@ struct SettingsView: View {
             }
             Spacer(minLength: 0)
         }
-        .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
-        .frame(minHeight: AppSpacing.minTouchTarget)
+        .settingsRowStyle()
         .background(AppColor.Surface.card)
     }
 
     private func settingsToggleRow(icon: String, title: String, isOn: Binding<Bool>) -> some View {
+        Button {
+            isOn.wrappedValue.toggle()
+        } label: {
+            HStack(spacing: AppSpacing.md) {
+                rowIcon(icon)
+
+                Text(title)
+                    .font(AppFont.body)
+                    .foregroundStyle(AppColor.Text.primary)
+
+                Spacer(minLength: 0)
+
+                Toggle("", isOn: isOn)
+                    .labelsHidden()
+                    .tint(AppColor.Accent.primary)
+                    .allowsHitTesting(false)
+            }
+            .settingsRowStyle()
+            .background(AppColor.Surface.card)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func settingsDatePickerRow(icon: String, title: String, selection: Binding<Date>) -> some View {
         HStack(spacing: AppSpacing.md) {
             rowIcon(icon)
 
@@ -411,33 +433,20 @@ struct SettingsView: View {
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.Text.primary)
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Toggle("", isOn: isOn)
+            Text(formattedTime(selection.wrappedValue))
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.Text.secondary)
+        }
+        .settingsRowStyle()
+        .background(AppColor.Surface.card)
+        .overlay {
+            DatePicker("", selection: selection, displayedComponents: .hourAndMinute)
                 .labelsHidden()
-                .tint(AppColor.Accent.primary)
+                .opacity(0.02)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
-        .frame(minHeight: AppSpacing.minTouchTarget)
-        .background(AppColor.Surface.card)
-    }
-
-    private func settingsDatePickerRow(icon: String, title: String, selection: Binding<Date>) -> some View {
-        DatePicker(selection: selection, displayedComponents: .hourAndMinute) {
-            HStack(spacing: AppSpacing.md) {
-                rowIcon(icon)
-
-                Text(title)
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.Text.primary)
-            }
-        }
-        .tint(AppColor.Accent.primary)
-        .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
-        .frame(minHeight: AppSpacing.minTouchTarget)
-        .background(AppColor.Surface.card)
     }
 
     private func settingsPickerRow(
@@ -452,20 +461,29 @@ struct SettingsView: View {
                 .font(AppFont.body)
                 .foregroundStyle(AppColor.Text.primary)
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Picker("다크모드", selection: selection) {
+            Text(selection.wrappedValue.title)
+                .font(AppFont.body)
+                .foregroundStyle(AppColor.Text.secondary)
+
+            Image(systemName: "chevron.up.chevron.down")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppColor.Text.tertiary)
+        }
+        .settingsRowStyle()
+        .background(AppColor.Surface.card)
+        .overlay {
+            Picker("", selection: selection) {
                 ForEach(AppAppearanceMode.allCases) { mode in
                     Text(mode.title).tag(mode)
                 }
             }
             .pickerStyle(.menu)
-            .tint(AppColor.Accent.primary)
+            .labelsHidden()
+            .opacity(0.02)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .padding(.horizontal, AppSpacing.lg)
-        .padding(.vertical, AppSpacing.md)
-        .frame(minHeight: AppSpacing.minTouchTarget)
-        .background(AppColor.Surface.card)
     }
 
     private func settingsLinkRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
@@ -477,15 +495,13 @@ struct SettingsView: View {
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.Text.primary)
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(AppColor.Text.tertiary)
             }
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.vertical, AppSpacing.md)
-            .frame(minHeight: AppSpacing.minTouchTarget)
+            .settingsRowStyle()
             .background(AppColor.Surface.card)
         }
         .buttonStyle(.plain)
@@ -502,7 +518,7 @@ struct SettingsView: View {
                     .font(AppFont.body)
                     .foregroundStyle(AppColor.Text.primary)
 
-                Spacer()
+                Spacer(minLength: 0)
 
                 if isSigningIn {
                     ProgressView()
@@ -513,9 +529,7 @@ struct SettingsView: View {
                         .foregroundStyle(AppColor.Text.tertiary)
                 }
             }
-            .padding(.horizontal, AppSpacing.lg)
-            .padding(.vertical, AppSpacing.md)
-            .frame(minHeight: AppSpacing.minTouchTarget)
+            .settingsRowStyle()
             .background(AppColor.Surface.card)
         }
         .buttonStyle(.plain)
@@ -543,6 +557,13 @@ struct SettingsView: View {
     private func openSupportURL(_ rawValue: String) {
         guard let url = URL(string: rawValue) else { return }
         openURL(url)
+    }
+
+    private func formattedTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 
     private func signInWithApple() {
