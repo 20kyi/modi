@@ -2,8 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import {
   DeleteObjectCommand,
+  DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
@@ -120,6 +122,34 @@ export class UploadService {
     await Promise.all(keys.map((key) => this.deleteObject(key)));
   }
 
+  async deleteAllUserObjects(userId: string): Promise<void> {
+    const bucket = this.configService.getOrThrow<string>('aws.s3Bucket');
+    const prefix = this.buildUserObjectPrefix(userId);
+    let continuationToken: string | undefined;
+
+    do {
+      const listResponse = await this.s3Client.send(
+        new ListObjectsV2Command({
+          Bucket: bucket,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+        }),
+      );
+
+      const keys = (listResponse.Contents ?? [])
+        .map((object) => object.Key)
+        .filter((key): key is string => Boolean(key));
+
+      if (keys.length > 0) {
+        await this.deleteObjectsInBatch(keys);
+      }
+
+      continuationToken = listResponse.IsTruncated
+        ? listResponse.NextContinuationToken
+        : undefined;
+    } while (continuationToken);
+  }
+
   async verifyStoredImageObjectExists(stored: string): Promise<boolean> {
     const key = this.resolveStoredImageKey(stored);
     if (!key) {
@@ -173,6 +203,35 @@ export class UploadService {
         `S3 객체 삭제 실패 (key: ${key})`,
         error instanceof Error ? error.stack : String(error),
       );
+    }
+  }
+
+  private buildUserObjectPrefix(userId: string): string {
+    const prefix = this.configService.getOrThrow<string>('aws.s3KeyPrefix');
+    return `${prefix}/users/${userId}/`;
+  }
+
+  private async deleteObjectsInBatch(keys: string[]): Promise<void> {
+    const bucket = this.configService.getOrThrow<string>('aws.s3Bucket');
+
+    for (let i = 0; i < keys.length; i += 1000) {
+      const chunk = keys.slice(i, i + 1000);
+      const response = await this.s3Client.send(
+        new DeleteObjectsCommand({
+          Bucket: bucket,
+          Delete: {
+            Objects: chunk.map((Key) => ({ Key })),
+            Quiet: true,
+          },
+        }),
+      );
+
+      if (response.Errors?.length) {
+        const details = response.Errors.map(
+          (error) => `${error.Key}: ${error.Message}`,
+        ).join(', ');
+        throw new Error(`S3 batch delete failed: ${details}`);
+      }
     }
   }
 
