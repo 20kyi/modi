@@ -13,6 +13,7 @@ struct PhotoEditorView: View {
     var recordDate: Date?
     var onSaved: () -> Void
     var onSaveFailed: ((Error) -> Void)?
+    var onUploadFailed: ((Error) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(AuthManager.self) private var authManager
@@ -672,59 +673,51 @@ struct PhotoEditorView: View {
                 )
             }
 
-            if authManager.session.isLoggedIn,
-               let accessToken = authManager.accessToken {
-                let recordDateString = Self.localRecordDateString(
-                    from: recordDate ?? existingRecord?.discoveryDate ?? .now
-                )
-                Task {
-                    do {
-                        guard let originalData = originalPhoto.jpegData(compressionQuality: 0.85),
-                              let editedData = renderedImage.jpegData(compressionQuality: 0.85)
-                        else {
-                            return
-                        }
-
-                        let presignedURLs = try await UploadAPIService.shared.createRecordPresignedURLs(
-                            recordDate: recordDateString,
-                            accessToken: accessToken
-                        )
-
-                        try await UploadAPIService.shared.uploadImage(
-                            data: originalData,
-                            to: presignedURLs.original.uploadUrl
-                        )
-                        try await UploadAPIService.shared.uploadImage(
-                            data: editedData,
-                            to: presignedURLs.edited.uploadUrl
-                        )
-
-                        let request = UpsertRecordRequest(
-                            conceptId: concept.id.uuidString,
-                            conceptTitle: concept.title,
-                            conceptEmoji: concept.emoji,
-                            originalImageKey: presignedURLs.original.key,
-                            editedImageKey: presignedURLs.edited.key,
-                            recordDate: recordDateString,
-                            isEdited: wasEdited
-                        )
-                        let serverRecord = try await RecordsAPIService.shared.upsertMyRecord(
-                            request,
-                            accessToken: accessToken
-                        )
-                        await MainActor.run {
-                            repository.updateServerID(for: targetRecord, serverID: serverRecord.id)
-                        }
-                    } catch {
-                        debugPrint("record upload failed:", error.localizedDescription)
-                    }
-                }
-            }
-
             onSaved()
             dismiss()
+            beginServerUploadIfNeeded(
+                record: targetRecord,
+                concept: concept,
+                renderedImage: renderedImage,
+                originalImage: originalPhoto,
+                wasEdited: wasEdited
+            )
         } catch {
             onSaveFailed?(error)
+        }
+    }
+
+    private func beginServerUploadIfNeeded(
+        record: MODIRecord,
+        concept: Concept,
+        renderedImage: UIImage,
+        originalImage: UIImage,
+        wasEdited: Bool
+    ) {
+        guard authManager.session.isLoggedIn else {
+            repository.updateSyncStatus(for: record, status: .pending)
+            return
+        }
+
+        guard let accessToken = authManager.accessToken else {
+            repository.updateSyncStatus(for: record, status: .failed)
+            onUploadFailed?(RecordUploadError.missingAccessToken)
+            return
+        }
+
+        Task {
+            do {
+                try await repository.uploadRecordToServer(
+                    record: record,
+                    concept: concept,
+                    renderedImage: renderedImage,
+                    originalImage: originalImage,
+                    wasEdited: wasEdited,
+                    accessToken: accessToken
+                )
+            } catch {
+                onUploadFailed?(error)
+            }
         }
     }
 
@@ -741,26 +734,6 @@ struct PhotoEditorView: View {
         )
 
         return CGRect(origin: origin, size: CGSize(width: side, height: side))
-    }
-
-    private static func localRecordDateString(from date: Date) -> String {
-        let calendar = Calendar.autoupdatingCurrent
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-
-        guard let year = components.year,
-              let month = components.month,
-              let day = components.day
-        else {
-            // DateComponents 추출에 실패하면 현재 로컬 타임존 포맷터로 안전하게 폴백합니다.
-            let formatter = DateFormatter()
-            formatter.calendar = Calendar(identifier: .gregorian)
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            formatter.timeZone = .autoupdatingCurrent
-            formatter.dateFormat = "yyyy-MM-dd"
-            return formatter.string(from: date)
-        }
-
-        return String(format: "%04d-%02d-%02d", year, month, day)
     }
 }
 // MARK: - Editor Element Overlay

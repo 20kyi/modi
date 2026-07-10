@@ -18,6 +18,7 @@ struct ProfileView: View {
     @State private var selectedCalendarDay: SelectedCalendarDay?
     @State private var pastDiscoveryPresentation: PastDiscoveryPresentation?
     @State private var isShowingLogin = false
+    @State private var uploadErrorMessage: String?
 
     private struct PastDiscoveryPresentation: Identifiable {
         let id = UUID()
@@ -82,15 +83,29 @@ struct ProfileView: View {
                 .environment(collectionRepository)
             }
             .sheet(item: $pastDiscoveryPresentation) { presentation in
-                PastDiscoveryFlowView(selectedDate: presentation.date) {
-                    refreshData()
-                    pastDiscoveryPresentation = nil
-                }
+                PastDiscoveryFlowView(
+                    selectedDate: presentation.date,
+                    onCompleted: {
+                        refreshData()
+                        pastDiscoveryPresentation = nil
+                    },
+                    onUploadFailed: { error in
+                        uploadErrorMessage = error.localizedDescription
+                    }
+                )
+                .environment(authManager)
                 .environment(missionManager)
                 .environment(recordRepository)
                 .environment(collectionRepository)
                 .environment(streakManager)
                 .environment(titleCelebrationManager)
+            }
+            .alert("서버에 기록을 저장하지 못했어요", isPresented: uploadErrorIsPresented) {
+                Button("확인", role: .cancel) {
+                    uploadErrorMessage = nil
+                }
+            } message: {
+                Text(uploadErrorMessage ?? "기기에는 저장됐어요. 나중에 다시 시도해 주세요.")
             }
             .fullScreenCover(isPresented: $isShowingLogin) {
                 LoginView {
@@ -200,6 +215,13 @@ struct ProfileView: View {
     }
 
     // MARK: - Helpers
+
+    private var uploadErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { uploadErrorMessage != nil },
+            set: { if !$0 { uploadErrorMessage = nil } }
+        )
+    }
 
     private func refreshData() {
         streakManager.refresh(

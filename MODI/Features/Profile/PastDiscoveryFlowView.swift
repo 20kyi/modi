@@ -21,8 +21,10 @@ struct PastDiscoveryFlowView: View {
 
     let selectedDate: Date
     var onCompleted: () -> Void
+    var onUploadFailed: ((Error) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthManager.self) private var authManager
     @Environment(MissionManager.self) private var missionManager
     @Environment(RecordRepository.self) private var recordRepository
     @Environment(CollectionRepository.self) private var collectionRepository
@@ -79,8 +81,12 @@ struct PastDiscoveryFlowView: View {
                     },
                     onSaveFailed: { _ in
                         saveErrorMessage = "사진을 저장하지 못했어요. 다시 시도해 주세요."
+                    },
+                    onUploadFailed: { error in
+                        onUploadFailed?(error)
                     }
                 )
+                .environment(authManager)
                 .environment(recordRepository)
                 .environment(collectionRepository)
                 .environment(streakManager)
@@ -140,6 +146,7 @@ struct PastDiscoveryFlowView: View {
     return PastDiscoveryFlowView(selectedDate: Calendar.current.date(byAdding: .day, value: -3, to: .now)!) {}
         .modelContainer(container)
         .environment(MissionManager.mock)
+        .environment(AuthManager.mock)
         .environment(repository)
         .environment(collectionRepository)
         .environment(StreakManager.mock)

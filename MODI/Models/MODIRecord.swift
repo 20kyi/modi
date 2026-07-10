@@ -1,6 +1,16 @@
 import Foundation
 import SwiftData
 
+// MARK: - RecordSyncStatus
+
+/// 로컬 기록의 서버 동기화 상태.
+enum RecordSyncStatus: String, Codable {
+    case pending
+    case uploading
+    case uploaded
+    case failed
+}
+
 // MARK: - MODIRecord
 
 /// 꾸민 사진과 Concept 정보를 함께 저장하는 기록.
@@ -10,6 +20,8 @@ final class MODIRecord {
     var id: UUID
     /// 서버 records.id (UUID 문자열). 비로그인 로컬 데이터는 nil일 수 있음.
     var serverId: String?
+    /// 서버 업로드 파이프라인 상태. `RecordSyncStatus.rawValue`로 저장합니다.
+    var syncStatusRaw: String?
     @Attribute(.externalStorage)
     var imageData: Data
     @Attribute(.externalStorage)
@@ -52,6 +64,11 @@ final class MODIRecord {
 
 extension MODIRecord {
     var wasEdited: Bool { isEdited ?? false }
+
+    var syncStatus: RecordSyncStatus? {
+        get { syncStatusRaw.flatMap(RecordSyncStatus.init(rawValue:)) }
+        set { syncStatusRaw = newValue?.rawValue }
+    }
 
     /// 캘린더·스트릭 등에 사용하는 실제 발견 날짜.
     var discoveryDate: Date {

@@ -20,6 +20,17 @@ enum RecordRepositoryError: LocalizedError {
     }
 }
 
+enum RecordUploadError: LocalizedError {
+    case missingAccessToken
+
+    var errorDescription: String? {
+        switch self {
+        case .missingAccessToken:
+            "로그인 정보가 만료됐어요. 다시 로그인한 뒤 시도해 주세요."
+        }
+    }
+}
+
 // MARK: - RecordRepository
 
 @MainActor
@@ -214,6 +225,7 @@ final class RecordRepository {
                 isEdited: serverRecord.isEdited
             )
             record.serverId = serverRecord.id
+            record.syncStatus = .uploaded
             record.originalImageData = await Data.fromImageReference(serverRecord.originalImageUrl)
             record.collection = collection
             modelContext.insert(record)
@@ -227,6 +239,87 @@ final class RecordRepository {
         record.serverId = serverID
         try? modelContext.save()
         reload()
+    }
+
+    func updateSyncStatus(for record: MODIRecord, status: RecordSyncStatus) {
+        record.syncStatus = status
+        try? modelContext.save()
+        reload()
+    }
+
+    func uploadRecordToServer(
+        record: MODIRecord,
+        concept: Concept,
+        renderedImage: UIImage,
+        originalImage: UIImage,
+        wasEdited: Bool,
+        accessToken: String
+    ) async throws {
+        updateSyncStatus(for: record, status: .uploading)
+
+        guard let originalData = originalImage.jpegData(compressionQuality: 0.85),
+              let editedData = renderedImage.jpegData(compressionQuality: 0.85)
+        else {
+            updateSyncStatus(for: record, status: .failed)
+            throw RecordRepositoryError.imageEncodingFailed
+        }
+
+        let recordDateString = Self.localRecordDateString(from: record.discoveryDate)
+
+        do {
+            let presignedURLs = try await UploadAPIService.shared.createRecordPresignedURLs(
+                recordDate: recordDateString,
+                accessToken: accessToken
+            )
+
+            try await UploadAPIService.shared.uploadImage(
+                data: originalData,
+                to: presignedURLs.original.uploadUrl
+            )
+            try await UploadAPIService.shared.uploadImage(
+                data: editedData,
+                to: presignedURLs.edited.uploadUrl
+            )
+
+            let request = UpsertRecordRequest(
+                conceptId: concept.id.uuidString,
+                conceptTitle: concept.title,
+                conceptEmoji: concept.emoji,
+                originalImageKey: presignedURLs.original.key,
+                editedImageKey: presignedURLs.edited.key,
+                recordDate: recordDateString,
+                isEdited: wasEdited
+            )
+            let serverRecord = try await RecordsAPIService.shared.upsertMyRecord(
+                request,
+                accessToken: accessToken
+            )
+
+            record.serverId = serverRecord.id
+            updateSyncStatus(for: record, status: .uploaded)
+        } catch {
+            updateSyncStatus(for: record, status: .failed)
+            throw error
+        }
+    }
+
+    static func localRecordDateString(from date: Date) -> String {
+        let calendar = Calendar.autoupdatingCurrent
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+
+        guard let year = components.year,
+              let month = components.month,
+              let day = components.day
+        else {
+            let formatter = DateFormatter()
+            formatter.calendar = Calendar(identifier: .gregorian)
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.timeZone = .autoupdatingCurrent
+            formatter.dateFormat = "yyyy-MM-dd"
+            return formatter.string(from: date)
+        }
+
+        return String(format: "%04d-%02d-%02d", year, month, day)
     }
 }
 
