@@ -17,7 +17,8 @@ struct ShareSheet: UIViewControllerRepresentable {
 
 // MARK: - Share Payload
 
-struct ShareImagePayload: Identifiable {
+struct CollectionSharePayload: Identifiable {
     let id = UUID()
-    let image: UIImage
+    let collection: MODICollection
+    let records: [MODIRecord]
 }

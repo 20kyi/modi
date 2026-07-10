@@ -22,7 +22,8 @@ struct CollectionDetailView: View {
 
     @State private var recordPendingDeletion: MODIRecord?
     @State private var editorPresentation: CollectionEditorPresentation?
-    @State private var sharePayload: ShareImagePayload?
+    @State private var sharePayload: CollectionSharePayload?
+    @State private var shareErrorMessage: String?
     @State private var deleteErrorMessage: String?
 
     init(collection: MODICollection) {
@@ -122,8 +123,18 @@ struct CollectionDetailView: View {
             Text(deleteErrorMessage ?? "사진을 삭제하지 못했어요.")
         }
         .sheet(item: $sharePayload) { payload in
-            CollectionShareOptionsSheet(image: payload.image)
-                .presentationDetents([.medium, .large])
+            CollectionShareOptionsSheet(
+                collection: payload.collection,
+                records: payload.records
+            )
+            .presentationDetents([.medium, .large])
+        }
+        .alert("공유할 수 없어요", isPresented: shareErrorAlertIsPresented) {
+            Button("확인", role: .cancel) {
+                shareErrorMessage = nil
+            }
+        } message: {
+            Text(shareErrorMessage ?? "공유를 준비하지 못했어요.")
         }
     }
 
@@ -138,6 +149,13 @@ struct CollectionDetailView: View {
         Binding(
             get: { deleteErrorMessage != nil },
             set: { if !$0 { deleteErrorMessage = nil } }
+        )
+    }
+
+    private var shareErrorAlertIsPresented: Binding<Bool> {
+        Binding(
+            get: { shareErrorMessage != nil },
+            set: { if !$0 { shareErrorMessage = nil } }
         )
     }
 
@@ -259,12 +277,15 @@ struct CollectionDetailView: View {
     }
 
     private func presentShareSheet() {
-        guard let image = CollectionShareCardView.renderedImage(
-            for: collection,
-            records: records
-        ) else { return }
+        guard !records.isEmpty else {
+            shareErrorMessage = "공유할 사진이 없어요."
+            return
+        }
 
-        sharePayload = ShareImagePayload(image: image)
+        sharePayload = CollectionSharePayload(
+            collection: collection,
+            records: records
+        )
     }
 
     private func deleteRecord(_ record: MODIRecord) async {

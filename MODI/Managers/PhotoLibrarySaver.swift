@@ -8,6 +8,7 @@ enum PhotoLibrarySaver {
     enum SaveError: LocalizedError {
         case accessDenied
         case saveFailed
+        case videoSaveFailed
 
         var errorDescription: String? {
             switch self {
@@ -15,6 +16,8 @@ enum PhotoLibrarySaver {
                 "사진 앱 접근 권한이 필요해요. 설정에서 허용해 주세요."
             case .saveFailed:
                 "이미지 저장에 실패했어요. 다시 시도해 주세요."
+            case .videoSaveFailed:
+                "영상 저장에 실패했어요. 다시 시도해 주세요."
             }
         }
     }
@@ -36,6 +39,28 @@ enum PhotoLibrarySaver {
                     continuation.resume()
                 } else {
                     continuation.resume(throwing: SaveError.saveFailed)
+                }
+            }
+        }
+    }
+
+    @MainActor
+    static func saveVideo(at url: URL) async throws {
+        let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+        guard status == .authorized else {
+            throw SaveError.accessDenied
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            PHPhotoLibrary.shared().performChanges {
+                PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+            } completionHandler: { success, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                } else if success {
+                    continuation.resume()
+                } else {
+                    continuation.resume(throwing: SaveError.videoSaveFailed)
                 }
             }
         }
