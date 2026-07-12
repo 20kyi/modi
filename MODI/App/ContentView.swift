@@ -34,6 +34,10 @@ struct ContentView: View {
         .appToastOverlay()
         .onAppear {
             missionManager.syncSessionScope()
+            themeManager.resetToFreeThemeIfNeeded(isPremium: premiumManager.isPremium)
+        }
+        .onChange(of: premiumManager.isPremium) { _, isPremium in
+            themeManager.resetToFreeThemeIfNeeded(isPremium: isPremium)
         }
         .onChange(of: authManager.session) {
             missionManager.syncSessionScope()

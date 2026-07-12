@@ -5,6 +5,8 @@ import SwiftUI
 struct ThemeSelectionView: View {
 
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(PremiumManager.self) private var premiumManager
+    @State private var isShowingPremium = false
 
     var body: some View {
         ScrollView {
@@ -34,14 +36,22 @@ struct ThemeSelectionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .navigationDestination(isPresented: $isShowingPremium) {
+            PremiumView()
+        }
     }
 
     private func themeRow(_ theme: AppTheme) -> some View {
         let definition = theme.definition
         let isSelected = themeManager.selectedTheme == theme
+        let isLocked = definition.isPremium && !premiumManager.isPremium
 
         return Button {
-            themeManager.setTheme(theme)
+            if isLocked {
+                isShowingPremium = true
+            } else {
+                themeManager.setTheme(theme, isPremium: premiumManager.isPremium)
+            }
         } label: {
             HStack(spacing: AppSpacing.md) {
                 themePreview(definition.colors)
@@ -64,6 +74,10 @@ struct ThemeSelectionView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(AppColor.Accent.primary)
+                } else if isLocked {
+                    Image(systemName: "lock.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(AppColor.Text.tertiary)
                 } else if definition.isPremium {
                     Image(systemName: "sparkles")
                         .font(.system(size: 14, weight: .semibold))
@@ -72,10 +86,12 @@ struct ThemeSelectionView: View {
             }
             .settingsRowStyle()
             .background(AppColor.Surface.card)
+            .opacity(isLocked ? 0.72 : 1)
         }
         .buttonStyle(.plain)
         .accessibilityLabel(definition.displayName)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityHint(isLocked ? "MODI+ 프리미엄 전용 테마" : "")
     }
 
     private func themePreview(_ colors: ThemeColors) -> some View {
@@ -113,6 +129,7 @@ struct ThemeSelectionView: View {
         ThemeSelectionView()
     }
     .environment(ThemeManager.shared)
+    .environment(PremiumManager.shared)
     .onAppear {
         ThemeManager.shared.setTheme(.light)
     }
@@ -124,8 +141,10 @@ struct ThemeSelectionView: View {
         ThemeSelectionView()
     }
     .environment(ThemeManager.shared)
+    .environment(PremiumManager.mock)
     .onAppear {
-        ThemeManager.shared.setTheme(.pastelDiary)
+        PremiumManager.mock.setDeveloperPremiumEnabled(true)
+        ThemeManager.shared.setTheme(.pastelDiary, isPremium: true)
     }
     .preferredColorScheme(.light)
 }
@@ -135,8 +154,22 @@ struct ThemeSelectionView: View {
         ThemeSelectionView()
     }
     .environment(ThemeManager.shared)
+    .environment(PremiumManager.mock)
     .onAppear {
-        ThemeManager.shared.setTheme(.midnightFilm)
+        PremiumManager.mock.setDeveloperPremiumEnabled(true)
+        ThemeManager.shared.setTheme(.midnightFilm, isPremium: true)
     }
     .preferredColorScheme(.dark)
+}
+
+#Preview("Locked Premium Themes") {
+    NavigationStack {
+        ThemeSelectionView()
+    }
+    .environment(ThemeManager.shared)
+    .environment(PremiumManager(storage: UserDefaults(suiteName: "theme-selection-locked-preview")!))
+    .onAppear {
+        ThemeManager.shared.setTheme(.light)
+    }
+    .preferredColorScheme(.light)
 }

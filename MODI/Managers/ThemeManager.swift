@@ -41,10 +41,18 @@ final class ThemeManager {
         }
     }
 
-    func setTheme(_ theme: AppTheme) {
+    func setTheme(_ theme: AppTheme, isPremium: Bool = true) {
         guard selectedTheme != theme else { return }
+        guard !theme.definition.isPremium || isPremium else { return }
         selectedTheme = theme
         storage.set(theme.rawValue, forKey: StorageKeys.selectedTheme)
+    }
+
+    /// 프리미엄이 해제된 경우 저장된 프리미엄 테마를 무료 테마로 되돌립니다.
+    func resetToFreeThemeIfNeeded(isPremium: Bool) {
+        guard !isPremium, selectedTheme.definition.isPremium else { return }
+        let fallback: AppTheme = selectedTheme.definition.colors.isDark ? .dark : .light
+        setTheme(fallback, isPremium: false)
     }
 
     private static func migrateLegacyAppearanceMode(storage: UserDefaults) -> AppTheme {

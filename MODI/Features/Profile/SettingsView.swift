@@ -600,6 +600,7 @@ struct SettingsView: View {
     .environment(MissionManager.mock)
     .environment(AuthManager.mock)
     .environment(ThemeManager.shared)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.light)
 }
 
@@ -611,6 +612,7 @@ struct SettingsView: View {
     .environment(MissionManager.mock)
     .environment(AuthManager.mock)
     .environment(ThemeManager.shared)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.dark)
 }
 
@@ -622,6 +624,7 @@ struct SettingsView: View {
     .environment(MissionManager.mock)
     .environment(AuthManager(session: .guest))
     .environment(ThemeManager.shared)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.light)
 }
 
@@ -633,5 +636,6 @@ struct SettingsView: View {
     .environment(MissionManager.mock)
     .environment(AuthManager(session: .guest))
     .environment(ThemeManager.shared)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.dark)
 }
