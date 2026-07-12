@@ -47,11 +47,11 @@ enum AppShadow {
     }
 }
 
-// MARK: - AppTheme
+// MARK: - DesignTokens
 
 /// Central design system entry point.
 /// Aggregates color, typography, spacing, radius, and shadow tokens.
-enum AppTheme {
+enum DesignTokens {
 
     static let color = AppColor.self
     static let font = AppFont.self

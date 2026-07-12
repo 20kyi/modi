@@ -3,7 +3,7 @@ import SwiftUI
 struct ContentView: View {
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
-    @AppStorage("settings.app.appearanceMode") private var appearanceModeRaw = AppAppearanceMode.system.rawValue
+    @State private var themeManager = ThemeManager.shared
     @State private var notificationManager = NotificationManager()
     @State private var missionManager = MissionManager()
     @State private var authManager = AuthManager(loadFromStorage: true)
@@ -28,6 +28,7 @@ struct ContentView: View {
         .environment(missionManager)
         .environment(authManager)
         .environment(deepLinkCoordinator)
+        .environment(themeManager)
         .appToastOverlay()
         .onAppear {
             missionManager.syncSessionScope()
@@ -51,17 +52,14 @@ struct ContentView: View {
             }
             .environment(authManager)
         }
-        .preferredColorScheme(appAppearanceMode.colorScheme)
+        .preferredColorScheme(themeManager.preferredColorScheme)
+        .id(themeManager.selectedTheme.id)
         .task {
             await notificationManager.refreshAuthorizationStatus()
             if notificationManager.isEnabled {
                 await notificationManager.scheduleDailyNotifications(missionManager: missionManager)
             }
         }
-    }
-
-    private var appAppearanceMode: AppAppearanceMode {
-        AppAppearanceMode(rawValue: appearanceModeRaw) ?? .system
     }
 }
 

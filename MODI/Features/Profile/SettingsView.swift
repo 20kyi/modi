@@ -2,50 +2,22 @@ import StoreKit
 import SwiftData
 import SwiftUI
 
-enum AppAppearanceMode: String, CaseIterable, Identifiable {
-    case system
-    case light
-    case dark
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .system: "System"
-        case .light: "Light"
-        case .dark: "Dark"
-        }
-    }
-
-    var colorScheme: ColorScheme? {
-        switch self {
-        case .system: nil
-        case .light: .light
-        case .dark: .dark
-        }
-    }
-}
-
 @MainActor
 @Observable
 final class SettingsViewModel {
     var isDailyDiscoveryNotificationEnabled: Bool
     var notificationTime: Date
-    var appearanceMode: AppAppearanceMode
     var isHapticFeedbackEnabled: Bool
 
     private let storage: UserDefaults
     private enum StorageKeys {
         static let dailyDiscoveryNotificationEnabled = "settings.notifications.dailyDiscoveryEnabled"
         static let notificationTime = "settings.notifications.time"
-        static let appearanceMode = "settings.app.appearanceMode"
         static let hapticFeedbackEnabled = "settings.app.hapticFeedbackEnabled"
     }
 
     init(storage: UserDefaults = .standard) {
         self.storage = storage
-        let storedMode = storage.string(forKey: StorageKeys.appearanceMode) ?? AppAppearanceMode.system.rawValue
-        appearanceMode = AppAppearanceMode(rawValue: storedMode) ?? .system
 
         if storage.object(forKey: StorageKeys.dailyDiscoveryNotificationEnabled) == nil {
             isDailyDiscoveryNotificationEnabled = true
@@ -76,11 +48,6 @@ final class SettingsViewModel {
         storage.set(date, forKey: StorageKeys.notificationTime)
     }
 
-    func setAppearanceMode(_ mode: AppAppearanceMode) {
-        appearanceMode = mode
-        storage.set(mode.rawValue, forKey: StorageKeys.appearanceMode)
-    }
-
     func setHapticFeedbackEnabled(_ isEnabled: Bool) {
         isHapticFeedbackEnabled = isEnabled
         storage.set(isEnabled, forKey: StorageKeys.hapticFeedbackEnabled)
@@ -97,6 +64,7 @@ final class SettingsViewModel {
 struct SettingsView: View {
     @Environment(AuthManager.self) private var authManager
     @Environment(MissionManager.self) private var missionManager
+    @Environment(ThemeManager.self) private var themeManager
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
@@ -237,14 +205,31 @@ struct SettingsView: View {
     private var appSection: some View {
         settingsSection(title: "앱") {
             VStack(spacing: 0) {
-                settingsPickerRow(
-                    icon: "circle.lefthalf.filled",
-                    title: "다크모드",
-                    selection: Binding(
-                        get: { viewModel.appearanceMode },
-                        set: { viewModel.setAppearanceMode($0) }
-                    )
-                )
+                NavigationLink {
+                    ThemeSelectionView()
+                } label: {
+                    HStack(spacing: AppSpacing.md) {
+                        rowIcon("paintpalette.fill")
+
+                        Text("테마")
+                            .font(AppFont.body)
+                            .foregroundStyle(AppColor.Text.primary)
+
+                        Spacer(minLength: 0)
+
+                        Text(themeManager.currentTheme.displayName)
+                            .font(AppFont.body)
+                            .foregroundStyle(AppColor.Text.secondary)
+                            .lineLimit(1)
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(AppColor.Text.tertiary)
+                    }
+                    .settingsRowStyle()
+                    .background(AppColor.Surface.card)
+                }
+                .buttonStyle(.plain)
                 dividerInset()
                 settingsToggleRow(
                     icon: "iphone.radiowaves.left.and.right",
@@ -452,43 +437,6 @@ struct SettingsView: View {
         }
     }
 
-    private func settingsPickerRow(
-        icon: String,
-        title: String,
-        selection: Binding<AppAppearanceMode>
-    ) -> some View {
-        HStack(spacing: AppSpacing.md) {
-            rowIcon(icon)
-
-            Text(title)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.Text.primary)
-
-            Spacer(minLength: 0)
-
-            Text(selection.wrappedValue.title)
-                .font(AppFont.body)
-                .foregroundStyle(AppColor.Text.secondary)
-
-            Image(systemName: "chevron.up.chevron.down")
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(AppColor.Text.tertiary)
-        }
-        .settingsRowStyle()
-        .background(AppColor.Surface.card)
-        .overlay {
-            Picker("", selection: selection) {
-                ForEach(AppAppearanceMode.allCases) { mode in
-                    Text(mode.title).tag(mode)
-                }
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .opacity(0.02)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-        }
-    }
-
     private func settingsLinkRow(icon: String, title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: AppSpacing.md) {
@@ -651,6 +599,7 @@ struct SettingsView: View {
     .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
     .environment(MissionManager.mock)
     .environment(AuthManager.mock)
+    .environment(ThemeManager.shared)
     .preferredColorScheme(.light)
 }
 
@@ -661,6 +610,7 @@ struct SettingsView: View {
     .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
     .environment(MissionManager.mock)
     .environment(AuthManager.mock)
+    .environment(ThemeManager.shared)
     .preferredColorScheme(.dark)
 }
 
@@ -671,6 +621,7 @@ struct SettingsView: View {
     .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
     .environment(MissionManager.mock)
     .environment(AuthManager(session: .guest))
+    .environment(ThemeManager.shared)
     .preferredColorScheme(.light)
 }
 
@@ -681,5 +632,6 @@ struct SettingsView: View {
     .modelContainer(for: [MODIRecord.self, MODICollection.self], inMemory: true)
     .environment(MissionManager.mock)
     .environment(AuthManager(session: .guest))
+    .environment(ThemeManager.shared)
     .preferredColorScheme(.dark)
 }
