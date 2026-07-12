@@ -28,6 +28,7 @@ struct ContentView: View {
         .environment(missionManager)
         .environment(authManager)
         .environment(deepLinkCoordinator)
+        .appToastOverlay()
         .onAppear {
             missionManager.syncSessionScope()
         }
