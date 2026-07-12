@@ -6,6 +6,7 @@ struct CollectionPreviewView: View {
     var onCreateTapped: (() -> Void)?
 
     private let thumbnailSize: CGFloat = 108
+    private static let marqueeMinimumRecordCount = 4
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -19,21 +20,42 @@ struct CollectionPreviewView: View {
                     actionTitle: onCreateTapped == nil ? nil : "기록하기",
                     action: onCreateTapped
                 )
+            } else if gallery.records.count < Self.marqueeMinimumRecordCount {
+                staticRecordRow
             } else {
-                HorizontalMarqueeView(
-                    items: gallery.records,
-                    itemWidth: thumbnailSize,
-                    itemHeight: thumbnailSize,
-                    spacing: AppSpacing.itemGap,
-                    speed: MarqueeScrollSpeed.homeCollection
-                ) { record in
-                    NavigationLink(value: RecordNavigationValue(id: record.id)) {
-                        photoThumbnail(record)
-                    }
-                    .buttonStyle(.plain)
+                marqueeRecordRow
+            }
+        }
+    }
+
+    private var staticRecordRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: AppSpacing.itemGap) {
+                ForEach(gallery.records, id: \.id) { record in
+                    recordThumbnailLink(for: record)
                 }
             }
         }
+        .frame(height: thumbnailSize)
+    }
+
+    private var marqueeRecordRow: some View {
+        HorizontalMarqueeView(
+            items: gallery.records,
+            itemWidth: thumbnailSize,
+            itemHeight: thumbnailSize,
+            spacing: AppSpacing.itemGap,
+            speed: MarqueeScrollSpeed.homeCollection
+        ) { record in
+            recordThumbnailLink(for: record)
+        }
+    }
+
+    private func recordThumbnailLink(for record: MODIRecord) -> some View {
+        NavigationLink(value: RecordNavigationValue(id: record.id)) {
+            photoThumbnail(record)
+        }
+        .buttonStyle(.plain)
     }
 
     private var header: some View {
