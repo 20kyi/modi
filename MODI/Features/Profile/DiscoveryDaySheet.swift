@@ -44,6 +44,7 @@ struct DiscoveryDaySheet: View {
                 }
             }
         }
+        .appToastOverlay()
         .presentationDetents(records.isEmpty ? [.medium] : [.medium, .large])
         .presentationDragIndicator(.visible)
     }

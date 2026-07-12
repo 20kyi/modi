@@ -100,6 +100,7 @@ struct PastDiscoveryFlowView: View {
                 Text(saveErrorMessage ?? "다시 시도해 주세요.")
             }
         }
+        .appToastOverlay()
         .presentationDetents([.fraction(0.65), .large])
         .presentationDragIndicator(.visible)
     }
