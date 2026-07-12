@@ -200,6 +200,7 @@ struct RecordDetailView: View {
                 recordRepository: repository,
                 collectionRepository: collectionRepository
             )
+            ToastManager.shared.showRecordDeleted()
             dismiss()
         } catch {
             deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

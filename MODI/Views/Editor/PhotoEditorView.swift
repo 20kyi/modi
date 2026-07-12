@@ -677,7 +677,11 @@ struct PhotoEditorView: View {
                 HapticManager.shared.badgeSuccess()
             } else {
                 HapticManager.shared.success()
-                ToastManager.shared.showRecordSaved()
+                if isNewRecord {
+                    ToastManager.shared.showRecordSaved()
+                } else {
+                    ToastManager.shared.showRecordUpdated()
+                }
             }
 
             onSaved()

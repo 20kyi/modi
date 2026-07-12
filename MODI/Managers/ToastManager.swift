@@ -22,6 +22,14 @@ final class ToastManager {
         show(message: "기록이 저장됐어요")
     }
 
+    func showRecordUpdated() {
+        show(message: "기록이 수정됐어요")
+    }
+
+    func showRecordDeleted() {
+        show(message: "기록이 삭제됐어요")
+    }
+
     func show(
         message: String,
         systemImage: String = "checkmark.circle.fill",

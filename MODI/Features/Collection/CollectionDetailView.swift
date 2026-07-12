@@ -341,6 +341,7 @@ struct CollectionDetailView: View {
                 collectionRepository: collectionRepository
             )
             recordPendingDeletion = nil
+            ToastManager.shared.showRecordDeleted()
         } catch {
             deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
