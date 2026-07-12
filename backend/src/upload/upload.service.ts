@@ -21,6 +21,8 @@ export class UploadService {
   private readonly s3Client: S3Client;
 
   constructor(private readonly configService: ConfigService) {
+    // iOS URLSession 등 외부 클라이언트는 presigned PUT 시 체크섬 헤더를 보내지 않으므로
+    // 기본 CRC32 서명을 끕니다. (미설정 시 URL에 x-amz-checksum-crc32가 붙어 업로드가 실패함)
     this.s3Client = new S3Client({
       region: this.configService.getOrThrow<string>('aws.region'),
       credentials: {
@@ -29,6 +31,8 @@ export class UploadService {
           'aws.secretAccessKey',
         ),
       },
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
 

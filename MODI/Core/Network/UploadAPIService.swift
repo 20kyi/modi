@@ -22,7 +22,15 @@ struct UploadAPIService: Sendable {
     private let client: APIClient
     private let session: URLSession
 
-    init(client: APIClient = .shared, session: URLSession = .shared) {
+    private static let s3UploadSession: URLSession = {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest = 120
+        config.timeoutIntervalForResource = 300
+        config.waitsForConnectivity = true
+        return URLSession(configuration: config)
+    }()
+
+    init(client: APIClient = .shared, session: URLSession = UploadAPIService.s3UploadSession) {
         self.client = client
         self.session = session
     }
@@ -52,10 +60,38 @@ struct UploadAPIService: Sendable {
             throw APIError.invalidURL
         }
 
+        var lastError: Error?
+        for attempt in 0 ..< 3 {
+            if attempt > 0 {
+                try await Task.sleep(nanoseconds: UInt64(attempt) * 500_000_000)
+            }
+
+            do {
+                try await performUpload(data: data, to: url, contentType: contentType)
+                return
+            } catch let error as APIError {
+                guard case .network = error, attempt < 2 else {
+                    throw error
+                }
+                lastError = error
+            } catch {
+                throw error
+            }
+        }
+
+        throw lastError ?? APIError.network("이미지 업로드에 실패했어요.")
+    }
+
+    private func performUpload(
+        data: Data,
+        to url: URL,
+        contentType: String
+    ) async throws {
         var request = URLRequest(url: url)
         request.httpMethod = "PUT"
         request.httpBody = data
         request.setValue(contentType, forHTTPHeaderField: "Content-Type")
+        request.setValue("\(data.count)", forHTTPHeaderField: "Content-Length")
 
         let (_, response): (Data, URLResponse)
         do {

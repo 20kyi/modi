@@ -30,6 +30,11 @@ enum APIError: LocalizedError {
             .network("서버에 연결할 수 없어요. 백엔드가 실행 중인지, Mac과 iPhone이 같은 Wi-Fi인지 확인해주세요.")
         case .timedOut:
             .network("서버 응답이 없어요. 백엔드 실행 상태를 확인해주세요.")
+        case .secureConnectionFailed,
+             .serverCertificateUntrusted,
+             .clientCertificateRejected,
+             .clientCertificateRequired:
+            .network("이미지 업로드 연결에 실패했어요. 네트워크를 확인하고 다시 시도해주세요.")
         default:
             .network(urlError.localizedDescription)
         }
