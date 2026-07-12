@@ -6,23 +6,28 @@ struct ProfileHeaderCard: View {
     let tagline: String
     let stats: DiscoveryStats
     let nameSuffix: String
+    let missionPlaceholder: ProfileTopCollection?
 
     init(
         nickname: String,
         tagline: String,
         stats: DiscoveryStats,
-        nameSuffix: String = "님"
+        nameSuffix: String = "님",
+        missionPlaceholder: ProfileTopCollection? = nil
     ) {
         self.nickname = nickname
         self.tagline = tagline
         self.stats = stats
         self.nameSuffix = nameSuffix
+        self.missionPlaceholder = missionPlaceholder
     }
 
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
             if let topCollection = stats.topCollection {
-                topCollectionBadge(topCollection)
+                collectionBadge(topCollection, accessibilityLabel: "가장 많이 기록한 컬렉션")
+            } else if let missionPlaceholder {
+                collectionBadge(missionPlaceholder, accessibilityLabel: "오늘의 미션")
             }
 
             VStack(spacing: AppSpacing.xs) {
@@ -74,19 +79,22 @@ struct ProfileHeaderCard: View {
         .appCardStyle()
     }
 
-    private func topCollectionBadge(_ topCollection: ProfileTopCollection) -> some View {
+    private func collectionBadge(
+        _ collection: ProfileTopCollection,
+        accessibilityLabel: String
+    ) -> some View {
         Circle()
-            .fill(AppColor.emojiBackground(from: topCollection.themeColorHex))
+            .fill(AppColor.emojiBackground(from: collection.themeColorHex))
             .frame(width: 88, height: 88)
             .overlay {
-                Text(topCollection.emoji)
+                Text(collection.emoji)
                     .font(.system(size: 36))
             }
             .overlay {
                 Circle()
                     .strokeBorder(AppColor.Border.subtle, lineWidth: 1)
             }
-            .accessibilityLabel("가장 많이 기록한 컬렉션")
+            .accessibilityLabel(accessibilityLabel)
     }
 }
 
@@ -102,4 +110,16 @@ struct ProfileHeaderCard: View {
         .appScreenPadding()
         .appScreenBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("No Records Placeholder") {
+    ProfileHeaderCard(
+        nickname: "MODI Explorer",
+        tagline: "작은 순간을 발견하는 중",
+        stats: .empty,
+        nameSuffix: "",
+        missionPlaceholder: ProfileTopCollection(emoji: "☁️", themeColorHex: "E4ECF4")
+    )
+    .appScreenPadding()
+    .appScreenBackground()
 }

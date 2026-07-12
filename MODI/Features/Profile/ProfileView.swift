@@ -26,6 +26,32 @@ struct ProfileView: View {
         let date: Date
     }
 
+    private var todaysMission: DailyMission {
+        let todaysRecords = recordRepository.fetchRecords(on: .now)
+            .sorted { $0.createdAt > $1.createdAt }
+
+        if let completedConceptId = todaysRecords.first?.conceptId,
+           let completedConcept = missionManager.concept(for: completedConceptId) {
+            return DailyMission(
+                from: completedConcept,
+                date: .now,
+                isCompleted: true
+            )
+        }
+
+        return missionManager.dailyMission(for: .now, isCompleted: false)
+            ?? .mock
+    }
+
+    private var missionPlaceholder: ProfileTopCollection? {
+        guard viewModel.stats.totalRecords == 0 else { return nil }
+
+        return ProfileTopCollection(
+            emoji: todaysMission.emoji,
+            themeColorHex: todaysMission.themeColorHex
+        )
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -34,7 +60,8 @@ struct ProfileView: View {
                         nickname: authManager.session.displayName,
                         tagline: authManager.session.profileTagline,
                         stats: viewModel.stats,
-                        nameSuffix: authManager.session.nameSuffix
+                        nameSuffix: authManager.session.nameSuffix,
+                        missionPlaceholder: missionPlaceholder
                     )
 
                     if authManager.session.isGuest {
