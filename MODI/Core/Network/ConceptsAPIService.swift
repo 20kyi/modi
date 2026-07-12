@@ -16,6 +16,25 @@ struct ServerConceptResponse: Decodable {
     let updatedAt: Date
 }
 
+struct CreateCustomConceptRequest: Encodable {
+    let id: String
+    let title: String
+    let emoji: String
+    let description: String
+    let missionPrompt: String
+    let themeColorHex: String
+    let sourceTemplateId: String?
+}
+
+struct UpdateCustomConceptRequest: Encodable {
+    let title: String
+    let emoji: String
+    let description: String
+    let missionPrompt: String
+    let themeColorHex: String
+    let sourceTemplateId: String?
+}
+
 struct ConceptsAPIService: Sendable {
     static let shared = ConceptsAPIService()
 
@@ -29,6 +48,47 @@ struct ConceptsAPIService: Sendable {
         try await client.request(
             "concepts",
             method: "GET",
+            accessToken: accessToken
+        )
+    }
+
+    func fetchMyCustomConcepts(accessToken: String) async throws -> [ServerConceptResponse] {
+        try await client.request(
+            "concepts/me/custom",
+            method: "GET",
+            accessToken: accessToken
+        )
+    }
+
+    func createCustomConcept(
+        _ request: CreateCustomConceptRequest,
+        accessToken: String
+    ) async throws -> ServerConceptResponse {
+        try await client.request(
+            "concepts/me/custom",
+            method: "POST",
+            body: request,
+            accessToken: accessToken
+        )
+    }
+
+    func updateCustomConcept(
+        id: String,
+        request: UpdateCustomConceptRequest,
+        accessToken: String
+    ) async throws -> ServerConceptResponse {
+        try await client.request(
+            "concepts/me/custom/\(id)",
+            method: "PATCH",
+            body: request,
+            accessToken: accessToken
+        )
+    }
+
+    func deleteCustomConcept(id: String, accessToken: String) async throws {
+        try await client.requestVoid(
+            "concepts/me/custom/\(id)",
+            method: "DELETE",
             accessToken: accessToken
         )
     }

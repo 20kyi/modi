@@ -4,6 +4,7 @@ import SwiftUI
 struct RecommendedCollectionAddSheet: View {
 
     @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(AuthManager.self) private var authManager
     @Environment(\.dismiss) private var dismiss
 
     let template: RecommendedCollectionTemplate
@@ -65,7 +66,10 @@ struct RecommendedCollectionAddSheet: View {
                         )
                 } else {
                     Button("컬렉션에 추가하기") {
-                        collectionRepository.addCustomCollection(from: template)
+                        collectionRepository.addCustomCollection(
+                            from: template,
+                            accessToken: authManager.accessToken
+                        )
                         dismiss()
                     }
                     .buttonStyle(PrimaryButtonStyle())

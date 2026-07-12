@@ -188,6 +188,7 @@ struct MainTabView: View {
         }
 
         await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
+        await syncCustomCollectionsFromServer(collectionRepository: collectionRepository)
         await syncRecordsFromServer(
             repository: repository,
             collectionRepository: collectionRepository
@@ -233,6 +234,13 @@ struct MainTabView: View {
             recordRepository: repository,
             collectionRepository: collectionRepository
         )
+    }
+
+    private func syncCustomCollectionsFromServer(
+        collectionRepository: CollectionRepository
+    ) async {
+        guard let accessToken = authManager.accessToken else { return }
+        await collectionRepository.syncCustomCollections(accessToken: accessToken)
     }
 
     private func syncRecordsFromServer(

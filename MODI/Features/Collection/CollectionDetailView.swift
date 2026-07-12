@@ -352,7 +352,10 @@ struct CollectionDetailView: View {
                 try await deleteRemoteRecordIfNeeded(record)
             }
 
-            collectionRepository.deleteCustomCollection(collection)
+            collectionRepository.deleteCustomCollection(
+                collection,
+                accessToken: authManager.accessToken
+            )
             repository.reload()
             streakManager.refresh(
                 recordRepository: repository,

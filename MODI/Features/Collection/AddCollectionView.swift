@@ -6,6 +6,7 @@ struct AddCollectionView: View {
     private let editingCollection: MODICollection?
 
     @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(AuthManager.self) private var authManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var title: String
@@ -215,7 +216,8 @@ struct AddCollectionView: View {
                 emoji: emoji,
                 missionPrompt: trimmedMissionPrompt,
                 description: resolvedDescription,
-                themeColorHex: selectedColorHex
+                themeColorHex: selectedColorHex,
+                accessToken: authManager.accessToken
             )
         } else {
             collectionRepository.addCustomCollection(
@@ -223,7 +225,8 @@ struct AddCollectionView: View {
                 emoji: emoji,
                 missionPrompt: trimmedMissionPrompt,
                 description: resolvedDescription,
-                themeColorHex: selectedColorHex
+                themeColorHex: selectedColorHex,
+                accessToken: authManager.accessToken
             )
         }
     }

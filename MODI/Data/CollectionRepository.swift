@@ -81,7 +81,8 @@ final class CollectionRepository {
         missionPrompt: String,
         description: String,
         themeColorHex: String,
-        sourceTemplateID: String? = nil
+        sourceTemplateID: String? = nil,
+        accessToken: String? = nil
     ) -> MODICollection {
         let collection = MODICollection(
             title: title,
@@ -96,10 +97,17 @@ final class CollectionRepository {
         modelContext.insert(collection)
         try? modelContext.save()
         reload()
+
+        if let accessToken {
+            Task {
+                await pushCustomCollectionToServer(collection, accessToken: accessToken)
+            }
+        }
+
         return collection
     }
 
-    func addCustomCollection(from template: RecommendedCollectionTemplate) {
+    func addCustomCollection(from template: RecommendedCollectionTemplate, accessToken: String? = nil) {
         guard !hasAddedTemplate(template.id) else { return }
 
         addCustomCollection(
@@ -108,7 +116,8 @@ final class CollectionRepository {
             missionPrompt: template.missionPrompt,
             description: template.subtitle,
             themeColorHex: template.themeColorHex,
-            sourceTemplateID: template.id
+            sourceTemplateID: template.id,
+            accessToken: accessToken
         )
     }
 
@@ -122,7 +131,8 @@ final class CollectionRepository {
         emoji: String,
         missionPrompt: String,
         description: String,
-        themeColorHex: String
+        themeColorHex: String,
+        accessToken: String? = nil
     ) {
         guard collection.collectionType == .custom else { return }
 
@@ -139,14 +149,132 @@ final class CollectionRepository {
 
         try? modelContext.save()
         reload()
+
+        if let accessToken {
+            Task {
+                await pushCustomCollectionToServer(collection, accessToken: accessToken)
+            }
+        }
     }
 
-    func deleteCustomCollection(_ collection: MODICollection) {
+    func deleteCustomCollection(_ collection: MODICollection, accessToken: String? = nil) {
         guard collection.collectionType == .custom else { return }
 
+        let collectionID = collection.id
         modelContext.delete(collection)
         try? modelContext.save()
         reload()
+
+        if let accessToken {
+            Task {
+                await deleteCustomCollectionOnServer(id: collectionID, accessToken: accessToken)
+            }
+        }
+    }
+
+    // MARK: - Server Sync
+
+    func syncCustomCollections(accessToken: String) async {
+        do {
+            let serverConcepts = try await ConceptsAPIService.shared.fetchMyCustomConcepts(
+                accessToken: accessToken
+            )
+            let serverIDs = Set(serverConcepts.compactMap { UUID(uuidString: $0.id) })
+
+            for response in serverConcepts {
+                applyServerCustomConcept(response)
+            }
+
+            for collection in customCollections where !serverIDs.contains(collection.id) {
+                await pushCustomCollectionToServer(collection, accessToken: accessToken)
+            }
+
+            try? modelContext.save()
+            reload()
+        } catch {
+            debugPrint("syncCustomCollections failed:", error.localizedDescription)
+        }
+    }
+
+    func pushCustomCollectionToServer(
+        _ collection: MODICollection,
+        accessToken: String
+    ) async {
+        guard collection.collectionType == .custom else { return }
+
+        let request = CreateCustomConceptRequest(
+            id: collection.id.uuidString,
+            title: collection.title,
+            emoji: collection.emoji,
+            description: collection.collectionDescription,
+            missionPrompt: collection.missionPrompt,
+            themeColorHex: collection.themeColorHex,
+            sourceTemplateId: collection.sourceTemplateID
+        )
+
+        do {
+            _ = try await ConceptsAPIService.shared.createCustomConcept(
+                request,
+                accessToken: accessToken
+            )
+        } catch {
+            debugPrint("pushCustomCollectionToServer failed:", error.localizedDescription)
+        }
+    }
+
+    func deleteCustomCollectionOnServer(id: UUID, accessToken: String) async {
+        do {
+            try await ConceptsAPIService.shared.deleteCustomConcept(
+                id: id.uuidString,
+                accessToken: accessToken
+            )
+        } catch {
+            debugPrint("deleteCustomCollectionOnServer failed:", error.localizedDescription)
+        }
+    }
+
+    private func applyServerCustomConcept(_ response: ServerConceptResponse) {
+        guard let concept = Concept(server: response),
+              concept.type == .custom
+        else { return }
+
+        if let existing = collection(for: concept.id) {
+            guard existing.collectionType == .custom else { return }
+            updateLocalCustomCollection(existing, from: response)
+            return
+        }
+
+        let collection = MODICollection(
+            id: concept.id,
+            title: concept.title,
+            emoji: concept.emoji,
+            type: .custom,
+            createdAt: response.createdAt,
+            collectionDescription: concept.description,
+            missionPrompt: concept.missionPrompt,
+            themeColorHex: concept.themeColorHex,
+            category: .custom,
+            sourceTemplateID: response.sourceTemplateId
+        )
+        modelContext.insert(collection)
+    }
+
+    private func updateLocalCustomCollection(
+        _ collection: MODICollection,
+        from response: ServerConceptResponse
+    ) {
+        collection.title = response.title
+        collection.emoji = response.emoji
+        collection.collectionDescription = response.description
+        collection.missionPrompt = response.missionPrompt
+        collection.themeColorHex = response.themeColorHex
+        collection.sourceTemplateID = response.sourceTemplateId
+        collection.createdAt = response.createdAt
+
+        for record in collection.records ?? [] {
+            record.conceptTitle = response.title
+            record.conceptEmoji = response.emoji
+        }
     }
 
     // MARK: - Record Linking
