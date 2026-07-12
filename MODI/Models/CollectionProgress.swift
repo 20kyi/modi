@@ -235,7 +235,7 @@ struct ProfileHighestTitle: Identifiable, Equatable {
     let acquiredDate: Date
 
     var achievementDescription: String {
-        "\(title.milestone)개의 발견으로 \(title.name) 획득" // 타이틀 획득 조건
+        "\(title.milestone)개의 발견으로 \(title.name) 배너 획득"
     }
 }
 

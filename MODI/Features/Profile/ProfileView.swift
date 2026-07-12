@@ -54,7 +54,7 @@ struct ProfileView: View {
                     }
 
                     discoveryCalendarSection
-                    earnedTitlesSection
+                    earnedBannersSection
                     settingsSection
                 }
                 .appScreenPadding()
@@ -133,35 +133,35 @@ struct ProfileView: View {
         }
     }
 
-    // MARK: - Earned Titles
+    // MARK: - Earned Banners
 
-    private let titleGridColumns = Array(
+    private let bannerGridColumns = Array(
         repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
         count: 4
     )
 
-    private var earnedTitlesSection: some View {
+    private var earnedBannersSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
-            sectionHeader(title: "획득한 Title")
+            sectionHeader(title: "획득한 배너")
 
-            if viewModel.earnedTitles.isEmpty {
+            if viewModel.earnedBanners.isEmpty {
                 VStack(alignment: .leading, spacing: AppSpacing.xs) {
-                    Text("아직 획득한 Title이 없어요")
+                    Text("아직 획득한 배너가 없어요")
                         .font(AppFont.subheadline)
                         .foregroundStyle(AppColor.Text.secondary)
 
-                    Text("10개의 발견을 기록하면 첫 Title을 받을 수 있어요")
+                    Text("10개의 발견을 기록하면 첫 배너를 받을 수 있어요")
                         .font(AppFont.caption1)
                         .foregroundStyle(AppColor.Text.tertiary)
                 }
                 .appCardStyle()
             } else {
-                LazyVGrid(columns: titleGridColumns, spacing: AppSpacing.gridGutter) {
-                    ForEach(viewModel.earnedTitles) { earnedTitle in
+                LazyVGrid(columns: bannerGridColumns, spacing: AppSpacing.gridGutter) {
+                    ForEach(viewModel.earnedBanners) { earnedBanner in
                         Button {
-                            earnedTitleModalPresenter.present(earnedTitle)
+                            earnedTitleModalPresenter.present(earnedBanner)
                         } label: {
-                            ProfileTitleCard(earnedTitle: earnedTitle)
+                            ProfileBannerCard(earnedBanner: earnedBanner)
                         }
                         .buttonStyle(.plain)
                     }
@@ -246,31 +246,31 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - Profile Title Card
+// MARK: - Profile Banner Card
 
-private struct ProfileTitleCard: View {
+private struct ProfileBannerCard: View {
 
     private enum Layout {
         static let emojiHeight: CGFloat = 26
-        static let titleHeight: CGFloat = 26
+        static let bannerHeight: CGFloat = 26
         static let dateHeight: CGFloat = 24
     }
 
-    let earnedTitle: ProfileHighestTitle
+    let earnedBanner: ProfileHighestTitle
 
     var body: some View {
         VStack(spacing: AppSpacing.xs) {
-            Text(ProgressMilestone.hintEmoji(for: earnedTitle.title.milestone))
+            Text(ProgressMilestone.hintEmoji(for: earnedBanner.title.milestone))
                 .font(.system(size: 22))
                 .frame(height: Layout.emojiHeight)
 
-            Text(earnedTitle.title.name)
+            Text(earnedBanner.title.name)
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.Text.primary)
                 .multilineTextAlignment(.center)
                 .lineLimit(2)
                 .minimumScaleFactor(0.8)
-                .frame(maxWidth: .infinity, minHeight: Layout.titleHeight, maxHeight: Layout.titleHeight, alignment: .center)
+                .frame(maxWidth: .infinity, minHeight: Layout.bannerHeight, maxHeight: Layout.bannerHeight, alignment: .center)
 
             Text(acquiredDateLabel)
                 .font(.system(size: 10))
@@ -287,7 +287,7 @@ private struct ProfileTitleCard: View {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
         formatter.dateFormat = "M.d"
-        return "\(formatter.string(from: earnedTitle.acquiredDate))\n획득"
+        return "\(formatter.string(from: earnedBanner.acquiredDate))\n획득"
     }
 }
 

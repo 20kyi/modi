@@ -28,7 +28,7 @@ final class EarnedTitleModalPresenter {
 
 // MARK: - EarnedTitleDetailModal
 
-/// 획득한 Title 배지를 탭했을 때 획득 맥락을 보여주는 중앙 모달.
+/// 획득한 배너를 탭했을 때 획득 맥락을 보여주는 중앙 모달.
 struct EarnedTitleDetailModal: View {
 
     let earnedTitle: ProfileHighestTitle

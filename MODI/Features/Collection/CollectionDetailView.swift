@@ -241,10 +241,10 @@ struct CollectionDetailView: View {
         }
 
         if progress.currentTitle == nil {
-            return "\(until)개의 발견이 모이면 \(nextTitleName)"
+            return "\(until)개의 발견이 모이면 \(nextTitleName) 배너"
         }
 
-        return "\(until)개 더 기록하면 \(nextTitleName)"
+        return "\(until)개 더 기록하면 \(nextTitleName) 배너"
     }
 
     private var nextStageEmoji: String {

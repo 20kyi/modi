@@ -23,8 +23,9 @@ final class StreakManager {
 
         stats = DiscoveryStats(
             totalRecords: records.count,
-            completedConcepts: Self.completedConceptCount(from: records),
-            completedCollections: Self.completedCollectionCount(from: collections),
+            activeCollections: Self.activeCollectionCount(from: collections),
+            earnedBannerCount: Self.earnedBannerCount(from: collections),
+            monthlyRecords: Self.monthlyRecordCount(from: records, calendar: calendar),
             streakDays: Self.calculateStreak(from: recordedDayKeys, calendar: calendar),
             lastRecordDate: lastRecordDate
         )
@@ -97,12 +98,23 @@ final class StreakManager {
         Set(records.map { DailyMission.dayKey(for: $0.discoveryDate) })
     }
 
-    private static func completedConceptCount(from records: [MODIRecord]) -> Int {
-        Set(records.map(\.conceptId)).count
+    private static func activeCollectionCount(from collections: [MODICollection]) -> Int {
+        collections.filter { ($0.records?.isEmpty == false) }.count
     }
 
-    private static func completedCollectionCount(from collections: [MODICollection]) -> Int {
-        collections.filter { ($0.records?.isEmpty == false) }.count
+    private static func earnedBannerCount(from collections: [MODICollection]) -> Int {
+        collections.filter { $0.currentTitle != nil }.count
+    }
+
+    private static func monthlyRecordCount(
+        from records: [MODIRecord],
+        calendar: Calendar
+    ) -> Int {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: .now) else {
+            return 0
+        }
+
+        return records.filter { monthInterval.contains($0.discoveryDate) }.count
     }
 }
 

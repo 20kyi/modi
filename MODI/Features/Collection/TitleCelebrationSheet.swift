@@ -39,7 +39,7 @@ struct TitleCelebrationSheet: View {
 
     private var celebrationContent: some View {
         VStack(spacing: AppSpacing.xl) {
-            Text("✨ New Title")
+            Text("✨ 새 배너")
                 .font(AppFont.Rounded.headline)
                 .foregroundStyle(AppColor.Text.secondary)
                 .tracking(0.6)

@@ -24,7 +24,7 @@ final class ProfileViewModel {
     private(set) var stats: DiscoveryStats = .empty
     private(set) var recordedDayEmojis: [String: String] = [:]
     private(set) var collectionSummaries: [ProfileCollectionSummary] = []
-    private(set) var earnedTitles: [ProfileHighestTitle] = []
+    private(set) var earnedBanners: [ProfileHighestTitle] = []
 
     let settingsItems: [ProfileSettingsItem] = [
         ProfileSettingsItem(title: "알림 설정", icon: "bell.fill", isPremium: false, destination: .notifications),
@@ -40,7 +40,7 @@ final class ProfileViewModel {
         stats = streakManager.stats
         recordedDayEmojis = Self.makeRecordedDayEmojis(from: recordRepository.fetchAllRecords())
         collectionSummaries = Self.makeCollectionSummaries(from: collectionRepository)
-        earnedTitles = Self.makeEarnedTitles(
+        earnedBanners = Self.makeEarnedBanners(
             from: collectionRepository,
             recordRepository: recordRepository
         )
@@ -77,7 +77,7 @@ final class ProfileViewModel {
             }
     }
 
-    private static func makeEarnedTitles(
+    private static func makeEarnedBanners(
         from collectionRepository: CollectionRepository,
         recordRepository: RecordRepository
     ) -> [ProfileHighestTitle] {

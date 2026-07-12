@@ -21,8 +21,6 @@ struct ProfileHeaderCard: View {
 
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
-            profileImage
-
             VStack(spacing: AppSpacing.xs) {
                 Text("\(nickname)\(nameSuffix)")
                     .font(AppFont.title2)
@@ -52,46 +50,24 @@ struct ProfileHeaderCard: View {
                         label: "총 발견"
                     )
                     StatCard(
-                        value: "\(stats.completedConcepts)",
-                        label: "참여 컨셉"
+                        value: "\(stats.activeCollections)",
+                        label: "컬렉션"
                     )
                 }
 
                 HStack(spacing: AppSpacing.sm) {
                     StatCard(
-                        value: "\(stats.completedCollections)",
-                        label: "컬렉션"
+                        value: "\(stats.earnedBannerCount)",
+                        label: "획득 배너"
                     )
                     StatCard(
-                        value: "\(stats.streakDays)일",
-                        label: "연속 기록"
+                        value: "\(stats.monthlyRecords)",
+                        label: "이번 달 발견"
                     )
                 }
             }
         }
         .appCardStyle()
-    }
-
-    private var profileImage: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [AppColor.Accent.soft, AppColor.Background.tertiary],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .frame(width: 88, height: 88)
-
-            Image(systemName: "person.fill")
-                .font(.system(size: 36, weight: .light))
-                .foregroundStyle(AppColor.Accent.primary)
-        }
-        .overlay {
-            Circle()
-                .strokeBorder(AppColor.Border.subtle, lineWidth: 1)
-        }
     }
 }
 

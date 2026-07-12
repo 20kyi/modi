@@ -5,15 +5,17 @@ import Foundation
 /// SwiftData 기록에서 계산한 발견 통계.
 struct DiscoveryStats: Equatable {
     let totalRecords: Int
-    let completedConcepts: Int
-    let completedCollections: Int
+    let activeCollections: Int
+    let earnedBannerCount: Int
+    let monthlyRecords: Int
     let streakDays: Int
     let lastRecordDate: Date?
 
     static let empty = DiscoveryStats(
         totalRecords: 0,
-        completedConcepts: 0,
-        completedCollections: 0,
+        activeCollections: 0,
+        earnedBannerCount: 0,
+        monthlyRecords: 0,
         streakDays: 0,
         lastRecordDate: nil
     )
@@ -24,8 +26,9 @@ struct DiscoveryStats: Equatable {
 extension DiscoveryStats {
     static let mock = DiscoveryStats(
         totalRecords: 20,
-        completedConcepts: 5,
-        completedCollections: 4,
+        activeCollections: 4,
+        earnedBannerCount: 2,
+        monthlyRecords: 8,
         streakDays: 7,
         lastRecordDate: .now
     )
