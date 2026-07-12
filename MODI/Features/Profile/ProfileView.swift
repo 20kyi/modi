@@ -204,8 +204,8 @@ struct ProfileView: View {
             sectionHeader(title: "설정")
 
             VStack(spacing: 0) {
-                Button {
-                    // TODO: Premium 화면 연결
+                NavigationLink {
+                    PremiumView()
                 } label: {
                     settingsRow(icon: "crown.fill", title: "Premium", iconColor: AppColor.Semantic.warning)
                 }

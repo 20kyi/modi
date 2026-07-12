@@ -4,6 +4,7 @@ struct ContentView: View {
 
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     @State private var themeManager = ThemeManager.shared
+    @State private var premiumManager = PremiumManager.shared
     @State private var notificationManager = NotificationManager()
     @State private var missionManager = MissionManager()
     @State private var authManager = AuthManager(loadFromStorage: true)
@@ -29,6 +30,7 @@ struct ContentView: View {
         .environment(authManager)
         .environment(deepLinkCoordinator)
         .environment(themeManager)
+        .environment(premiumManager)
         .appToastOverlay()
         .onAppear {
             missionManager.syncSessionScope()
