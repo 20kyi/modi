@@ -84,6 +84,9 @@ final class SettingsViewModel {
     func setHapticFeedbackEnabled(_ isEnabled: Bool) {
         isHapticFeedbackEnabled = isEnabled
         storage.set(isEnabled, forKey: StorageKeys.hapticFeedbackEnabled)
+        if isEnabled {
+            HapticManager.shared.previewEnabledFeedback()
+        }
     }
 
     private static func defaultNotificationTime() -> Date {
@@ -612,6 +615,8 @@ struct SettingsView: View {
     }
 
     private func deleteAccount() {
+        HapticManager.shared.warning()
+
         isDeletingAccount = true
         signInErrorMessage = nil
 

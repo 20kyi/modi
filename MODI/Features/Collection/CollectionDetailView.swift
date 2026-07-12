@@ -330,6 +330,8 @@ struct CollectionDetailView: View {
     }
 
     private func deleteRecord(_ record: MODIRecord) async {
+        HapticManager.shared.warning()
+
         do {
             try await deleteRemoteRecordIfNeeded(record)
             repository.deleteRecord(record)
@@ -346,6 +348,8 @@ struct CollectionDetailView: View {
 
     private func deleteCollection() async {
         guard isCustomCollection else { return }
+
+        HapticManager.shared.warning()
 
         do {
             for record in records {

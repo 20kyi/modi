@@ -182,6 +182,8 @@ struct RecordDetailView: View {
     }
 
     private func deleteRecord() async {
+        HapticManager.shared.warning()
+
         do {
             if authManager.session.isLoggedIn,
                let accessToken = authManager.accessToken {

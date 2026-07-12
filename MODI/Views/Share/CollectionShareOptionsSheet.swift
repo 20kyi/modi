@@ -82,7 +82,9 @@ struct CollectionShareOptionsSheet: View {
             cleanupVideo()
         }
         .sheet(isPresented: $showShareSheet) {
-            ShareSheet(items: shareItems)
+            ShareSheet(items: shareItems) {
+                HapticManager.shared.success()
+            }
         }
         .alert("저장 완료", isPresented: $saveSuccess) {
             Button("확인", role: .cancel) {}
@@ -290,6 +292,7 @@ struct CollectionShareOptionsSheet: View {
 
                 isSaving = false
                 saveSuccess = true
+                HapticManager.shared.success()
             } catch {
                 isSaving = false
                 saveErrorMessage = error.localizedDescription

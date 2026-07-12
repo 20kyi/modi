@@ -673,6 +673,12 @@ struct PhotoEditorView: View {
                 )
             }
 
+            if titleCelebrationManager.pendingCelebration != nil {
+                HapticManager.shared.badgeSuccess()
+            } else {
+                HapticManager.shared.success()
+            }
+
             onSaved()
             dismiss()
             beginServerUploadIfNeeded(
