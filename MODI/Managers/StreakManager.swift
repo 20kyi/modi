@@ -27,7 +27,8 @@ final class StreakManager {
             earnedBannerCount: Self.earnedBannerCount(from: collections),
             monthlyRecords: Self.monthlyRecordCount(from: records, calendar: calendar),
             streakDays: Self.calculateStreak(from: recordedDayKeys, calendar: calendar),
-            lastRecordDate: lastRecordDate
+            lastRecordDate: lastRecordDate,
+            topCollection: Self.topCollection(from: records, collections: collections)
         )
     }
 
@@ -115,6 +116,40 @@ final class StreakManager {
         }
 
         return records.filter { monthInterval.contains($0.discoveryDate) }.count
+    }
+
+    private static func topCollection(
+        from records: [MODIRecord],
+        collections: [MODICollection]
+    ) -> ProfileTopCollection? {
+        guard !records.isEmpty else { return nil }
+
+        let grouped = Dictionary(grouping: records, by: \.conceptId)
+        guard let topConceptID = grouped.max(by: { lhs, rhs in
+            if lhs.value.count != rhs.value.count {
+                return lhs.value.count < rhs.value.count
+            }
+
+            let lhsLatest = lhs.value.map(\.discoveryDate).max() ?? .distantPast
+            let rhsLatest = rhs.value.map(\.discoveryDate).max() ?? .distantPast
+            return lhsLatest < rhsLatest
+        })?.key else {
+            return nil
+        }
+
+        if let collection = collections.first(where: { $0.id == topConceptID }) {
+            return ProfileTopCollection(
+                emoji: collection.emoji,
+                themeColorHex: collection.themeColorHex
+            )
+        }
+
+        guard let record = grouped[topConceptID]?.first else { return nil }
+
+        return ProfileTopCollection(
+            emoji: record.conceptEmoji,
+            themeColorHex: "E8ECF0"
+        )
     }
 }
 

@@ -21,6 +21,10 @@ struct ProfileHeaderCard: View {
 
     var body: some View {
         VStack(spacing: AppSpacing.lg) {
+            if let topCollection = stats.topCollection {
+                topCollectionBadge(topCollection)
+            }
+
             VStack(spacing: AppSpacing.xs) {
                 Text("\(nickname)\(nameSuffix)")
                     .font(AppFont.title2)
@@ -68,6 +72,21 @@ struct ProfileHeaderCard: View {
             }
         }
         .appCardStyle()
+    }
+
+    private func topCollectionBadge(_ topCollection: ProfileTopCollection) -> some View {
+        Circle()
+            .fill(AppColor.emojiBackground(from: topCollection.themeColorHex))
+            .frame(width: 88, height: 88)
+            .overlay {
+                Text(topCollection.emoji)
+                    .font(.system(size: 36))
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(AppColor.Border.subtle, lineWidth: 1)
+            }
+            .accessibilityLabel("가장 많이 기록한 컬렉션")
     }
 }
 
