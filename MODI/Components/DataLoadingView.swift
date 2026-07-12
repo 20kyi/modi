@@ -22,9 +22,18 @@ struct DataLoadingView: View {
             Spacer()
 
             VStack(spacing: AppSpacing.xl) {
-                Text("MODI")
-                    .font(AppFont.headline)
-                    .foregroundStyle(AppColor.Text.primary)
+                VStack(spacing: AppSpacing.lg) {
+                    Image("AppLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 72, height: 72)
+                        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .shadow(color: .black.opacity(0.08), radius: 12, y: 4)
+
+                    Text("MODI")
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.Text.primary)
+                }
 
                 VStack(spacing: AppSpacing.lg) {
                     ProgressView()
