@@ -10,7 +10,7 @@ struct SaveToastView: View {
         HStack(spacing: AppSpacing.sm) {
             Image(systemName: toast.systemImage)
                 .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(AppColor.Semantic.success)
+                .foregroundStyle(toast.iconColor)
 
             Text(toast.message)
                 .font(AppFont.headline)
