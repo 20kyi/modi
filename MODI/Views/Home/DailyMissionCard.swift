@@ -4,7 +4,9 @@ struct DailyMissionCard: View {
 
     let mission: DailyMission
     var onRecordTapped: (() -> Void)?
-    var canChangeMission: Bool = false
+    var canOfferMissionChange: Bool = false
+    var showsMissionChangeButton: Bool = false
+    var remainingMissionChanges: Int?
     var onChangeMissionTapped: (() -> Void)?
 
     private var palette: AppColor.ThemePalette {
@@ -40,10 +42,20 @@ struct DailyMissionCard: View {
                         .buttonStyle(ThemeButtonStyle(palette: palette))
                     }
 
-                    if canChangeMission, let onChangeMissionTapped {
-                        Button("미션 바꾸기", action: onChangeMissionTapped)
-                            .font(AppFont.footnote)
-                            .foregroundStyle(AppColor.Text.secondary)
+                    if canOfferMissionChange {
+                        VStack(spacing: AppSpacing.xs) {
+                            if showsMissionChangeButton, let onChangeMissionTapped {
+                                Button("미션 바꾸기", action: onChangeMissionTapped)
+                                    .font(AppFont.footnote)
+                                    .foregroundStyle(AppColor.Text.secondary)
+                            }
+
+                            if let remainingMissionChanges {
+                                Text(remainingMissionChangesLabel(remainingMissionChanges))
+                                    .font(AppFont.caption1)
+                                    .foregroundStyle(AppColor.Text.tertiary)
+                            }
+                        }
                     }
                 }
             }
@@ -59,6 +71,13 @@ struct DailyMissionCard: View {
                 .strokeBorder(mission.themeColor.opacity(0.6), lineWidth: 1)
         }
         .appShadow(.medium)
+    }
+
+    private func remainingMissionChangesLabel(_ remaining: Int) -> String {
+        if remaining == 0 {
+            return "오늘 변경 횟수를 모두 사용했어요"
+        }
+        return "오늘 \(remaining)회 남음"
     }
 }
 
@@ -103,6 +122,30 @@ private struct MissionCompletedBadge: View {
             }
         }
     }
+}
+
+#Preview("진행 중 · 남은 횟수") {
+    DailyMissionCard(
+        mission: .mock,
+        canOfferMissionChange: true,
+        showsMissionChangeButton: true,
+        remainingMissionChanges: 2
+    ) {}
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
+}
+
+#Preview("진행 중 · 횟수 소진") {
+    DailyMissionCard(
+        mission: .mock,
+        canOfferMissionChange: true,
+        showsMissionChangeButton: false,
+        remainingMissionChanges: 0
+    ) {}
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
 }
 
 #Preview("진행 중") {

@@ -11,7 +11,10 @@ struct HomeView: View {
     @Environment(StreakManager.self) private var streakManager
     @Environment(DeepLinkCoordinator.self) private var deepLinkCoordinator
     @Environment(AuthManager.self) private var authManager
+    @Environment(PremiumManager.self) private var premiumManager
     @State private var viewModel = HomeViewModel()
+    @State private var isShowingMissionChangeLimitSheet = false
+    @State private var isShowingPremium = false
 
     private var isTodaysMissionCompleted: Bool {
         missionManager.isTodaysMissionCompleted(repository: recordRepository)
@@ -34,8 +37,27 @@ struct HomeView: View {
             ?? .mock
     }
 
-    private var canChangeMission: Bool {
-        missionManager.canChangeMission(repository: recordRepository)
+    private var canOfferMissionChange: Bool {
+        missionManager.canOfferMissionChange(repository: recordRepository)
+    }
+
+    private var canPerformMissionChange: Bool {
+        missionManager.canChangeMission(
+            repository: recordRepository,
+            hasPremium: premiumManager.hasPremium
+        )
+    }
+
+    private var showsMissionChangeButton: Bool {
+        if premiumManager.hasPremium {
+            return canPerformMissionChange
+        }
+        return canOfferMissionChange
+    }
+
+    private var remainingMissionChanges: Int? {
+        guard canOfferMissionChange else { return nil }
+        return missionManager.remainingMissionChangeCount(hasPremium: premiumManager.hasPremium)
     }
 
     var body: some View {
@@ -50,7 +72,9 @@ struct HomeView: View {
                         DailyMissionCard(
                             mission: todaysMission,
                             onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
-                            canChangeMission: canChangeMission,
+                            canOfferMissionChange: canOfferMissionChange,
+                            showsMissionChangeButton: showsMissionChangeButton,
+                            remainingMissionChanges: remainingMissionChanges,
                             onChangeMissionTapped: rerollMission
                         )
                         .id(HomeScrollAnchor.todayMission)
@@ -100,6 +124,19 @@ struct HomeView: View {
                 if let collection = collectionRepository.collection(for: navigationValue.id) {
                     CollectionDetailView(collection: collection)
                 }
+            }
+            .navigationDestination(isPresented: $isShowingPremium) {
+                PremiumView()
+            }
+            .sheet(isPresented: $isShowingMissionChangeLimitSheet) {
+                MissionChangeLimitSheet(
+                    onShowPremium: {
+                        isShowingMissionChangeLimitSheet = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            isShowingPremium = true
+                        }
+                    }
+                )
             }
         }
     }
@@ -189,13 +226,23 @@ struct HomeView: View {
     }
 
     private func rerollMission() {
-        guard missionManager.rerollMission(repository: recordRepository) != nil else { return }
-        refreshData()
-        WidgetSyncService.sync(
-            missionManager: missionManager,
-            recordRepository: recordRepository,
-            streakManager: streakManager
-        )
+        if missionManager.canChangeMission(
+            repository: recordRepository,
+            hasPremium: premiumManager.hasPremium
+        ) {
+            guard missionManager.rerollMission(
+                repository: recordRepository,
+                hasPremium: premiumManager.hasPremium
+            ) != nil else { return }
+            refreshData()
+            WidgetSyncService.sync(
+                missionManager: missionManager,
+                recordRepository: recordRepository,
+                streakManager: streakManager
+            )
+        } else if !premiumManager.hasPremium {
+            isShowingMissionChangeLimitSheet = true
+        }
     }
 }
 
@@ -212,6 +259,7 @@ private enum HomeScrollAnchor {
         .modelContainer(container)
         .environment(repository)
         .environment(collectionRepository)
+        .environment(PremiumManager.shared)
         .preferredColorScheme(.light)
 }
 
@@ -224,5 +272,6 @@ private enum HomeScrollAnchor {
         .modelContainer(container)
         .environment(repository)
         .environment(collectionRepository)
+        .environment(PremiumManager.shared)
         .preferredColorScheme(.dark)
 }

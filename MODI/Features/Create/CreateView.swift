@@ -15,11 +15,14 @@ struct CreateView: View {
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
+    @Environment(PremiumManager.self) private var premiumManager
 
     @State private var showCamera = false
     @State private var showPhotoLibrary = false
     @State private var editorPresentation: EditorPresentation?
     @State private var saveErrorMessage: String?
+    @State private var isShowingMissionChangeLimitSheet = false
+    @State private var isShowingPremium = false
 
     private var todaysMission: DailyMission {
         missionManager.dailyMission(
@@ -32,8 +35,27 @@ struct CreateView: View {
         missionManager.isTodaysMissionCompleted(repository: repository)
     }
 
-    private var canChangeMission: Bool {
-        missionManager.canChangeMission(repository: repository)
+    private var canOfferMissionChange: Bool {
+        missionManager.canOfferMissionChange(repository: repository)
+    }
+
+    private var canPerformMissionChange: Bool {
+        missionManager.canChangeMission(
+            repository: repository,
+            hasPremium: premiumManager.hasPremium
+        )
+    }
+
+    private var showsMissionChangeButton: Bool {
+        if premiumManager.hasPremium {
+            return canPerformMissionChange
+        }
+        return canOfferMissionChange
+    }
+
+    private var remainingMissionChanges: Int? {
+        guard canOfferMissionChange else { return nil }
+        return missionManager.remainingMissionChangeCount(hasPremium: premiumManager.hasPremium)
     }
 
     private var todaysRecord: MODIRecord? {
@@ -106,6 +128,19 @@ struct CreateView: View {
             } message: {
                 Text(saveErrorMessage ?? "다시 시도해 주세요.")
             }
+            .navigationDestination(isPresented: $isShowingPremium) {
+                PremiumView()
+            }
+            .sheet(isPresented: $isShowingMissionChangeLimitSheet) {
+                MissionChangeLimitSheet(
+                    onShowPremium: {
+                        isShowingMissionChangeLimitSheet = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            isShowingPremium = true
+                        }
+                    }
+                )
+            }
         }
     }
 
@@ -131,7 +166,9 @@ struct CreateView: View {
 
             DailyMissionCard(
                 mission: todaysMission,
-                canChangeMission: canChangeMission,
+                canOfferMissionChange: canOfferMissionChange,
+                showsMissionChangeButton: showsMissionChangeButton,
+                remainingMissionChanges: remainingMissionChanges,
                 onChangeMissionTapped: rerollMission
             )
 
@@ -233,7 +270,17 @@ struct CreateView: View {
     }
 
     private func rerollMission() {
-        _ = missionManager.rerollMission(repository: repository)
+        if missionManager.canChangeMission(
+            repository: repository,
+            hasPremium: premiumManager.hasPremium
+        ) {
+            _ = missionManager.rerollMission(
+                repository: repository,
+                hasPremium: premiumManager.hasPremium
+            )
+        } else if !premiumManager.hasPremium {
+            isShowingMissionChangeLimitSheet = true
+        }
     }
 }
 
@@ -245,6 +292,7 @@ struct CreateView: View {
         .environment(MissionManager.mock)
         .environment(repository)
         .environment(StreakManager.mock)
+        .environment(PremiumManager.shared)
         .preferredColorScheme(.light)
 }
 
@@ -256,5 +304,6 @@ struct CreateView: View {
         .environment(MissionManager.mock)
         .environment(repository)
         .environment(StreakManager.mock)
+        .environment(PremiumManager.shared)
         .preferredColorScheme(.dark)
 }

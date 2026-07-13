@@ -24,9 +24,21 @@ final class PremiumManager {
     /// 무료 사용자가 만들 수 있는 커스텀 컬렉션 최대 개수입니다.
     static let freeCustomCollectionLimit = 1
 
+    /// 무료 사용자의 하루 미션 변경 최대 횟수입니다.
+    static let freeMissionChangeLimit = 1
+
+    /// MODI+ 사용자의 하루 미션 변경 최대 횟수입니다.
+    static let premiumMissionChangeLimit = 3
+
     /// 커스텀 컬렉션(`collectionType == .custom`) 생성 가능 여부를 판단합니다.
     func canCreateCustomCollection(currentCount: Int) -> Bool {
         hasPremium || currentCount < Self.freeCustomCollectionLimit
+    }
+
+    /// 오늘의 미션 변경 가능 여부를 판단합니다.
+    func canChangeMission(currentCount: Int) -> Bool {
+        let limit = hasPremium ? Self.premiumMissionChangeLimit : Self.freeMissionChangeLimit
+        return currentCount < limit
     }
 
     private let storage: UserDefaults

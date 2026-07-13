@@ -8,11 +8,15 @@ final class MissionManager {
 
     private static let todayMissionsKeyPrefix = "modi.todayMissions"
     private static let legacyTodayMissionsKey = "modi.todayMissions"
+    private static let missionChangeCountKeyPrefix = "modi.missionChangeCount"
+    private static let lastMissionChangeDateKeyPrefix = "modi.lastMissionChangeDate"
     private static let authUserIdKey = "modi_auth_userId"
     private static let guestScope = "guest"
 
     private var collectionRepository: CollectionRepository?
     private var todayMissions: [String: TodayMission] = [:]
+    private var missionChangeCount = 0
+    private var lastMissionChangeDate: Date?
     private let storage: UserDefaults
     private let catalog: SystemConceptCatalog
     private let conceptsAPIService: ConceptsAPIService
@@ -48,6 +52,8 @@ final class MissionManager {
         activeScope = Self.currentScope(from: storage)
         load()
         migrateLegacyDataIfNeeded()
+        resetMissionChangeCountIfNeeded()
+        migrateLegacyChangeCountIfNeeded(on: .now)
     }
 
     func configure(collectionRepository: CollectionRepository) {
@@ -118,21 +124,66 @@ final class MissionManager {
         saveTodayMissions()
     }
 
-    /// 해당 날짜에 미션을 바꿀 수 있는지 확인합니다. 하루 1회, 미완료 상태에서만 가능합니다.
-    func canChangeMission(on date: Date = .now, repository: RecordRepository) -> Bool {
+    /// 미션 변경 버튼을 표시할 수 있는지 확인합니다. 미완료 상태이고 바꿀 후보가 있을 때 true입니다.
+    func canOfferMissionChange(on date: Date = .now, repository: RecordRepository) -> Bool {
         guard !isMissionCompleted(on: date, repository: repository) else { return false }
-        guard !mission(for: date).hasChangedConcept else { return false }
         return !rerollCandidates(on: date).isEmpty
     }
 
-    /// 오늘의 미션을 다른 Concept으로 바꿉니다. 하루 1회만 가능합니다.
+    /// 해당 날짜에 미션을 바꿀 수 있는지 확인합니다. 미완료 상태이고 일일 변경 한도 내일 때 true입니다.
+    func canChangeMission(
+        on date: Date = .now,
+        repository: RecordRepository,
+        hasPremium: Bool
+    ) -> Bool {
+        resetMissionChangeCountIfNeeded(on: date)
+        guard canOfferMissionChange(on: date, repository: repository) else { return false }
+        return remainingMissionChangeCount(on: date, hasPremium: hasPremium) > 0
+    }
+
+    /// 오늘 남은 미션 변경 횟수를 반환합니다.
+    func remainingMissionChangeCount(
+        on date: Date = .now,
+        hasPremium: Bool
+    ) -> Int {
+        resetMissionChangeCountIfNeeded(on: date)
+        let limit = hasPremium
+            ? PremiumManager.premiumMissionChangeLimit
+            : PremiumManager.freeMissionChangeLimit
+        return max(0, limit - missionChangeCount)
+    }
+
+    /// 날짜가 바뀌면 오늘의 미션 변경 횟수를 초기화합니다.
+    func resetMissionChangeCountIfNeeded(on date: Date = .now) {
+        let today = Calendar.current.startOfDay(for: date)
+
+        if let lastDate = lastMissionChangeDate,
+           Calendar.current.isDate(lastDate, inSameDayAs: today) {
+            return
+        }
+
+        missionChangeCount = 0
+        lastMissionChangeDate = today
+        saveMissionChangeState()
+    }
+
+    /// 미션 변경에 성공한 뒤 오늘의 변경 횟수를 1 증가시킵니다.
+    func increaseMissionChangeCount(on date: Date = .now) {
+        resetMissionChangeCountIfNeeded(on: date)
+        missionChangeCount += 1
+        lastMissionChangeDate = Calendar.current.startOfDay(for: date)
+        saveMissionChangeState()
+    }
+
+    /// 오늘의 미션을 다른 Concept으로 바꿉니다.
     @discardableResult
     func changeMission(
         to concept: Concept,
         on date: Date = .now,
-        repository: RecordRepository
+        repository: RecordRepository,
+        hasPremium: Bool
     ) -> Bool {
-        guard canChangeMission(on: date, repository: repository) else { return false }
+        guard canChangeMission(on: date, repository: repository, hasPremium: hasPremium) else { return false }
         guard concept.id != mission(for: date).conceptId else { return false }
 
         let current = mission(for: date)
@@ -145,14 +196,19 @@ final class MissionManager {
         )
         todayMissions[key] = mission
         saveTodayMissions()
+        increaseMissionChangeCount(on: date)
         return true
     }
 
     /// 오늘 첫 미션을 제외한 컬렉션에서 랜덤으로 미션을 바꿉니다.
     @discardableResult
-    func rerollMission(on date: Date = .now, repository: RecordRepository) -> Concept? {
+    func rerollMission(
+        on date: Date = .now,
+        repository: RecordRepository,
+        hasPremium: Bool
+    ) -> Concept? {
         guard let concept = rerollCandidates(on: date).randomElement() else { return nil }
-        guard changeMission(to: concept, on: date, repository: repository) else { return nil }
+        guard changeMission(to: concept, on: date, repository: repository, hasPremium: hasPremium) else { return nil }
         return concept
     }
 
@@ -196,11 +252,40 @@ final class MissionManager {
         } else {
             todayMissions = [:]
         }
+
+        missionChangeCount = storage.integer(forKey: missionChangeCountKey)
+        lastMissionChangeDate = storage.object(forKey: lastMissionChangeDateKey) as? Date
     }
 
     private func saveTodayMissions() {
         guard let data = try? JSONEncoder().encode(todayMissions) else { return }
         storage.set(data, forKey: todayMissionsKey)
+    }
+
+    private func saveMissionChangeState() {
+        storage.set(missionChangeCount, forKey: missionChangeCountKey)
+        if let lastMissionChangeDate {
+            storage.set(lastMissionChangeDate, forKey: lastMissionChangeDateKey)
+        } else {
+            storage.removeObject(forKey: lastMissionChangeDateKey)
+        }
+    }
+
+    private var missionChangeCountKey: String {
+        "\(Self.missionChangeCountKeyPrefix).\(activeScope)"
+    }
+
+    private var lastMissionChangeDateKey: String {
+        "\(Self.lastMissionChangeDateKeyPrefix).\(activeScope)"
+    }
+
+    private func migrateLegacyChangeCountIfNeeded(on date: Date) {
+        let key = TodayMission.dayKey(for: date)
+        guard let mission = todayMissions[key], mission.hasChangedConcept else { return }
+        guard missionChangeCount == 0 else { return }
+
+        missionChangeCount = 1
+        saveMissionChangeState()
     }
 
     private var todayMissionsKey: String {
@@ -230,11 +315,16 @@ final class MissionManager {
         guard scope != activeScope else { return }
         activeScope = scope
         load()
+        resetMissionChangeCountIfNeeded()
+        migrateLegacyChangeCountIfNeeded(on: .now)
     }
 
     func resetForSignedOutState() {
         syncSessionScope()
         todayMissions = [:]
+        missionChangeCount = 0
+        lastMissionChangeDate = nil
+        saveMissionChangeState()
     }
 }
 
