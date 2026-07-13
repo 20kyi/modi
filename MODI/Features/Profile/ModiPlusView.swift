@@ -20,6 +20,7 @@ struct ModiPlusView: View {
                 developerSection
                 #endif
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             .appScreenPadding()
             .padding(.top, AppSpacing.md)
             .padding(.bottom, AppSpacing.xxxl)
@@ -109,11 +110,12 @@ struct ModiPlusView: View {
                 .foregroundStyle(AppColor.Text.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
-            HStack(spacing: AppSpacing.md) {
+            HStack(alignment: .top, spacing: AppSpacing.md) {
                 ForEach(premiumThemes) { theme in
                     ThemePreviewCard(highlight: theme)
                 }
             }
+            .fixedSize()
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, AppSpacing.xxs)
         }

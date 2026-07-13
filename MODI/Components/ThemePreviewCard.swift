@@ -21,9 +21,10 @@ struct ThemePreviewCard: View {
                 Text(highlight.name)
                     .font(AppFont.caption1)
                     .foregroundStyle(AppColor.Text.primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
         }
-        .frame(width: size)
     }
 
     private var previewSquare: some View {
@@ -53,14 +54,14 @@ struct ThemePreviewCard: View {
 // MARK: - Preview
 
 #Preview("Theme Preview Cards · Light") {
-    ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: AppSpacing.md) {
-            ForEach(PremiumBenefitCatalog.premiumThemes) { theme in
-                ThemePreviewCard(highlight: theme)
-            }
+    HStack(alignment: .top, spacing: AppSpacing.md) {
+        ForEach(PremiumBenefitCatalog.premiumThemes) { theme in
+            ThemePreviewCard(highlight: theme)
         }
-        .padding()
     }
+    .fixedSize()
+    .frame(maxWidth: .infinity, alignment: .center)
+    .appScreenPadding()
     .appGroupedBackground()
     .preferredColorScheme(.light)
 }

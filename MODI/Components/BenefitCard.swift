@@ -12,7 +12,7 @@ struct BenefitCard: View {
                 benefitIcon
 
                 VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                    HStack(alignment: .firstTextBaseline) {
+                    HStack(alignment: .top, spacing: AppSpacing.sm) {
                         Text(benefit.title)
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.Text.primary)
