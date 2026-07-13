@@ -9,8 +9,10 @@ struct DiscoveryDaySheet: View {
     let date: Date
     let records: [MODIRecord]
     var onAddPastDiscovery: () -> Void
+    var onShowPremium: () -> Void
 
     @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(PremiumManager.self) private var premiumManager
     @Environment(\.dismiss) private var dismiss
 
     private let calendar = Calendar.current
@@ -27,8 +29,16 @@ struct DiscoveryDaySheet: View {
         discoveryDay > calendar.startOfDay(for: .now)
     }
 
-    private var canAddPastDiscovery: Bool {
+    private var isPastDay: Bool {
         !isToday && !isFuture
+    }
+
+    private var canAddPastDiscovery: Bool {
+        isPastDay && premiumManager.isPremium
+    }
+
+    private var showsLockedPastDiscoveryAction: Bool {
+        isPastDay && !premiumManager.isPremium
     }
 
     var body: some View {
@@ -67,11 +77,8 @@ struct DiscoveryDaySheet: View {
                 icon: "calendar.badge.plus",
                 title: "이 날의 발견이 없어요",
                 message: emptyDayMessage,
-                actionTitle: canAddPastDiscovery ? "지난 발견 추가하기" : nil,
-                action: canAddPastDiscovery ? {
-                    dismiss()
-                    onAddPastDiscovery()
-                } : nil
+                actionTitle: pastDiscoveryActionTitle,
+                action: pastDiscoveryAction
             )
 
             Spacer()
@@ -130,6 +137,37 @@ struct DiscoveryDaySheet: View {
 
     // MARK: - Helpers
 
+    private var pastDiscoveryActionTitle: String? {
+        if canAddPastDiscovery {
+            return "지난 발견 추가하기"
+        }
+        if showsLockedPastDiscoveryAction {
+            return "지난 발견 추가하기 🔒"
+        }
+        return nil
+    }
+
+    private var pastDiscoveryAction: (() -> Void)? {
+        if canAddPastDiscovery {
+            return {
+                dismiss()
+                onAddPastDiscovery()
+            }
+        }
+        if showsLockedPastDiscoveryAction {
+            return {
+                ToastManager.shared.show(
+                    message: "지난 날짜의 발견 기록 추가는 MODI+에서 사용할 수 있어요.",
+                    systemImage: "lock.fill",
+                    iconColor: AppColor.Semantic.warning
+                )
+                dismiss()
+                onShowPremium()
+            }
+        }
+        return nil
+    }
+
     private var emptyDayMessage: String {
         if isFuture {
             return "아직 오지 않은 날이에요"
@@ -169,9 +207,11 @@ struct DiscoveryDaySheet: View {
     return DiscoveryDaySheet(
         date: .now,
         records: records,
-        onAddPastDiscovery: {}
+        onAddPastDiscovery: {},
+        onShowPremium: {}
     )
     .environment(collectionRepository)
+    .environment(PremiumManager.shared)
 }
 
 #Preview("Empty Past Day") {
@@ -182,9 +222,27 @@ struct DiscoveryDaySheet: View {
     return DiscoveryDaySheet(
         date: Calendar.current.date(byAdding: .day, value: -10, to: .now)!,
         records: [],
-        onAddPastDiscovery: {}
+        onAddPastDiscovery: {},
+        onShowPremium: {}
     )
     .environment(collectionRepository)
+    .environment(PremiumManager.shared)
+}
+
+#Preview("Empty Past Day · Locked") {
+    let (container, _) = RecordPreviewData.makeRepository()
+    let collectionRepository = CollectionRepository(modelContext: container.mainContext)
+    collectionRepository.bootstrap()
+    let premiumManager = PremiumManager(storage: UserDefaults(suiteName: "discovery-day-locked-preview")!)
+
+    return DiscoveryDaySheet(
+        date: Calendar.current.date(byAdding: .day, value: -10, to: .now)!,
+        records: [],
+        onAddPastDiscovery: {},
+        onShowPremium: {}
+    )
+    .environment(collectionRepository)
+    .environment(premiumManager)
 }
 
 #Preview("Empty Today") {
@@ -195,7 +253,9 @@ struct DiscoveryDaySheet: View {
     return DiscoveryDaySheet(
         date: .now,
         records: [],
-        onAddPastDiscovery: {}
+        onAddPastDiscovery: {},
+        onShowPremium: {}
     )
     .environment(collectionRepository)
+    .environment(PremiumManager.shared)
 }

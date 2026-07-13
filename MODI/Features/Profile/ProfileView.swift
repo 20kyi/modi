@@ -15,10 +15,12 @@ struct ProfileView: View {
     @Environment(AuthManager.self) private var authManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
     @Environment(EarnedTitleModalPresenter.self) private var earnedTitleModalPresenter
+    @Environment(PremiumManager.self) private var premiumManager
     @State private var viewModel = ProfileViewModel()
     @State private var selectedCalendarDay: SelectedCalendarDay?
     @State private var pastDiscoveryPresentation: PastDiscoveryPresentation?
     @State private var isShowingLogin = false
+    @State private var isShowingPremium = false
     @State private var uploadErrorMessage: String?
 
     private struct PastDiscoveryPresentation: Identifiable {
@@ -96,15 +98,25 @@ struct ProfileView: View {
             .onAppear {
                 refreshData()
             }
+            .navigationDestination(isPresented: $isShowingPremium) {
+                PremiumView()
+            }
             .sheet(item: $selectedCalendarDay) { selection in
                 DiscoveryDaySheet(
                     date: selection.date,
                     records: recordRepository.fetchRecords(on: selection.date),
                     onAddPastDiscovery: {
+                        guard premiumManager.isPremium else { return }
                         let date = selection.date
                         selectedCalendarDay = nil
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                             pastDiscoveryPresentation = PastDiscoveryPresentation(date: date)
+                        }
+                    },
+                    onShowPremium: {
+                        selectedCalendarDay = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            isShowingPremium = true
                         }
                     }
                 )
@@ -334,6 +346,7 @@ private struct ProfileBannerCard: View {
         .environment(collectionRepository)
         .environment(streakManager)
         .environment(EarnedTitleModalPresenter.mock)
+        .environment(PremiumManager.shared)
     .preferredColorScheme(.light)
 }
 
@@ -353,5 +366,6 @@ private struct ProfileBannerCard: View {
         .environment(collectionRepository)
         .environment(streakManager)
         .environment(EarnedTitleModalPresenter.mock)
-        .preferredColorScheme(.dark)
+        .environment(PremiumManager.shared)
+    .preferredColorScheme(.dark)
 }
