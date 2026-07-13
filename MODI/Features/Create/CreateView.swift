@@ -168,6 +168,7 @@ struct CreateView: View {
                 mission: todaysMission,
                 canOfferMissionChange: canOfferMissionChange,
                 showsMissionChangeButton: showsMissionChangeButton,
+                hasPremium: premiumManager.hasPremium,
                 remainingMissionChanges: remainingMissionChanges,
                 onChangeMissionTapped: rerollMission
             )

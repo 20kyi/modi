@@ -16,13 +16,11 @@ struct CollectionDetailView: View {
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
-    @Environment(\.dismiss) private var dismiss
 
     private let photoCollection: PhotoCollection?
     private let modiCollection: MODICollection?
 
     @State private var recordPendingDeletion: MODIRecord?
-    @State private var showsDeleteCollectionConfirmation = false
     @State private var editorPresentation: CollectionEditorPresentation?
     @State private var sharePayload: CollectionSharePayload?
     @State private var shareErrorMessage: String?
@@ -62,10 +60,6 @@ struct CollectionDetailView: View {
         CollectionProgress.make(conceptID: collection.id, totalDiscoveries: records.count)
     }
 
-    private var isCustomCollection: Bool {
-        collection.collectionType == .custom
-    }
-
     private let columns = Array(
         repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
         count: 3
@@ -88,33 +82,13 @@ struct CollectionDetailView: View {
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: AppSpacing.sm) {
-                    Button {
-                        presentShareSheet()
-                    } label: {
-                        Image(systemName: "square.and.arrow.up")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .accessibilityLabel("공유하기")
-
-                    if isCustomCollection {
-                        Menu {
-                            NavigationLink {
-                                AddCollectionView(editingCollection: collection)
-                            } label: {
-                                Label("컬렉션 수정", systemImage: "pencil")
-                            }
-
-                            Button("컬렉션 삭제", systemImage: "trash", role: .destructive) {
-                                showsDeleteCollectionConfirmation = true
-                            }
-                        } label: {
-                            Image(systemName: "ellipsis.circle")
-                                .font(.system(size: 16, weight: .semibold))
-                        }
-                        .accessibilityLabel("컬렉션 관리")
-                    }
+                Button {
+                    presentShareSheet()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 17, weight: .semibold))
                 }
+                .accessibilityLabel("공유하기")
             }
         }
         .fullScreenCover(item: $editorPresentation) { presentation in
@@ -140,20 +114,6 @@ struct CollectionDetailView: View {
             }
         } message: { _ in
             Text("삭제한 사진은 복구할 수 없어요.")
-        }
-        .alert("이 컬렉션을 삭제할까요?", isPresented: $showsDeleteCollectionConfirmation) {
-            Button("삭제", role: .destructive) {
-                Task {
-                    await deleteCollection()
-                }
-            }
-            Button("취소", role: .cancel) {}
-        } message: {
-            if records.isEmpty {
-                Text("삭제한 컬렉션은 복구할 수 없어요.")
-            } else {
-                Text("컬렉션과 함께 \(records.count)장의 사진도 모두 삭제돼요. 복구할 수 없어요.")
-            }
         }
         .alert("삭제 실패", isPresented: deleteFailedAlertIsPresented) {
             Button("확인", role: .cancel) {
@@ -342,32 +302,6 @@ struct CollectionDetailView: View {
             )
             recordPendingDeletion = nil
             ToastManager.shared.showRecordDeleted()
-        } catch {
-            deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
-        }
-    }
-
-    private func deleteCollection() async {
-        guard isCustomCollection else { return }
-
-        HapticManager.shared.warning()
-
-        do {
-            for record in records {
-                try await deleteRemoteRecordIfNeeded(record)
-            }
-
-            collectionRepository.deleteCustomCollection(
-                collection,
-                accessToken: authManager.accessToken
-            )
-            repository.reload()
-            streakManager.refresh(
-                recordRepository: repository,
-                collectionRepository: collectionRepository
-            )
-            showsDeleteCollectionConfirmation = false
-            dismiss()
         } catch {
             deleteErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
