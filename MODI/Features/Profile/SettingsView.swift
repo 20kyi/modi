@@ -65,6 +65,7 @@ struct SettingsView: View {
     @Environment(AuthManager.self) private var authManager
     @Environment(MissionManager.self) private var missionManager
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(PremiumManager.self) private var premiumManager
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
@@ -87,6 +88,11 @@ struct SettingsView: View {
                 appSection
                 supportSection
                 infoSection
+
+                #if DEBUG
+                developerSection
+                #endif
+
                 accountManagementSection
             }
             .appScreenPadding()
@@ -281,6 +287,25 @@ struct SettingsView: View {
         }
     }
 
+    #if DEBUG
+    private var developerSection: some View {
+        settingsSection(title: "개발자") {
+            VStack(spacing: 0) {
+                settingsToggleRow(
+                    icon: "hammer.fill",
+                    title: "프리미엄 상태",
+                    subtitle: "개발·테스트용 프리미엄 시뮬레이션",
+                    isOn: Binding(
+                        get: { premiumManager.isDeveloperPremiumEnabled },
+                        set: { premiumManager.setDeveloperPremiumEnabled($0) }
+                    )
+                )
+            }
+            .appCardStyle(padding: 0)
+        }
+    }
+    #endif
+
     private var accountManagementSection: some View {
         settingsSection(title: "계정 관리") {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -389,16 +414,30 @@ struct SettingsView: View {
         .background(AppColor.Surface.card)
     }
 
-    private func settingsToggleRow(icon: String, title: String, isOn: Binding<Bool>) -> some View {
+    private func settingsToggleRow(
+        icon: String,
+        title: String,
+        subtitle: String? = nil,
+        isOn: Binding<Bool>
+    ) -> some View {
         Button {
             isOn.wrappedValue.toggle()
         } label: {
             HStack(spacing: AppSpacing.md) {
                 rowIcon(icon)
 
-                Text(title)
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.Text.primary)
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                    Text(title)
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.Text.primary)
+
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(AppFont.footnote)
+                            .foregroundStyle(AppColor.Text.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
 
                 Spacer(minLength: 0)
 
