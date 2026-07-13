@@ -207,7 +207,7 @@ struct ProfileView: View {
                 NavigationLink {
                     PremiumView()
                 } label: {
-                    settingsRow(icon: "crown.fill", title: "Premium", iconColor: AppColor.Semantic.warning)
+                    settingsRow(icon: "crown.fill", title: "MODI+", iconColor: AppColor.Semantic.warning)
                 }
                 .buttonStyle(.plain)
 
@@ -217,7 +217,7 @@ struct ProfileView: View {
                 NavigationLink {
                     SettingsView()
                 } label: {
-                    settingsRow(icon: "gearshape.fill", title: "설정 열기", iconColor: AppColor.Accent.primary)
+                    settingsRow(icon: "gearshape.fill", title: "설정 열기", iconColor: AppColor.Accent.highlight)
                 }
                 .buttonStyle(.plain)
             }
