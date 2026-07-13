@@ -6,6 +6,7 @@ struct EmptyStateView: View {
     let title: String
     let message: String
     var actionTitle: String?
+    var actionFootnote: String?
     var action: (() -> Void)?
 
     var body: some View {
@@ -26,12 +27,21 @@ struct EmptyStateView: View {
             }
 
             if let actionTitle, let action {
-                Button(action: action) {
-                    Text(actionTitle)
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.Accent.buttonLabel)
+                VStack(spacing: AppSpacing.xs) {
+                    Button(action: action) {
+                        Text(actionTitle)
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.Accent.buttonLabel)
+                    }
+                    .padding(.top, AppSpacing.xs)
+
+                    if let actionFootnote {
+                        Text(actionFootnote)
+                            .font(AppFont.caption1)
+                            .foregroundStyle(AppColor.Text.tertiary)
+                            .multilineTextAlignment(.center)
+                    }
                 }
-                .padding(.top, AppSpacing.xs)
             }
         }
         .frame(maxWidth: .infinity)

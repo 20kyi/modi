@@ -78,6 +78,7 @@ struct DiscoveryDaySheet: View {
                 title: "이 날의 발견이 없어요",
                 message: emptyDayMessage,
                 actionTitle: pastDiscoveryActionTitle,
+                actionFootnote: pastDiscoveryActionFootnote,
                 action: pastDiscoveryAction
             )
 
@@ -136,6 +137,12 @@ struct DiscoveryDaySheet: View {
     }
 
     // MARK: - Helpers
+
+    private var pastDiscoveryActionFootnote: String? {
+        showsLockedPastDiscoveryAction
+            ? "MODI+에서 지나간 순간을 다시 기록하세요"
+            : nil
+    }
 
     private var pastDiscoveryActionTitle: String? {
         if canAddPastDiscovery {
