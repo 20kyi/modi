@@ -100,6 +100,13 @@ enum AppColor {
 
         /// 보조·텍스트 버튼 라벨, borderedProminent tint
         static var buttonLabel: Color { palette.accent }
+
+        /// Empty state 등 텍스트 액션 버튼 라벨
+        static var textAction: Color {
+            ThemeManager.shared.selectedTheme == .midnightFilm
+                ? palette.primary
+                : palette.accent
+        }
     }
 
     // MARK: Border

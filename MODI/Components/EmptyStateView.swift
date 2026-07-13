@@ -31,7 +31,7 @@ struct EmptyStateView: View {
                     Button(action: action) {
                         Text(actionTitle)
                             .font(AppFont.headline)
-                            .foregroundStyle(AppColor.Accent.buttonLabel)
+                            .foregroundStyle(AppColor.Accent.textAction)
                     }
                     .padding(.top, AppSpacing.xs)
 
