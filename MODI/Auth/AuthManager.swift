@@ -179,7 +179,10 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             return
         }
 
-        let nickname = nicknameForAppleCredential(credential, fallbackToStorageUserId: credential.user)
+        let nickname = nicknameForAppleCredential(
+            credential,
+            fallbackToStorageUserId: credential.user
+        )
 
         Task {
             do {
@@ -250,10 +253,12 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         try KeychainStore.save(accessToken, for: .accessToken)
     }
 
+    /// Apple 로그인 시 서버에 전달할 닉네임 제안값.
+    /// 기존 계정 재로그인 시 서버가 저장된 닉네임을 유지하므로, 여기서 보낸 값으로 덮어쓰이지 않습니다.
     private func nicknameForAppleCredential(
         _ credential: ASAuthorizationAppleIDCredential,
         fallbackToStorageUserId: String
-    ) -> String {
+    ) -> String? {
         if let givenName = credential.fullName?.givenName, !givenName.isEmpty {
             return givenName
         }
@@ -269,6 +274,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             return storedNickname
         }
 
+        // 신규 가입 시 기본 닉네임으로 사용됩니다.
         return NicknameGenerator.generateRandomNickname()
     }
 

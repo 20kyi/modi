@@ -61,13 +61,7 @@ export class AuthService {
     const existingUser = await this.prisma.user.findUnique({ where: { appleSub } });
 
     if (existingUser) {
-      if (nickname && nickname !== existingUser.nickname) {
-        const updatedUser = await this.prisma.user.update({
-          where: { id: existingUser.id },
-          data: { nickname },
-        });
-        return { user: updatedUser, isNewUser: false };
-      }
+      // 기존 사용자는 로그인 시 닉네임을 변경하지 않습니다. (게스트 → 재로그인 등)
       return { user: existingUser, isNewUser: false };
     }
 
