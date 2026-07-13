@@ -87,7 +87,7 @@ struct SettingsView: View {
                 appSection
                 supportSection
                 infoSection
-                accountManagementSection
+                deleteAccountSection
             }
             .appScreenPadding()
             .padding(.top, AppSpacing.md)
@@ -124,26 +124,70 @@ struct SettingsView: View {
 
     private var accountSection: some View {
         settingsSection(title: "계정") {
-            VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                VStack(spacing: 0) {
+                    if authManager.session.isLoggedIn {
+                        settingsValueRow(
+                            icon: "person.fill",
+                            title: authManager.session.displayName,
+                            subtitle: "Apple로 로그인됨"
+                        )
+                        dividerInset()
+                        nicknameEditorRow
+                    } else {
+                        settingsValueRow(
+                            icon: "person.crop.circle.badge.questionmark",
+                            title: "게스트로 이용 중",
+                            subtitle: "로그인하면 기록을 안전하게 보관할 수 있어요"
+                        )
+                    }
+                }
+                .appCardStyle(padding: 0)
+
+                if let signInErrorMessage {
+                    Text(signInErrorMessage)
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.Semantic.error)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
                 if authManager.session.isLoggedIn {
-                    settingsValueRow(
-                        icon: "person.fill",
-                        title: authManager.session.displayName,
-                        subtitle: "Apple로 로그인됨"
-                    )
-                    dividerInset()
-                    nicknameEditorRow
+                    Button("로그아웃") {
+                        showSignOutConfirmation = true
+                    }
+                    .buttonStyle(PrimaryButtonStyle())
+                    .disabled(isDeletingAccount)
                 } else {
-                    settingsValueRow(
-                        icon: "person.crop.circle.badge.questionmark",
-                        title: "게스트로 이용 중",
-                        subtitle: "로그인하면 기록을 안전하게 보관할 수 있어요"
-                    )
-                    dividerInset()
-                    appleSignInRow(title: "Apple로 로그인")
+                    Button {
+                        signInWithApple()
+                    } label: {
+                        ZStack {
+                            HStack(spacing: AppSpacing.md) {
+                                Image(systemName: "apple.logo")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(AppColor.Text.onButton)
+
+                                Text("Apple로 로그인")
+                                    .font(AppFont.headline)
+                                    .foregroundStyle(AppColor.Text.onButton)
+                            }
+
+                            HStack {
+                                Spacer()
+                                if isSigningIn {
+                                    ProgressView()
+                                        .tint(AppColor.Text.onButton)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, AppSpacing.lg)
+                        .frame(height: AppSpacing.minTouchTarget)
+                        .background(AppColor.Accent.buttonFill, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(isSigningIn || isDeletingAccount)
                 }
             }
-            .appCardStyle(padding: 0)
         }
     }
 
@@ -273,88 +317,57 @@ struct SettingsView: View {
 
     private var infoSection: some View {
         settingsSection(title: "정보") {
-            settingsValueRow(
-                icon: "info.circle",
-                title: "Version \(appVersion)",
-                subtitle: nil
-            )
+            VStack(spacing: 0) {
+                HStack(spacing: AppSpacing.md) {
+                    rowIcon("info.circle")
+
+                    Text("버전")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.Text.primary)
+
+                    Spacer(minLength: 0)
+
+                    Text(appVersion)
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.Text.secondary)
+                        .lineLimit(1)
+                }
+                .settingsRowStyle()
+                .background(AppColor.Surface.card)
+            }
+            .appCardStyle(padding: 0)
         }
     }
 
-    private var accountManagementSection: some View {
-        settingsSection(title: "계정 관리") {
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                if let signInErrorMessage {
-                    Text(signInErrorMessage)
-                        .font(AppFont.footnote)
-                        .foregroundStyle(AppColor.Semantic.error)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+    @ViewBuilder
+    private var deleteAccountSection: some View {
+        if authManager.session.isLoggedIn {
+            Button {
+                showDeleteAccountConfirmation = true
+            } label: {
+                ZStack {
+                    Text("회원탈퇴")
+                        .font(AppFont.headline)
+                        .frame(maxWidth: .infinity, alignment: .center)
 
-                if authManager.session.isLoggedIn {
-                    VStack(spacing: AppSpacing.sm) {
-                        Button("로그아웃") {
-                            showSignOutConfirmation = true
+                    HStack {
+                        Spacer()
+                        if isDeletingAccount {
+                            ProgressView()
+                                .tint(AppColor.Semantic.error)
                         }
-                        .buttonStyle(PrimaryButtonStyle())
-                        .disabled(isDeletingAccount)
-
-                        Button {
-                            showDeleteAccountConfirmation = true
-                        } label: {
-                            ZStack {
-                                Text("회원탈퇴")
-                                    .font(AppFont.headline)
-                                    .frame(maxWidth: .infinity, alignment: .center)
-
-                                HStack {
-                                    Spacer()
-                                    if isDeletingAccount {
-                                        ProgressView()
-                                            .tint(AppColor.Semantic.error)
-                                    }
-                                }
-                            }
-                            .foregroundStyle(AppColor.Semantic.error)
-                            .padding(.horizontal, AppSpacing.lg)
-                            .frame(height: AppSpacing.minTouchTarget)
-                            .background(
-                                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
-                                    .stroke(AppColor.Semantic.error.opacity(0.4), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
-                        .disabled(isDeletingAccount)
                     }
-                } else {
-                    Button {
-                        signInWithApple()
-                    } label: {
-                        HStack(spacing: AppSpacing.md) {
-                            Image(systemName: "apple.logo")
-                                .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(AppColor.Text.onButton)
-
-                            Text("Apple로 로그인")
-                                .font(AppFont.headline)
-                                .foregroundStyle(AppColor.Text.onButton)
-
-                            Spacer()
-
-                            if isSigningIn {
-                                ProgressView()
-                                    .tint(AppColor.Text.onButton)
-                            }
-                        }
-                        .padding(.horizontal, AppSpacing.lg)
-                        .frame(height: AppSpacing.minTouchTarget)
-                        .background(AppColor.Accent.buttonFill, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(isSigningIn || isDeletingAccount)
                 }
+                .foregroundStyle(AppColor.Semantic.error)
+                .padding(.horizontal, AppSpacing.lg)
+                .frame(height: AppSpacing.minTouchTarget)
+                .background(
+                    RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                        .stroke(AppColor.Semantic.error.opacity(0.4), lineWidth: 1)
+                )
             }
-            .appCardStyle()
+            .buttonStyle(.plain)
+            .disabled(isDeletingAccount)
         }
     }
 
@@ -470,35 +483,6 @@ struct SettingsView: View {
             .background(AppColor.Surface.card)
         }
         .buttonStyle(.plain)
-    }
-
-    private func appleSignInRow(title: String) -> some View {
-        Button {
-            signInWithApple()
-        } label: {
-            HStack(spacing: AppSpacing.md) {
-                rowIcon("apple.logo")
-
-                Text(title)
-                    .font(AppFont.body)
-                    .foregroundStyle(AppColor.Text.primary)
-
-                Spacer(minLength: 0)
-
-                if isSigningIn {
-                    ProgressView()
-                        .tint(AppColor.Accent.highlight)
-                } else {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(AppColor.Text.tertiary)
-                }
-            }
-            .settingsRowStyle()
-            .background(AppColor.Surface.card)
-        }
-        .buttonStyle(.plain)
-        .disabled(isSigningIn)
     }
 
     private func rowIcon(_ name: String) -> some View {
