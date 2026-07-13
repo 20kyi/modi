@@ -17,10 +17,6 @@ struct RecommendedCollectionAddSheet: View {
         collectionRepository.hasAddedTemplate(template.id)
     }
 
-    private var customCollectionCount: Int {
-        collectionRepository.customCollections.count
-    }
-
     var body: some View {
         NavigationStack {
             VStack(spacing: AppSpacing.xl) {
@@ -108,7 +104,7 @@ struct RecommendedCollectionAddSheet: View {
     }
 
     private func attemptAddCustomCollection() {
-        if premiumManager.canCreateCustomCollection(currentCount: customCollectionCount) {
+        if premiumManager.canCreateCustomCollection(in: collectionRepository.collections) {
             collectionRepository.addCustomCollection(
                 from: template,
                 accessToken: authManager.accessToken

@@ -21,6 +21,7 @@ struct PhotoEditorView: View {
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(StreakManager.self) private var streakManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
+    @Environment(PremiumManager.self) private var premiumManager
 
     @State private var elements: [EditorElement] = []
     @State private var selectedElementID: UUID?
@@ -43,6 +44,8 @@ struct PhotoEditorView: View {
     @State private var savedEditorState: EditorState?
     @State private var shouldSyncFromSavedState = true
     @State private var showRevertAlert = false
+    @State private var isShowingCustomRecordLimitSheet = false
+    @State private var isShowingPremium = false
 
     private var originalPhoto: UIImage {
         if let existingRecord,
@@ -170,6 +173,19 @@ struct PhotoEditorView: View {
                 Button("취소", role: .cancel) {}
             } message: {
                 Text("추가한 스티커, 텍스트, 프레임은 물론 사진 크롭 설정도 초기화돼요.")
+            }
+            .navigationDestination(isPresented: $isShowingPremium) {
+                PremiumView()
+            }
+            .sheet(isPresented: $isShowingCustomRecordLimitSheet) {
+                CustomCollectionRecordLimitSheet(
+                    onShowPremium: {
+                        isShowingCustomRecordLimitSheet = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            isShowingPremium = true
+                        }
+                    }
+                )
             }
         }
     }
@@ -598,6 +614,29 @@ struct PhotoEditorView: View {
             return
         }
 
+        let isNewRecord = existingRecord == nil
+        let resolvedCollection = collection ?? collectionRepository.collection(for: concept.id)
+        let fallbackType: CollectionType = concept.type == .custom ? .custom : .system
+
+        if isNewRecord {
+            let canAddRecord: Bool
+
+            if let resolvedCollection {
+                canAddRecord = premiumManager.canAddRecord(
+                    to: resolvedCollection,
+                    allCollections: collectionRepository.collections
+                )
+            } else {
+                canAddRecord = premiumManager.canAddRecord(to: fallbackType)
+            }
+
+            if !canAddRecord {
+                HapticManager.shared.warning()
+                isShowingCustomRecordLimitSheet = true
+                return
+            }
+        }
+
         let wasEdited = !elements.isEmpty || selectedFrame != .none || isPhotoCroppedFromDefault
         let renderedImage: UIImage
 
@@ -630,8 +669,8 @@ struct PhotoEditorView: View {
             : nil
 
         do {
-            let linkedCollection = collection ?? collectionRepository.ensureCollection(for: concept)
-            let isNewRecord = existingRecord == nil
+            let linkedCollection = resolvedCollection
+                ?? collectionRepository.ensureCollection(for: concept)
             let previousCount = repository.photoCount(for: linkedCollection.id)
             let targetRecord: MODIRecord
 

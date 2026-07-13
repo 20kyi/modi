@@ -16,6 +16,7 @@ struct CollectionDetailView: View {
     @Environment(RecordRepository.self) private var repository
     @Environment(StreakManager.self) private var streakManager
     @Environment(TitleCelebrationManager.self) private var titleCelebrationManager
+    @Environment(PremiumManager.self) private var premiumManager
 
     private let photoCollection: PhotoCollection?
     private let modiCollection: MODICollection?
@@ -58,6 +59,11 @@ struct CollectionDetailView: View {
 
     private var progress: CollectionProgress {
         CollectionProgress.make(conceptID: collection.id, totalDiscoveries: records.count)
+    }
+
+    private var isFreeCustomSlot: Bool {
+        guard collection.collectionType == .custom else { return false }
+        return premiumManager.freeCustomCollectionSlotID(in: collectionRepository.collections) == collection.id
     }
 
     private let columns = Array(
@@ -185,6 +191,15 @@ struct CollectionDetailView: View {
             Text("\(discoveryCountLabel) · \(records.count)장의 사진")
                 .font(AppFont.caption1)
                 .foregroundStyle(AppColor.Text.tertiary)
+
+            if isFreeCustomSlot {
+                Text("무료 기본 슬롯")
+                    .font(AppFont.caption1)
+                    .foregroundStyle(AppColor.Text.primary)
+                    .padding(.horizontal, AppSpacing.sm)
+                    .padding(.vertical, AppSpacing.xxs)
+                    .background(AppColor.Background.secondary, in: Capsule())
+            }
         }
     }
 
@@ -376,6 +391,7 @@ private struct MODIRecordTile: View {
     .environment(StreakManager.mock)
     .environment(TitleCelebrationManager())
     .environment(AuthManager.mock)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.light)
 }
 
@@ -397,6 +413,7 @@ private struct MODIRecordTile: View {
     .environment(StreakManager.mock)
     .environment(TitleCelebrationManager())
     .environment(AuthManager.mock)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.light)
 }
 
@@ -418,6 +435,7 @@ private struct MODIRecordTile: View {
     .environment(StreakManager.mock)
     .environment(TitleCelebrationManager())
     .environment(AuthManager.mock)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.dark)
 }
 
@@ -439,5 +457,6 @@ private struct MODIRecordTile: View {
     .environment(StreakManager.mock)
     .environment(TitleCelebrationManager.mock)
     .environment(AuthManager.mock)
+    .environment(PremiumManager.shared)
     .preferredColorScheme(.light)
 }

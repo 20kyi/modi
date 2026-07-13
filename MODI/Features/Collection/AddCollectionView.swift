@@ -7,6 +7,7 @@ struct AddCollectionView: View {
 
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(AuthManager.self) private var authManager
+    @Environment(PremiumManager.self) private var premiumManager
     @Environment(\.dismiss) private var dismiss
 
     @State private var title: String
@@ -17,6 +18,8 @@ struct AddCollectionView: View {
     @State private var autoFilledTitle: String?
     @State private var autoFilledMissionPrompt: String?
     @State private var autoFilledDescription: String?
+    @State private var isShowingCollectionLimitSheet = false
+    @State private var isShowingPremium = false
 
     private let emojiOptions = [
         "🩷", "❤️", "🧡", "💛", "💚", "💙",
@@ -72,6 +75,19 @@ struct AddCollectionView: View {
         .appScreenBackground()
         .navigationTitle(isEditing ? "컬렉션 수정" : "컬렉션 추가")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationDestination(isPresented: $isShowingPremium) {
+            PremiumView()
+        }
+        .sheet(isPresented: $isShowingCollectionLimitSheet) {
+            CustomCollectionLimitSheet(
+                onShowPremium: {
+                    isShowingCollectionLimitSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        isShowingPremium = true
+                    }
+                }
+            )
+        }
     }
 
     private var headerSection: some View {
@@ -220,6 +236,12 @@ struct AddCollectionView: View {
                 accessToken: authManager.accessToken
             )
         } else {
+            guard premiumManager.canCreateCustomCollection(in: collectionRepository.collections) else {
+                HapticManager.shared.warning()
+                isShowingCollectionLimitSheet = true
+                return
+            }
+
             collectionRepository.addCustomCollection(
                 title: trimmedTitle,
                 emoji: emoji,

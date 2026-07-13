@@ -4,6 +4,7 @@ struct CollectionCard: View {
 
     let collection: MODICollection
     let photoCount: Int
+    var isFreeCustomSlot: Bool = false
 
     private var progress: CollectionProgress {
         CollectionProgress.make(conceptID: collection.id, totalDiscoveries: photoCount)
@@ -26,6 +27,17 @@ struct CollectionCard: View {
                             .padding(.horizontal, AppSpacing.sm)
                             .padding(.vertical, AppSpacing.xxs)
                             .background(AppColor.Accent.primary, in: Capsule())
+                            .padding(AppSpacing.sm)
+                    }
+                }
+                .overlay(alignment: .topLeading) {
+                    if isFreeCustomSlot {
+                        Text("무료 기본 슬롯")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.Text.primary)
+                            .padding(.horizontal, AppSpacing.sm)
+                            .padding(.vertical, AppSpacing.xxs)
+                            .background(.ultraThinMaterial, in: Capsule())
                             .padding(AppSpacing.sm)
                     }
                 }
@@ -59,13 +71,14 @@ struct CollectionCard: View {
 }
 
 extension CollectionCard {
-    init(collection: PhotoCollection, photoCount: Int) {
+    init(collection: PhotoCollection, photoCount: Int, isFreeCustomSlot: Bool = false) {
         self.init(
             collection: MODICollection.from(
                 photoCollection: collection,
                 type: collection.category == .custom ? .custom : .system
             ),
-            photoCount: photoCount
+            photoCount: photoCount,
+            isFreeCustomSlot: isFreeCustomSlot
         )
     }
 }

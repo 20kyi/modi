@@ -151,12 +151,12 @@ struct CollectionView: View {
         [.color, .nature, .custom]
     }
 
-    private var customCollectionCount: Int {
-        customCollections.count
-    }
-
     private var customCollections: [MODICollection] {
         collectionRepository.customCollections
+    }
+
+    private var freeCustomSlotID: UUID? {
+        premiumManager.freeCustomCollectionSlotID(in: collectionRepository.collections)
     }
 
     private var deleteCollectionAlertIsPresented: Binding<Bool> {
@@ -187,7 +187,7 @@ struct CollectionView: View {
     }
 
     private func attemptCreateCustomCollection() {
-        if premiumManager.canCreateCustomCollection(currentCount: customCollectionCount) {
+        if premiumManager.canCreateCustomCollection(in: collectionRepository.collections) {
             isShowingAddCollection = true
         } else {
             isShowingCollectionLimitSheet = true
@@ -308,7 +308,8 @@ struct CollectionView: View {
                         NavigationLink(value: collection) {
                             CollectionCard(
                                 collection: collection,
-                                photoCount: repository.photoCount(for: collection.id)
+                                photoCount: repository.photoCount(for: collection.id),
+                                isFreeCustomSlot: category == .custom && collection.id == freeCustomSlotID
                             )
                         }
                         .buttonStyle(.plain)
