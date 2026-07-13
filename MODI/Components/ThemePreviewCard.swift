@@ -8,8 +8,6 @@ struct ThemePreviewCard: View {
 
     private var colors: ThemeColors { highlight.theme.definition.colors }
 
-    private let size: CGFloat = 112
-
     var body: some View {
         VStack(alignment: .center, spacing: AppSpacing.sm) {
             previewSquare
@@ -25,24 +23,28 @@ struct ThemePreviewCard: View {
                     .minimumScaleFactor(0.8)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private var previewSquare: some View {
         VStack(spacing: 0) {
             colors.background
-                .frame(height: size * 0.28)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1 / 0.28, contentMode: .fit)
 
             colors.surface
-                .frame(height: size * 0.52)
+                .frame(maxWidth: .infinity)
+                .aspectRatio(1 / 0.52, contentMode: .fit)
 
             Text("Button")
                 .font(.system(size: 7, weight: .semibold))
+                .minimumScaleFactor(0.5)
+                .lineLimit(1)
                 .foregroundStyle(colors.onAccent)
                 .frame(maxWidth: .infinity)
-                .frame(height: size * 0.20)
+                .aspectRatio(1 / 0.20, contentMode: .fit)
                 .background(colors.primary)
         }
-        .frame(width: size, height: size)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
@@ -59,8 +61,6 @@ struct ThemePreviewCard: View {
             ThemePreviewCard(highlight: theme)
         }
     }
-    .fixedSize()
-    .frame(maxWidth: .infinity, alignment: .center)
     .appScreenPadding()
     .appGroupedBackground()
     .preferredColorScheme(.light)

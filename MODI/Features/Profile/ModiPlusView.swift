@@ -115,8 +115,6 @@ struct ModiPlusView: View {
                     ThemePreviewCard(highlight: theme)
                 }
             }
-            .fixedSize()
-            .frame(maxWidth: .infinity, alignment: .center)
             .padding(.vertical, AppSpacing.xxs)
         }
     }
