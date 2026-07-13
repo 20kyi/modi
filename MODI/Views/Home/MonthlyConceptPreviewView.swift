@@ -41,7 +41,7 @@ struct MonthlyConceptPreviewView: View {
                 } label: {
                     Text("기록 보기")
                 }
-                .buttonStyle(SecondaryButtonStyle())
+                .buttonStyle(PrimaryButtonStyle())
             }
             .appCardStyle()
         }

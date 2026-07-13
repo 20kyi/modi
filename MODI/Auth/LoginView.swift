@@ -59,24 +59,24 @@ struct LoginView: View {
                     HStack(spacing: AppSpacing.md) {
                         Image(systemName: "apple.logo")
                             .font(.system(size: 18, weight: .semibold))
-                            .foregroundStyle(AppColor.Text.onAccent)
+                            .foregroundStyle(AppColor.Text.onButton)
 
                         Text("Apple로 시작하기")
                             .font(AppFont.headline)
-                            .foregroundStyle(AppColor.Text.onAccent)
+                            .foregroundStyle(AppColor.Text.onButton)
                     }
 
                     HStack {
                         Spacer()
                         if isSigningIn {
                             ProgressView()
-                                .tint(AppColor.Text.onAccent)
+                                .tint(AppColor.Text.onButton)
                         }
                     }
                 }
                 .padding(.horizontal, AppSpacing.lg)
                 .frame(height: AppSpacing.minTouchTarget)
-                .background(AppColor.Accent.primary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+                .background(AppColor.Accent.buttonFill, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
             }
             .buttonStyle(.plain)
             .disabled(isSigningIn)

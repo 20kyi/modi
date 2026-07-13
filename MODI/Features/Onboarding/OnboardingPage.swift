@@ -189,10 +189,10 @@ struct OnboardingPrimaryButton: View {
         Button(action: action) {
             Text(title)
                 .font(AppFont.headline)
-                .foregroundStyle(AppColor.Text.onAccent)
+                .foregroundStyle(AppColor.Text.onButton)
                 .frame(maxWidth: .infinity)
                 .frame(height: AppSpacing.minTouchTarget + AppSpacing.sm)
-                .background(AppColor.Accent.primary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+                .background(AppColor.Accent.buttonFill, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
         }
         .buttonStyle(OnboardingButtonStyle())
     }

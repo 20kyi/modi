@@ -188,6 +188,14 @@ struct ThemeColors: Equatable {
         primary.blended(with: background, amount: isDark ? 0.38 : 0.28)
     }
 
+    var accentButtonPressed: Color {
+        accent.blended(with: background, amount: isDark ? 0.32 : 0.22)
+    }
+
+    var accentButtonSoft: Color {
+        accent.blended(with: background, amount: isDark ? 0.68 : 0.78)
+    }
+
     var borderDefault: Color {
         subText.blended(with: background, amount: isDark ? 0.62 : 0.72)
     }
@@ -222,6 +230,11 @@ struct ThemeColors: Equatable {
 
     var onAccent: Color {
         primary.contrastingTextColor
+    }
+
+    /// highlight(accent) 배경 위 전경색 — 예: Midnight Film 골드 버튼 라벨
+    var onHighlight: Color {
+        accent.contrastingTextColor
     }
 }
 
