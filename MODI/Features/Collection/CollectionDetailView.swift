@@ -66,6 +66,10 @@ struct CollectionDetailView: View {
         return premiumManager.freeCustomCollectionSlotID(in: collectionRepository.collections) == collection.id
     }
 
+    private var isPremiumCustomSlot: Bool {
+        collection.collectionType == .custom && !isFreeCustomSlot
+    }
+
     private let columns = Array(
         repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
         count: 3
@@ -193,12 +197,19 @@ struct CollectionDetailView: View {
                 .foregroundStyle(AppColor.Text.tertiary)
 
             if isFreeCustomSlot {
-                Text("무료 기본 슬롯")
+                Text("기본 슬롯")
                     .font(AppFont.caption1)
                     .foregroundStyle(AppColor.Text.primary)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.xxs)
                     .background(AppColor.Background.secondary, in: Capsule())
+            } else if isPremiumCustomSlot {
+                Text("MODI+")
+                    .font(AppFont.caption1.weight(.semibold))
+                    .foregroundStyle(AppColor.Text.onAccent)
+                    .padding(.horizontal, AppSpacing.sm)
+                    .padding(.vertical, AppSpacing.xxs)
+                    .background(AppColor.Accent.primary, in: Capsule())
             }
         }
     }

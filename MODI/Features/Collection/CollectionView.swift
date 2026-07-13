@@ -29,6 +29,7 @@ struct CollectionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
                     headerSection
+                    missionInclusionSection
 
                     ForEach(visibleCategories) { category in
                         categorySection(category)
@@ -155,8 +156,24 @@ struct CollectionView: View {
         collectionRepository.customCollections
     }
 
+    private var missionSettingCollections: [MODICollection] {
+        let categoryOrder: [CollectionCategory: Int] = [.color: 0, .nature: 1, .custom: 2]
+        return collectionRepository.collections.sorted { lhs, rhs in
+            let lhsOrder = categoryOrder[lhs.collectionCategory] ?? Int.max
+            let rhsOrder = categoryOrder[rhs.collectionCategory] ?? Int.max
+            if lhsOrder != rhsOrder { return lhsOrder < rhsOrder }
+            return lhs.title.localizedCaseInsensitiveCompare(rhs.title) == .orderedAscending
+        }
+    }
+
     private var freeCustomSlotID: UUID? {
         premiumManager.freeCustomCollectionSlotID(in: collectionRepository.collections)
+    }
+
+    private func slotBadge(for collection: PhotoCollection, in category: CollectionCategory) -> CollectionCard.SlotBadge {
+        guard category == .custom else { return .none }
+        guard let freeCustomSlotID else { return .none }
+        return collection.id == freeCustomSlotID ? .basic : .premium
     }
 
     private var deleteCollectionAlertIsPresented: Binding<Bool> {
@@ -261,6 +278,56 @@ struct CollectionView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    private var missionInclusionSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Text("오늘의 발견 설정")
+                .font(AppFont.title3)
+                .foregroundStyle(AppColor.Text.primary)
+
+            VStack(spacing: AppSpacing.sm) {
+                ForEach(missionSettingCollections) { collection in
+                    HStack(alignment: .center, spacing: AppSpacing.md) {
+                        Text(collection.emoji)
+                            .font(.system(size: 22))
+
+                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                            Text(collection.title)
+                                .font(AppFont.subheadline)
+                                .foregroundStyle(AppColor.Text.primary)
+                                .lineLimit(1)
+
+                            Text(collection.isIncludedInMission ? "오늘의 발견 후보에 포함" : "미션 후보에서 제외됨")
+                                .font(AppFont.caption1)
+                                .foregroundStyle(AppColor.Text.secondary)
+                        }
+
+                        Spacer()
+
+                        Toggle("오늘의 발견에 포함", isOn: missionInclusionBinding(for: collection.id))
+                            .labelsHidden()
+                    }
+                    .padding(.horizontal, AppSpacing.md)
+                    .padding(.vertical, AppSpacing.sm)
+                    .background(AppColor.Background.secondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
+                }
+            }
+
+            Text("목록에서는 항상 보이고, OFF 시 오늘의 발견 미션에서만 제외돼요.")
+                .font(AppFont.caption1)
+                .foregroundStyle(AppColor.Text.tertiary)
+        }
+    }
+
+    private func missionInclusionBinding(for collectionID: UUID) -> Binding<Bool> {
+        Binding(
+            get: { collectionRepository.collection(for: collectionID)?.isIncludedInMission ?? true },
+            set: { newValue in
+                guard let collection = collectionRepository.collection(for: collectionID) else { return }
+                collectionRepository.updateMissionInclusion(collection, isIncludedInMission: newValue)
+            }
+        )
+    }
+
     private func categorySection(_ category: CollectionCategory) -> some View {
         let collections = PhotoCollection.collections(in: category, custom: store.customCollections)
 
@@ -309,7 +376,7 @@ struct CollectionView: View {
                             CollectionCard(
                                 collection: collection,
                                 photoCount: repository.photoCount(for: collection.id),
-                                isFreeCustomSlot: category == .custom && collection.id == freeCustomSlotID
+                                slotBadge: slotBadge(for: collection, in: category)
                             )
                         }
                         .buttonStyle(.plain)

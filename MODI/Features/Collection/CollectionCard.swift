@@ -2,9 +2,15 @@ import SwiftUI
 
 struct CollectionCard: View {
 
+    enum SlotBadge {
+        case none
+        case basic
+        case premium
+    }
+
     let collection: MODICollection
     let photoCount: Int
-    var isFreeCustomSlot: Bool = false
+    var slotBadge: SlotBadge = .none
 
     private var progress: CollectionProgress {
         CollectionProgress.make(conceptID: collection.id, totalDiscoveries: photoCount)
@@ -31,13 +37,13 @@ struct CollectionCard: View {
                     }
                 }
                 .overlay(alignment: .topLeading) {
-                    if isFreeCustomSlot {
-                        Text("무료 기본 슬롯")
+                    if slotBadge != .none {
+                        Text(slotBadgeTitle)
                             .font(AppFont.caption2)
-                            .foregroundStyle(AppColor.Text.primary)
+                            .foregroundStyle(slotBadgeForeground)
                             .padding(.horizontal, AppSpacing.sm)
                             .padding(.vertical, AppSpacing.xxs)
-                            .background(.ultraThinMaterial, in: Capsule())
+                            .background(slotBadgeBackground, in: Capsule())
                             .padding(AppSpacing.sm)
                     }
                 }
@@ -68,17 +74,46 @@ struct CollectionCard: View {
         }
         .appCardStyle(padding: AppSpacing.md)
     }
+
+    private var slotBadgeTitle: String {
+        switch slotBadge {
+        case .none:
+            ""
+        case .basic:
+            "기본 슬롯"
+        case .premium:
+            "MODI+"
+        }
+    }
+
+    private var slotBadgeForeground: Color {
+        switch slotBadge {
+        case .premium:
+            AppColor.Text.onAccent
+        case .none, .basic:
+            AppColor.Text.primary
+        }
+    }
+
+    private var slotBadgeBackground: AnyShapeStyle {
+        switch slotBadge {
+        case .premium:
+            AnyShapeStyle(AppColor.Accent.primary)
+        case .none, .basic:
+            AnyShapeStyle(.ultraThinMaterial)
+        }
+    }
 }
 
 extension CollectionCard {
-    init(collection: PhotoCollection, photoCount: Int, isFreeCustomSlot: Bool = false) {
+    init(collection: PhotoCollection, photoCount: Int, slotBadge: SlotBadge = .none) {
         self.init(
             collection: MODICollection.from(
                 photoCollection: collection,
                 type: collection.category == .custom ? .custom : .system
             ),
             photoCount: photoCount,
-            isFreeCustomSlot: isFreeCustomSlot
+            slotBadge: slotBadge
         )
     }
 }

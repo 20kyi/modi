@@ -52,7 +52,12 @@ final class CollectionRepository {
     var customCollections: [MODICollection] {
         collections
             .filter { $0.collectionType == .custom }
-            .sorted { $0.createdAt > $1.createdAt }
+            .sorted {
+                if $0.createdAt == $1.createdAt {
+                    return $0.id.uuidString < $1.id.uuidString
+                }
+                return $0.createdAt < $1.createdAt
+            }
     }
 
     func records(for collection: MODICollection) -> [MODIRecord] {
@@ -170,6 +175,15 @@ final class CollectionRepository {
                 await deleteCustomCollectionOnServer(id: collectionID, accessToken: accessToken)
             }
         }
+    }
+
+    func updateMissionInclusion(
+        _ collection: MODICollection,
+        isIncludedInMission: Bool
+    ) {
+        collection.isIncludedInMission = isIncludedInMission
+        try? modelContext.save()
+        reload()
     }
 
     // MARK: - Server Sync
