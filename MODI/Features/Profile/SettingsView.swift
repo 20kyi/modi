@@ -65,7 +65,6 @@ struct SettingsView: View {
     @Environment(AuthManager.self) private var authManager
     @Environment(MissionManager.self) private var missionManager
     @Environment(ThemeManager.self) private var themeManager
-    @Environment(PremiumManager.self) private var premiumManager
     @Environment(\.modelContext) private var modelContext
     @Environment(\.openURL) private var openURL
     @Environment(\.requestReview) private var requestReview
@@ -88,11 +87,6 @@ struct SettingsView: View {
                 appSection
                 supportSection
                 infoSection
-
-                #if DEBUG
-                developerSection
-                #endif
-
                 accountManagementSection
             }
             .appScreenPadding()
@@ -287,25 +281,6 @@ struct SettingsView: View {
         }
     }
 
-    #if DEBUG
-    private var developerSection: some View {
-        settingsSection(title: "개발자") {
-            VStack(spacing: 0) {
-                settingsToggleRow(
-                    icon: "hammer.fill",
-                    title: "프리미엄 상태",
-                    subtitle: "개발·테스트용 프리미엄 시뮬레이션",
-                    isOn: Binding(
-                        get: { premiumManager.isDeveloperPremiumEnabled },
-                        set: { premiumManager.setDeveloperPremiumEnabled($0) }
-                    )
-                )
-            }
-            .appCardStyle(padding: 0)
-        }
-    }
-    #endif
-
     private var accountManagementSection: some View {
         settingsSection(title: "계정 관리") {
             VStack(alignment: .leading, spacing: AppSpacing.sm) {
@@ -321,7 +296,7 @@ struct SettingsView: View {
                         Button("로그아웃") {
                             showSignOutConfirmation = true
                         }
-                        .buttonStyle(SecondaryButtonStyle())
+                        .buttonStyle(PrimaryButtonStyle())
                         .disabled(isDeletingAccount)
 
                         Button {
@@ -358,22 +333,22 @@ struct SettingsView: View {
                         HStack(spacing: AppSpacing.md) {
                             Image(systemName: "apple.logo")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(AppColor.Text.onAccent)
+                                .foregroundStyle(AppColor.Text.onButton)
 
                             Text("Apple로 로그인")
                                 .font(AppFont.headline)
-                                .foregroundStyle(AppColor.Text.onAccent)
+                                .foregroundStyle(AppColor.Text.onButton)
 
                             Spacer()
 
                             if isSigningIn {
                                 ProgressView()
-                                    .tint(AppColor.Text.onAccent)
+                                    .tint(AppColor.Text.onButton)
                             }
                         }
                         .padding(.horizontal, AppSpacing.lg)
                         .frame(height: AppSpacing.minTouchTarget)
-                        .background(AppColor.Accent.primary, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+                        .background(AppColor.Accent.buttonFill, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     .disabled(isSigningIn || isDeletingAccount)
