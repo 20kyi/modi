@@ -1,7 +1,8 @@
 import Foundation
 
 enum UserDisplayName {
-    static let guest = "MODI Explorer"
+    /// 게스트 닉네임이 아직 생성되지 않은 경우에만 사용하는 임시 표시 이름.
+    static let guestPlaceholder = "MODI Explorer"
     static let loggedInFallback = "탐험가"
 }
 
@@ -34,14 +35,17 @@ struct UserSession: Equatable, Sendable {
         )
     }
 
-    /// 홈·프로필 등에 표시할 이름. 게스트는 MODI Explorer.
+    /// 홈·프로필 등에 표시할 이름.
     var displayName: String {
-        guard isLoggedIn else { return UserDisplayName.guest }
-
         let trimmed = nickname?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if trimmed.isEmpty || trimmed == UserDisplayName.guest {
+        guard !trimmed.isEmpty else {
+            return isGuest ? UserDisplayName.guestPlaceholder : UserDisplayName.loggedInFallback
+        }
+
+        if isLoggedIn, trimmed == UserDisplayName.guestPlaceholder {
             return UserDisplayName.loggedInFallback
         }
+
         return trimmed
     }
 

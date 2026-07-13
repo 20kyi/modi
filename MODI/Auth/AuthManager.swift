@@ -27,6 +27,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         static let isLoggedIn = "modi_auth_isLoggedIn"
         static let userId = "modi_auth_userId"
         static let nickname = "modi_auth_nickname"
+        static let guestNickname = "modi_guest_nickname"
     }
 
     private let storage: UserDefaults
@@ -79,7 +80,9 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
         storage.removeObject(forKey: StorageKeys.userId)
         storage.removeObject(forKey: StorageKeys.nickname)
         KeychainStore.delete(for: .accessToken)
-        session = .guest
+
+        let guestNickname = Self.ensureGuestNickname(in: storage)
+        session = Self.guestSession(nickname: guestNickname)
     }
 
     func signOut() {
@@ -182,7 +185,7 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             do {
                 let authResponse = try await authAPIService.signInWithApple(
                     identityToken: identityToken,
-                    nickname: nickname == UserDisplayName.loggedInFallback ? nil : nickname
+                    nickname: nickname
                 )
 
                 let newSession = UserSession.loggedIn(
@@ -266,12 +269,38 @@ final class AuthManager: NSObject, ASAuthorizationControllerDelegate, ASAuthoriz
             return storedNickname
         }
 
-        return UserDisplayName.loggedInFallback
+        return NicknameGenerator.generateRandomNickname()
+    }
+
+    private static func guestSession(nickname: String) -> UserSession {
+        .init(
+            isLoggedIn: false,
+            isGuest: true,
+            userId: nil,
+            nickname: nickname
+        )
+    }
+
+    private static func ensureGuestNickname(in storage: UserDefaults) -> String {
+        if let existing = storage.string(forKey: StorageKeys.guestNickname),
+           !existing.isEmpty {
+            return existing
+        }
+
+        let nickname = NicknameGenerator.generateRandomNickname()
+        storage.set(nickname, forKey: StorageKeys.guestNickname)
+        return nickname
     }
 
     private static func loadSession(from storage: UserDefaults) -> UserSession {
         let isLoggedIn = storage.bool(forKey: StorageKeys.isLoggedIn)
-        guard isLoggedIn else { return .guest }
+        guard isLoggedIn else {
+            if let guestNickname = storage.string(forKey: StorageKeys.guestNickname),
+               !guestNickname.isEmpty {
+                return guestSession(nickname: guestNickname)
+            }
+            return .guest
+        }
         guard KeychainStore.load(for: .accessToken) != nil else { return .guest }
 
         let userId = storage.string(forKey: StorageKeys.userId)
