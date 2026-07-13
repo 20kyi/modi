@@ -36,28 +36,15 @@ struct ThemeButtonStyle: ButtonStyle {
 
 struct ThemedPrimaryButtonStyle: ButtonStyle {
     let colors: ThemeColors
-    let theme: AppTheme
-
-    private var fill: Color {
-        theme == .midnightFilm ? colors.accent : colors.primary
-    }
-
-    private var pressedFill: Color {
-        theme == .midnightFilm ? colors.accentButtonPressed : colors.accentPressed
-    }
-
-    private var labelColor: Color {
-        theme == .midnightFilm ? colors.onHighlight : colors.onAccent
-    }
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppFont.headline)
-            .foregroundStyle(labelColor)
+            .foregroundStyle(colors.onAccent)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.md)
             .background(
-                configuration.isPressed ? pressedFill : fill,
+                configuration.isPressed ? colors.accentPressed : colors.primary,
                 in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
             )
             .shadow(color: colors.shadowSubtle, radius: 2, x: 0, y: 1)

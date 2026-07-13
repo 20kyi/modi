@@ -53,12 +53,7 @@ enum AppColor {
         static var tertiary: Color { palette.textTertiary }
         static var quaternary: Color { palette.textQuaternary }
         static var onAccent: Color { palette.onAccent }
-        /// 채움형 버튼 라벨 — Midnight Film은 골드 배경 대비색
-        static var onButton: Color {
-            ThemeManager.shared.selectedTheme == .midnightFilm
-                ? palette.onHighlight
-                : palette.onAccent
-        }
+        static var onButton: Color { palette.onAccent }
     }
 
     // MARK: Accent
@@ -76,27 +71,13 @@ enum AppColor {
         // MARK: Button
 
         /// 채움형 주요 버튼 배경
-        static var buttonFill: Color {
-            ThemeManager.shared.selectedTheme == .midnightFilm
-                ? palette.accent
-                : palette.primary
-        }
+        static var buttonFill: Color { palette.primary }
 
         /// 채움형 주요 버튼 pressed 상태
-        static var buttonPressed: Color {
-            if ThemeManager.shared.selectedTheme == .midnightFilm {
-                return palette.accentButtonPressed
-            }
-            return palette.accentPressed
-        }
+        static var buttonPressed: Color { palette.accentPressed }
 
         /// 보조 버튼 배경·soft fill
-        static var buttonSoft: Color {
-            if ThemeManager.shared.selectedTheme == .midnightFilm {
-                return palette.accentButtonSoft
-            }
-            return palette.accentSoft
-        }
+        static var buttonSoft: Color { palette.accentSoft }
 
         /// 보조·텍스트 버튼 라벨, borderedProminent tint
         static var buttonLabel: Color { palette.accent }

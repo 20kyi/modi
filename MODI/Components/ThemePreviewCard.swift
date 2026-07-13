@@ -70,7 +70,7 @@ struct ThemePreviewCard: View {
             Button {} label: {
                 Label("사진 찍기", systemImage: "camera.fill")
             }
-            .buttonStyle(ThemedPrimaryButtonStyle(colors: colors, theme: highlight.theme))
+            .buttonStyle(ThemedPrimaryButtonStyle(colors: colors))
         }
         .background(colors.background)
     }
