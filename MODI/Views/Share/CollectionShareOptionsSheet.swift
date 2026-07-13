@@ -173,7 +173,7 @@ struct CollectionShareOptionsSheet: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(AppColor.Accent.primary)
+            .tint(AppColor.Accent.buttonLabel)
             .disabled(isSaving || !canSaveOrShare)
 
             Button {
@@ -184,7 +184,7 @@ struct CollectionShareOptionsSheet: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.bordered)
-            .tint(AppColor.Accent.primary)
+            .tint(AppColor.Accent.buttonLabel)
             .disabled(!canSaveOrShare)
         }
         .padding(.horizontal, AppSpacing.screenHorizontal)

@@ -17,7 +17,7 @@ struct MODIRecordImage: View {
             } else {
                 Image(systemName: "photo")
                     .font(.system(size: 20, weight: .light))
-                    .foregroundStyle(AppColor.Accent.primary.opacity(0.5))
+                    .foregroundStyle(AppColor.Accent.highlight.opacity(0.5))
             }
         }
     }

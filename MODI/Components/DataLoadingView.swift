@@ -38,7 +38,7 @@ struct DataLoadingView: View {
                 VStack(spacing: AppSpacing.lg) {
                     ProgressView()
                         .controlSize(.regular)
-                        .tint(AppColor.Accent.primary)
+                        .tint(AppColor.Accent.highlight)
 
                     Text(messages[currentIndex])
                         .font(AppFont.subheadline)

@@ -121,7 +121,7 @@ struct DiscoveryCalendarView: View {
                 }
 
                 Circle()
-                    .fill(hasRecord ? AppColor.Accent.primary : Color.clear)
+                    .fill(hasRecord ? AppColor.Accent.highlight : Color.clear)
                     .frame(width: 6, height: 6)
                     .overlay {
                         if !hasRecord, !isFuture {
@@ -192,7 +192,7 @@ struct DiscoveryCalendarView: View {
 
     private func dayNumberColor(isToday: Bool, isFuture: Bool) -> Color {
         if isFuture { return AppColor.Text.tertiary }
-        if isToday { return AppColor.Accent.primary }
+        if isToday { return AppColor.Accent.highlight }
         return AppColor.Text.secondary
     }
 }

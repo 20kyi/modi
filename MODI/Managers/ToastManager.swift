@@ -31,7 +31,7 @@ final class ToastManager {
         show(
             message: "기록이 수정됐어요",
             systemImage: "pencil.circle.fill",
-            iconColor: AppColor.Accent.primary
+            iconColor: AppColor.Accent.highlight
         )
     }
 

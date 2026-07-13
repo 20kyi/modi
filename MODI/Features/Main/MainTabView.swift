@@ -79,7 +79,7 @@ struct MainTabView: View {
                 }
                 .tag(MainTab.profile)
         }
-        .tint(AppColor.Accent.primary)
+        .tint(AppColor.Accent.highlight)
         .toolbarBackground(AppColor.Background.primary, for: .tabBar)
         .toolbarBackground(.visible, for: .tabBar)
         .environment(collectionStore)

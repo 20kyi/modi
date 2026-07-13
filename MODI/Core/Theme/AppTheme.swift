@@ -131,7 +131,7 @@ extension View {
 extension ShapeStyle where Self == Color {
     static var appBackground: Color { AppColor.Background.primary }
     static var appGroupedBackground: Color { AppColor.Background.grouped }
-    static var appAccent: Color { AppColor.Accent.primary }
+    static var appAccent: Color { AppColor.Accent.highlight }
     static var appTextPrimary: Color { AppColor.Text.primary }
     static var appTextSecondary: Color { AppColor.Text.secondary }
 }

@@ -172,11 +172,20 @@ struct ThemeColors: Equatable {
     }
 
     var accentSoft: Color {
-        primary.blended(with: background, amount: isDark ? 0.72 : 0.82)
+        let mixed = primary.blended(with: accent, amount: isDark ? 0.30 : 0.20)
+        return mixed.blended(with: background, amount: isDark ? 0.70 : 0.80)
     }
 
     var accentPressed: Color {
         primary.blended(with: accent, amount: isDark ? 0.28 : 0.38)
+    }
+
+    var buttonSoftFill: Color {
+        primary.blended(with: background, amount: isDark ? 0.72 : 0.82)
+    }
+
+    var buttonPressedFill: Color {
+        primary.blended(with: background, amount: isDark ? 0.38 : 0.28)
     }
 
     var borderDefault: Color {

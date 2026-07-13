@@ -94,7 +94,7 @@ struct OnboardingNotificationOptIn: View {
             HStack(spacing: AppSpacing.md) {
                 Image(systemName: isEnabled ? "bell.fill" : "bell")
                     .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(isEnabled ? AppColor.Accent.primary : AppColor.Text.tertiary)
+                    .foregroundStyle(isEnabled ? AppColor.Accent.highlight : AppColor.Text.tertiary)
                     .frame(width: 28)
 
                 VStack(alignment: .leading, spacing: AppSpacing.xxs) {
@@ -111,7 +111,7 @@ struct OnboardingNotificationOptIn: View {
 
                 Image(systemName: isEnabled ? "checkmark.circle.fill" : "circle")
                     .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(isEnabled ? AppColor.Accent.primary : AppColor.Text.quaternary)
+                    .foregroundStyle(isEnabled ? AppColor.Accent.highlight : AppColor.Text.quaternary)
             }
             .padding(.horizontal, AppSpacing.lg)
             .padding(.vertical, AppSpacing.md)

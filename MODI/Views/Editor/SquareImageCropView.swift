@@ -70,7 +70,7 @@ struct SquareImageCropView: View {
                         confirmCrop()
                     }
                     .font(AppFont.headline)
-                    .foregroundStyle(AppColor.Accent.primary)
+                    .foregroundStyle(AppColor.Accent.highlight)
                 }
             }
             .toolbarBackground(AppColor.Background.primary, for: .navigationBar)

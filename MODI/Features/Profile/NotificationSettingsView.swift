@@ -54,7 +54,7 @@ struct NotificationSettingsView: View {
                     HStack(spacing: AppSpacing.md) {
                         Image(systemName: "bell.fill")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(AppColor.Accent.primary)
+                            .foregroundStyle(AppColor.Accent.highlight)
                             .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
@@ -68,7 +68,7 @@ struct NotificationSettingsView: View {
                         }
                     }
                 }
-                .tint(AppColor.Accent.primary)
+                .tint(AppColor.Accent.highlight)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.md)
                 .frame(minHeight: AppSpacing.minTouchTarget)
@@ -111,7 +111,7 @@ struct NotificationSettingsView: View {
                     HStack(spacing: AppSpacing.md) {
                         Image(systemName: "clock.fill")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(AppColor.Accent.primary)
+                            .foregroundStyle(AppColor.Accent.highlight)
                             .frame(width: 28)
 
                         Text("알림 받을 시간")
@@ -119,7 +119,7 @@ struct NotificationSettingsView: View {
                             .foregroundStyle(AppColor.Text.primary)
                     }
                 }
-                .tint(AppColor.Accent.primary)
+                .tint(AppColor.Accent.highlight)
                 .padding(.horizontal, AppSpacing.lg)
                 .padding(.vertical, AppSpacing.md)
                 .frame(minHeight: AppSpacing.minTouchTarget)

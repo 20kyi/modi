@@ -12,7 +12,7 @@ struct EmptyStateView: View {
         VStack(spacing: AppSpacing.md) {
             Image(systemName: icon)
                 .font(.system(size: 36, weight: .light))
-                .foregroundStyle(AppColor.Accent.primary.opacity(0.6))
+                .foregroundStyle(AppColor.Accent.highlight.opacity(0.6))
 
             VStack(spacing: AppSpacing.xs) {
                 Text(title)
@@ -29,7 +29,7 @@ struct EmptyStateView: View {
                 Button(action: action) {
                     Text(actionTitle)
                         .font(AppFont.headline)
-                        .foregroundStyle(AppColor.Accent.primary)
+                        .foregroundStyle(AppColor.Accent.buttonLabel)
                 }
                 .padding(.top, AppSpacing.xs)
             }

@@ -161,7 +161,7 @@ struct SettingsView: View {
             } label: {
                 if isUpdatingNickname {
                     ProgressView()
-                        .tint(AppColor.Accent.primary)
+                        .tint(AppColor.Accent.highlight)
                         .frame(width: 22, height: 22)
                 } else {
                     Text("저장")
@@ -404,7 +404,7 @@ struct SettingsView: View {
 
                 Toggle("", isOn: isOn)
                     .labelsHidden()
-                    .tint(AppColor.Accent.primary)
+                    .tint(AppColor.Accent.highlight)
                     .allowsHitTesting(false)
             }
             .settingsRowStyle()
@@ -473,7 +473,7 @@ struct SettingsView: View {
 
                 if isSigningIn {
                     ProgressView()
-                        .tint(AppColor.Accent.primary)
+                        .tint(AppColor.Accent.highlight)
                 } else {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13, weight: .semibold))
@@ -490,7 +490,7 @@ struct SettingsView: View {
     private func rowIcon(_ name: String) -> some View {
         Image(systemName: name)
             .font(.system(size: 16, weight: .medium))
-            .foregroundStyle(AppColor.Accent.primary)
+            .foregroundStyle(AppColor.Accent.highlight)
             .frame(width: 28)
     }
 

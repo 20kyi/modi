@@ -143,7 +143,7 @@ struct AddCollectionView: View {
                                     if selectedColorHex == hex {
                                         Image(systemName: "checkmark")
                                             .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(AppColor.Accent.primary)
+                                            .foregroundStyle(AppColor.Accent.highlight)
                                     }
                                 }
                         }

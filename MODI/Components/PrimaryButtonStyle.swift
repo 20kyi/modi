@@ -8,7 +8,7 @@ struct PrimaryButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.md)
             .background(
-                configuration.isPressed ? AppColor.Accent.pressed : AppColor.Accent.primary,
+                configuration.isPressed ? AppColor.Accent.buttonPressed : AppColor.Accent.buttonFill,
                 in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
             )
             .appShadow(.subtle)
@@ -38,11 +38,11 @@ struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppFont.headline)
-            .foregroundStyle(AppColor.Accent.primary)
+            .foregroundStyle(AppColor.Accent.buttonLabel)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.md)
             .background(
-                AppColor.Accent.soft,
+                AppColor.Accent.buttonSoft,
                 in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
             )
             .opacity(configuration.isPressed ? 0.8 : 1)

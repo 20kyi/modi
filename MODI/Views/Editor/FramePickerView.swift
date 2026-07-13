@@ -54,7 +54,7 @@ struct FramePickerView: View {
                             .overlay {
                                 if selectedFrame == frame {
                                     RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                                        .strokeBorder(AppColor.Accent.primary, lineWidth: 2)
+                                        .strokeBorder(AppColor.Accent.highlight, lineWidth: 2)
                                 }
                             }
 
@@ -62,7 +62,7 @@ struct FramePickerView: View {
                                 .font(AppFont.caption2)
                                 .foregroundStyle(
                                     selectedFrame == frame
-                                        ? AppColor.Accent.primary
+                                        ? AppColor.Accent.highlight
                                         : AppColor.Text.secondary
                                 )
                         }

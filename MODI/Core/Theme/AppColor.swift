@@ -56,12 +56,42 @@ enum AppColor {
     }
 
     // MARK: Accent
+    //
+    // ThemeColors.primary  → Accent.primary   (주요 버튼·채움 UI)
+    // ThemeColors.accent   → Accent.highlight  (탭·토글·인디케이터·링크 등 포인트 컬러)
 
     enum Accent {
         static var primary: Color { palette.primary }
         static var soft: Color { palette.accentSoft }
         static var pressed: Color { palette.accentPressed }
+        /// ThemeColors.accent — 테마별 포인트 컬러 (예: Midnight Film 골드)
         static var highlight: Color { palette.accent }
+
+        // MARK: Button
+
+        /// 채움형 주요 버튼 배경
+        static var buttonFill: Color { palette.primary }
+
+        /// 채움형 주요 버튼 pressed 상태
+        static var buttonPressed: Color {
+            if ThemeManager.shared.selectedTheme == .midnightFilm {
+                return palette.buttonPressedFill
+            }
+            return palette.accentPressed
+        }
+
+        /// 보조 버튼 배경·soft fill
+        static var buttonSoft: Color {
+            if ThemeManager.shared.selectedTheme == .midnightFilm {
+                return palette.buttonSoftFill
+            }
+            return palette.accentSoft
+        }
+
+        /// 보조·텍스트 버튼 라벨, borderedProminent tint
+        static var buttonLabel: Color {
+            ThemeManager.shared.selectedTheme == .midnightFilm ? palette.primary : palette.accent
+        }
     }
 
     // MARK: Border
@@ -151,7 +181,7 @@ enum AppColor {
         static var primaryText: Color { AppColor.Text.primary }
         static var secondaryText: Color { AppColor.Text.secondary }
         static var tertiaryText: Color { AppColor.Text.tertiary }
-        static var accent: Color { AppColor.Accent.primary }
+        static var accent: Color { AppColor.Accent.highlight }
         static var border: Color { AppColor.Border.default }
         static var divider: Color { AppColor.Border.subtle }
         static var success: Color { AppColor.Semantic.successThemed }

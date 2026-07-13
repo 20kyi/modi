@@ -23,7 +23,7 @@ struct RecommendedCollectionAddSheet: View {
                         .overlay {
                             Image(systemName: template.icon)
                                 .font(.system(size: 36, weight: .light))
-                                .foregroundStyle(AppColor.Accent.primary.opacity(0.5))
+                                .foregroundStyle(AppColor.Accent.highlight.opacity(0.5))
                         }
                         .appShadow(.medium)
 
@@ -83,7 +83,7 @@ struct RecommendedCollectionAddSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("닫기") { dismiss() }
-                        .foregroundStyle(AppColor.Accent.primary)
+                        .foregroundStyle(AppColor.Accent.highlight)
                 }
             }
         }

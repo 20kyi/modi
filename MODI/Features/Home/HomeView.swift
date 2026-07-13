@@ -174,7 +174,7 @@ struct HomeView: View {
                 .font(AppFont.subheadline)
                 .foregroundStyle(
                     isTodaysMissionCompleted
-                        ? AppColor.Accent.primary
+                        ? AppColor.Accent.highlight
                         : AppColor.Text.secondary
                 )
         }

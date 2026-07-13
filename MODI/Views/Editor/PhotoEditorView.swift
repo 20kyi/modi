@@ -153,7 +153,7 @@ struct PhotoEditorView: View {
                         saveEditedImage()
                     }
                     .font(AppFont.headline)
-                    .foregroundStyle(AppColor.Accent.primary)
+                    .foregroundStyle(AppColor.Accent.highlight)
                 }
             }
             .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
@@ -454,7 +454,7 @@ struct PhotoEditorView: View {
                 Text(tool.title)
                     .font(AppFont.caption1)
             }
-            .foregroundStyle(activeTool == tool ? AppColor.Accent.primary : AppColor.Text.secondary)
+            .foregroundStyle(activeTool == tool ? AppColor.Accent.highlight : AppColor.Text.secondary)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.sm)
             .background(
@@ -829,7 +829,7 @@ private struct EditorElementOverlay: View {
 
     private var selectionBorder: some View {
         RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-            .strokeBorder(AppColor.Accent.primary, lineWidth: 1.5)
+            .strokeBorder(AppColor.Accent.highlight, lineWidth: 1.5)
             .frame(
                 width: selectionSize.width + AppSpacing.lg,
                 height: selectionSize.height + AppSpacing.lg

@@ -17,7 +17,7 @@ struct CollectionProgressBar: View {
                     .fill(AppColor.Background.secondary)
 
                 Capsule()
-                    .fill(AppColor.Accent.primary)
+                    .fill(AppColor.Accent.highlight)
                     .frame(width: geometry.size.width * displayedProgress)
             }
         }

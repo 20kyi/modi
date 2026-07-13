@@ -53,7 +53,7 @@ struct TextInputSheet: View {
                         dismiss()
                     }
                     .font(AppFont.headline)
-                    .foregroundStyle(AppColor.Accent.primary)
+                    .foregroundStyle(AppColor.Accent.highlight)
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }

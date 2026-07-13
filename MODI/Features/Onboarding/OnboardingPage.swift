@@ -85,7 +85,7 @@ struct OnboardingTextOnlyVisual: View {
                 .overlay {
                     Image(systemName: "sparkles")
                         .font(.system(size: 44, weight: .light))
-                        .foregroundStyle(AppColor.Accent.primary.opacity(0.55))
+                        .foregroundStyle(AppColor.Accent.highlight.opacity(0.55))
                 }
                 .appPhotoStyle(radius: AppRadius.xxl)
                 .appShadow(.medium)

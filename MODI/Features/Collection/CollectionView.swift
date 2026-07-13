@@ -92,7 +92,7 @@ struct CollectionView: View {
                     } label: {
                         Label("추가", systemImage: "plus.circle")
                             .font(AppFont.footnote)
-                            .foregroundStyle(AppColor.Accent.primary)
+                            .foregroundStyle(AppColor.Accent.highlight)
                     }
                 }
             }
@@ -104,7 +104,7 @@ struct CollectionView: View {
                     HStack(spacing: AppSpacing.md) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 28))
-                            .foregroundStyle(AppColor.Accent.primary)
+                            .foregroundStyle(AppColor.Accent.highlight)
 
                         VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                             Text("첫 커스텀 컬렉션 만들기")

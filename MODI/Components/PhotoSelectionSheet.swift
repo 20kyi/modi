@@ -108,7 +108,7 @@ struct PhotoSelectionSheet: View {
                 .overlay {
                     Image(systemName: "sparkles.rectangle.stack")
                         .font(.system(size: 32, weight: .light))
-                        .foregroundStyle(AppColor.Accent.primary.opacity(0.55))
+                        .foregroundStyle(AppColor.Accent.highlight.opacity(0.55))
                 }
                 .appShadow(.medium)
 

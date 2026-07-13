@@ -73,7 +73,7 @@ struct ThemeSelectionView: View {
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(AppColor.Accent.primary)
+                        .foregroundStyle(AppColor.Accent.highlight)
                 } else if isLocked {
                     Image(systemName: "lock.fill")
                         .font(.system(size: 14, weight: .semibold))
