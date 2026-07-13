@@ -8,6 +8,12 @@ struct ThemePreviewCard: View {
 
     private var colors: ThemeColors { highlight.theme.definition.colors }
 
+    private enum Layout {
+        static let innerPadding = AppSpacing.md
+        static let referenceWidth: CGFloat = 260
+        static let referenceHeight: CGFloat = 280
+    }
+
     var body: some View {
         VStack(alignment: .center, spacing: AppSpacing.sm) {
             previewSquare
@@ -27,29 +33,57 @@ struct ThemePreviewCard: View {
     }
 
     private var previewSquare: some View {
-        VStack(spacing: 0) {
-            colors.background
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1 / 0.28, contentMode: .fit)
+        GeometryReader { geometry in
+            let side = min(geometry.size.width, geometry.size.height)
+            let inset = Layout.innerPadding
+            let availableWidth = side - inset * 2
+            let availableHeight = side - inset * 2
+            let scale = min(
+                availableWidth / Layout.referenceWidth,
+                availableHeight / Layout.referenceHeight
+            )
 
-            colors.surface
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1 / 0.52, contentMode: .fit)
+            ZStack {
+                colors.background
 
-            Text("Button")
-                .font(.system(size: 7, weight: .semibold))
-                .minimumScaleFactor(0.5)
-                .lineLimit(1)
-                .foregroundStyle(colors.onAccent)
-                .frame(maxWidth: .infinity)
-                .aspectRatio(1 / 0.20, contentMode: .fit)
-                .background(colors.primary)
+                createViewPreview
+                    .frame(width: Layout.referenceWidth)
+                    .scaleEffect(scale, anchor: .center)
+            }
+            .padding(inset)
+            .frame(width: side, height: side)
         }
+        .aspectRatio(1, contentMode: .fit)
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
                 .stroke(colors.borderDefault, lineWidth: 0.5)
         }
+    }
+
+    private var previewMission: DailyMission { .mock }
+
+    private var createViewPreview: some View {
+        VStack(spacing: AppSpacing.md) {
+            themePreviewCardContainer
+
+            Button {} label: {
+                Label("사진 찍기", systemImage: "camera.fill")
+            }
+            .buttonStyle(ThemedPrimaryButtonStyle(colors: colors, theme: highlight.theme))
+        }
+        .background(colors.background)
+    }
+
+    private var themePreviewCardContainer: some View {
+        RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
+            .fill(previewMission.themeColor.opacity(0.45))
+            .frame(maxWidth: .infinity, minHeight: 200)
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
+                    .strokeBorder(previewMission.themeColor.opacity(0.6), lineWidth: 1)
+            }
+            .shadow(color: colors.shadowMedium, radius: 8, x: 0, y: 4)
     }
 }
 

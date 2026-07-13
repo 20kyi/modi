@@ -8,9 +8,26 @@ struct DailyMissionCard: View {
     var showsMissionChangeButton: Bool = false
     var remainingMissionChanges: Int?
     var onChangeMissionTapped: (() -> Void)?
+    var previewThemeColors: ThemeColors? = nil
 
     private var palette: AppColor.ThemePalette {
         AppColor.themePalette(from: mission.themeColorHex)
+    }
+
+    private var titleColor: Color {
+        previewThemeColors?.text ?? AppColor.Text.primary
+    }
+
+    private var descriptionColor: Color {
+        previewThemeColors?.subText ?? AppColor.Text.secondary
+    }
+
+    private var tertiaryColor: Color {
+        previewThemeColors?.textTertiary ?? AppColor.Text.tertiary
+    }
+
+    private var cardShadowColor: Color {
+        previewThemeColors?.shadowMedium ?? AppColor.Shadow.medium
     }
 
     var body: some View {
@@ -21,12 +38,12 @@ struct DailyMissionCard: View {
             VStack(spacing: AppSpacing.sm) {
                 Text(mission.title)
                     .font(AppFont.title2)
-                    .foregroundStyle(AppColor.Text.primary)
+                    .foregroundStyle(titleColor)
                     .multilineTextAlignment(.center)
 
                 Text(mission.description)
                     .font(AppFont.callout)
-                    .foregroundStyle(AppColor.Text.secondary)
+                    .foregroundStyle(descriptionColor)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -47,13 +64,13 @@ struct DailyMissionCard: View {
                             if showsMissionChangeButton, let onChangeMissionTapped {
                                 Button("미션 바꾸기", action: onChangeMissionTapped)
                                     .font(AppFont.footnote)
-                                    .foregroundStyle(AppColor.Text.secondary)
+                                    .foregroundStyle(descriptionColor)
                             }
 
                             if let remainingMissionChanges {
                                 Text(remainingMissionChangesLabel(remainingMissionChanges))
                                     .font(AppFont.caption1)
-                                    .foregroundStyle(AppColor.Text.tertiary)
+                                    .foregroundStyle(tertiaryColor)
                             }
                         }
                     }
@@ -70,7 +87,7 @@ struct DailyMissionCard: View {
             RoundedRectangle(cornerRadius: AppRadius.xl, style: .continuous)
                 .strokeBorder(mission.themeColor.opacity(0.6), lineWidth: 1)
         }
-        .appShadow(.medium)
+        .shadow(color: cardShadowColor, radius: 8, x: 0, y: 4)
     }
 
     private func remainingMissionChangesLabel(_ remaining: Int) -> String {

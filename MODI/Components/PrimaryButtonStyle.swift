@@ -4,7 +4,7 @@ struct PrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(AppFont.headline)
-            .foregroundStyle(AppColor.Text.onAccent)
+            .foregroundStyle(AppColor.Text.onButton)
             .frame(maxWidth: .infinity)
             .padding(.vertical, AppSpacing.md)
             .background(
@@ -34,6 +34,37 @@ struct ThemeButtonStyle: ButtonStyle {
     }
 }
 
+struct ThemedPrimaryButtonStyle: ButtonStyle {
+    let colors: ThemeColors
+    let theme: AppTheme
+
+    private var fill: Color {
+        theme == .midnightFilm ? colors.accent : colors.primary
+    }
+
+    private var pressedFill: Color {
+        theme == .midnightFilm ? colors.accentButtonPressed : colors.accentPressed
+    }
+
+    private var labelColor: Color {
+        theme == .midnightFilm ? colors.onHighlight : colors.onAccent
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(AppFont.headline)
+            .foregroundStyle(labelColor)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, AppSpacing.md)
+            .background(
+                configuration.isPressed ? pressedFill : fill,
+                in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+            )
+            .shadow(color: colors.shadowSubtle, radius: 2, x: 0, y: 1)
+            .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
+    }
+}
+
 struct SecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -47,6 +78,16 @@ struct SecondaryButtonStyle: ButtonStyle {
             )
             .opacity(configuration.isPressed ? 0.8 : 1)
     }
+}
+
+#Preview("Primary · Midnight Film") {
+    Button {} label: {
+        Label("사진 찍기", systemImage: "camera.fill")
+    }
+    .buttonStyle(PrimaryButtonStyle())
+    .padding()
+    .background(AppTheme.midnightFilm.definition.colors.background)
+    .preferredColorScheme(.dark)
 }
 
 #Preview("Theme · Light") {
