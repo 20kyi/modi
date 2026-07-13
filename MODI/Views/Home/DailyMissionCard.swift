@@ -6,6 +6,7 @@ struct DailyMissionCard: View {
     var onRecordTapped: (() -> Void)?
     var canOfferMissionChange: Bool = false
     var showsMissionChangeButton: Bool = false
+    var hasPremium: Bool = true
     var remainingMissionChanges: Int?
     var onChangeMissionTapped: (() -> Void)?
     var previewThemeColors: ThemeColors? = nil
@@ -22,8 +23,14 @@ struct DailyMissionCard: View {
         previewThemeColors?.subText ?? AppColor.Text.secondary
     }
 
-    private var tertiaryColor: Color {
-        previewThemeColors?.textTertiary ?? AppColor.Text.tertiary
+    private func missionChangeTextColor(caption: Bool = false) -> Color {
+        if let previewThemeColors {
+            return previewThemeColors.subText
+        }
+        if ThemeManager.shared.colors.isDark {
+            return .white
+        }
+        return caption ? AppColor.Text.tertiary : AppColor.Text.secondary
     }
 
     private var cardShadowColor: Color {
@@ -51,7 +58,7 @@ struct DailyMissionCard: View {
             if mission.isCompleted {
                 MissionCompletedBadge(palette: palette)
             } else {
-                VStack(spacing: AppSpacing.sm) {
+                VStack(spacing: AppSpacing.lg) {
                     if let onRecordTapped {
                         Button(action: onRecordTapped) {
                             Text("기록하기")
@@ -62,15 +69,17 @@ struct DailyMissionCard: View {
                     if canOfferMissionChange {
                         VStack(spacing: AppSpacing.xs) {
                             if showsMissionChangeButton, let onChangeMissionTapped {
-                                Button("미션 바꾸기", action: onChangeMissionTapped)
-                                    .font(AppFont.footnote)
-                                    .foregroundStyle(descriptionColor)
+                                Button(action: onChangeMissionTapped) {
+                                    missionChangeButtonLabel
+                                }
+                                .font(AppFont.footnote)
+                                .foregroundStyle(missionChangeTextColor())
                             }
 
                             if let remainingMissionChanges {
                                 Text(remainingMissionChangesLabel(remainingMissionChanges))
                                     .font(AppFont.caption1)
-                                    .foregroundStyle(tertiaryColor)
+                                    .foregroundStyle(missionChangeTextColor(caption: true))
                             }
                         }
                     }
@@ -88,6 +97,19 @@ struct DailyMissionCard: View {
                 .strokeBorder(mission.themeColor.opacity(0.6), lineWidth: 1)
         }
         .shadow(color: cardShadowColor, radius: 8, x: 0, y: 4)
+    }
+
+    @ViewBuilder
+    private var missionChangeButtonLabel: some View {
+        if hasPremium {
+            Text("미션 바꾸기")
+        } else {
+            HStack(spacing: AppSpacing.xs) {
+                Text("MODI+로 더 자유롭게 바꾸기")
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 11, weight: .semibold))
+            }
+        }
     }
 
     private func remainingMissionChangesLabel(_ remaining: Int) -> String {
@@ -139,6 +161,32 @@ private struct MissionCompletedBadge: View {
             }
         }
     }
+}
+
+#Preview("진행 중 · 무료 · 남은 횟수") {
+    DailyMissionCard(
+        mission: .mock,
+        canOfferMissionChange: true,
+        showsMissionChangeButton: true,
+        hasPremium: false,
+        remainingMissionChanges: 1
+    ) {}
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
+}
+
+#Preview("진행 중 · 무료 · 횟수 소진") {
+    DailyMissionCard(
+        mission: .mock,
+        canOfferMissionChange: true,
+        showsMissionChangeButton: true,
+        hasPremium: false,
+        remainingMissionChanges: 0
+    ) {}
+        .appScreenPadding()
+        .appScreenBackground()
+        .preferredColorScheme(.light)
 }
 
 #Preview("진행 중 · 남은 횟수") {

@@ -74,6 +74,7 @@ struct HomeView: View {
                             onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
                             canOfferMissionChange: canOfferMissionChange,
                             showsMissionChangeButton: showsMissionChangeButton,
+                            hasPremium: premiumManager.hasPremium,
                             remainingMissionChanges: remainingMissionChanges,
                             onChangeMissionTapped: rerollMission
                         )
