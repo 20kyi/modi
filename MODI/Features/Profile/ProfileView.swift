@@ -230,7 +230,7 @@ struct ProfileView: View {
                 NavigationLink {
                     SettingsView()
                 } label: {
-                    settingsRow(icon: "gearshape.fill", title: "설정 열기", iconColor: AppColor.Accent.highlight)
+                    settingsRow(icon: "gearshape.fill", title: "설정", iconColor: AppColor.Accent.highlight)
                 }
                 .buttonStyle(.plain)
             }
