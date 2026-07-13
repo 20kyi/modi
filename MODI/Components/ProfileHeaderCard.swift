@@ -45,7 +45,7 @@ struct ProfileHeaderCard: View {
                         .padding(.horizontal, AppSpacing.md)
                         .padding(.vertical, AppSpacing.xs)
                         .background(
-                            AppColor.Semantic.warning.opacity(0.12),
+                            AppColor.Semantic.warning.opacity(0.08),
                             in: Capsule(style: .continuous)
                         )
                         .padding(.bottom, AppSpacing.xs)
