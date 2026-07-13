@@ -149,9 +149,18 @@ struct HomeView: View {
                 .font(AppFont.callout)
                 .foregroundStyle(AppColor.Text.secondary)
 
-            Text(authManager.session.homeGreetingName)
-                .font(AppFont.title1)
-                .foregroundStyle(AppColor.Text.primary)
+            HStack(alignment: .center, spacing: AppSpacing.xs) {
+                Text(authManager.session.homeGreetingName)
+                    .font(AppFont.title1)
+                    .foregroundStyle(AppColor.Text.primary)
+
+                if premiumManager.hasPremium {
+                    Text("✨ MODI+")
+                        .font(AppFont.caption1.weight(.semibold))
+                        .foregroundStyle(AppColor.Semantic.warning)
+                        .accessibilityLabel("MODI+ 프리미엄")
+                }
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
