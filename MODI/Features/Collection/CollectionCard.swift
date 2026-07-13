@@ -25,7 +25,7 @@ struct CollectionCard: View {
                             .foregroundStyle(AppColor.Text.onAccent)
                             .padding(.horizontal, AppSpacing.sm)
                             .padding(.vertical, AppSpacing.xxs)
-                            .background(AppColor.Accent.highlight, in: Capsule())
+                            .background(AppColor.Accent.primary, in: Capsule())
                             .padding(AppSpacing.sm)
                     }
                 }
