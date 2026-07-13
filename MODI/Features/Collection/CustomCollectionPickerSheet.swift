@@ -18,7 +18,7 @@ enum CustomCollectionPickerAction: Identifiable {
 
     var message: String {
         switch self {
-        case .edit: "정보를 바꿀 컬렉션을 골라주세요."
+        case .edit: "설정할 컬렉션을 골라주세요."
         case .delete: "삭제할 컬렉션을 골라주세요. 사진도 함께 지워져요."
         }
     }

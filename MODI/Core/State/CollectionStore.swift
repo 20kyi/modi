@@ -139,7 +139,8 @@ extension MODICollection {
             missionPrompt: missionPrompt,
             themeColorHex: themeColorHex,
             isBuiltIn: collectionType == .system,
-            sourceTemplateID: sourceTemplateID
+            sourceTemplateID: sourceTemplateID,
+            isIncludedInMission: isIncludedInMission
         )
     }
 }

@@ -29,7 +29,6 @@ struct CollectionView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
                     headerSection
-                    missionInclusionSection
 
                     ForEach(visibleCategories) { category in
                         categorySection(category)
@@ -58,7 +57,7 @@ struct CollectionView: View {
                         } label: {
                             Label("컬렉션 수정", systemImage: "pencil")
                         }
-                        .disabled(customCollections.isEmpty)
+                        .disabled(editableCollections.isEmpty)
 
                         Button(role: .destructive) {
                             pickerAction = .delete
@@ -98,7 +97,7 @@ struct CollectionView: View {
             .sheet(item: $pickerAction) { action in
                 CustomCollectionPickerSheet(
                     action: action,
-                    collections: customCollections,
+                    collections: collections(for: action),
                     photoCount: { collectionRepository.photoCount(for: $0) },
                     onSelect: { collection in
                         let selectedAction = action
@@ -156,7 +155,7 @@ struct CollectionView: View {
         collectionRepository.customCollections
     }
 
-    private var missionSettingCollections: [MODICollection] {
+    private var editableCollections: [MODICollection] {
         let categoryOrder: [CollectionCategory: Int] = [.color: 0, .nature: 1, .custom: 2]
         return collectionRepository.collections.sorted { lhs, rhs in
             let lhsOrder = categoryOrder[lhs.collectionCategory] ?? Int.max
@@ -200,6 +199,15 @@ struct CollectionView: View {
             isShowingEditCollection = true
         case .delete:
             collectionPendingDeletion = collection
+        }
+    }
+
+    private func collections(for action: CustomCollectionPickerAction) -> [MODICollection] {
+        switch action {
+        case .edit:
+            editableCollections
+        case .delete:
+            customCollections
         }
     }
 
@@ -276,56 +284,6 @@ struct CollectionView: View {
                 .foregroundStyle(AppColor.Text.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-
-    private var missionInclusionSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.md) {
-            Text("오늘의 발견 설정")
-                .font(AppFont.title3)
-                .foregroundStyle(AppColor.Text.primary)
-
-            VStack(spacing: AppSpacing.sm) {
-                ForEach(missionSettingCollections) { collection in
-                    HStack(alignment: .center, spacing: AppSpacing.md) {
-                        Text(collection.emoji)
-                            .font(.system(size: 22))
-
-                        VStack(alignment: .leading, spacing: AppSpacing.xxs) {
-                            Text(collection.title)
-                                .font(AppFont.subheadline)
-                                .foregroundStyle(AppColor.Text.primary)
-                                .lineLimit(1)
-
-                            Text(collection.isIncludedInMission ? "오늘의 발견 후보에 포함" : "미션 후보에서 제외됨")
-                                .font(AppFont.caption1)
-                                .foregroundStyle(AppColor.Text.secondary)
-                        }
-
-                        Spacer()
-
-                        Toggle("오늘의 발견에 포함", isOn: missionInclusionBinding(for: collection.id))
-                            .labelsHidden()
-                    }
-                    .padding(.horizontal, AppSpacing.md)
-                    .padding(.vertical, AppSpacing.sm)
-                    .background(AppColor.Background.secondary, in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
-                }
-            }
-
-            Text("목록에서는 항상 보이고, OFF 시 오늘의 발견 미션에서만 제외돼요.")
-                .font(AppFont.caption1)
-                .foregroundStyle(AppColor.Text.tertiary)
-        }
-    }
-
-    private func missionInclusionBinding(for collectionID: UUID) -> Binding<Bool> {
-        Binding(
-            get: { collectionRepository.collection(for: collectionID)?.isIncludedInMission ?? true },
-            set: { newValue in
-                guard let collection = collectionRepository.collection(for: collectionID) else { return }
-                collectionRepository.updateMissionInclusion(collection, isIncludedInMission: newValue)
-            }
-        )
     }
 
     private func categorySection(_ category: CollectionCategory) -> some View {

@@ -137,6 +137,7 @@ final class CollectionRepository {
         missionPrompt: String,
         description: String,
         themeColorHex: String,
+        isIncludedInMission: Bool,
         accessToken: String? = nil
     ) {
         guard collection.collectionType == .custom else { return }
@@ -146,6 +147,7 @@ final class CollectionRepository {
         collection.missionPrompt = missionPrompt
         collection.collectionDescription = description
         collection.themeColorHex = themeColorHex
+        collection.isIncludedInMission = isIncludedInMission
 
         for record in collection.records ?? [] {
             record.conceptTitle = title

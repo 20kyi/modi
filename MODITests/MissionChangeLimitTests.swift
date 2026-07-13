@@ -151,4 +151,40 @@ struct MissionChangeLimitTests {
         #expect(premiumManager.canChangeMission(currentCount: 2) == true)
         #expect(premiumManager.canChangeMission(currentCount: 3) == false)
     }
+
+    @Test func missionSelectionUsesOnlyIncludedCollections() {
+        let (manager, _, collectionRepository, concepts) = makeMissionManagerWithConcepts(
+            suiteName: "mission-inclusion-only-enabled",
+            conceptCount: 2
+        )
+
+        for collection in collectionRepository.systemCollections {
+            collectionRepository.updateMissionInclusion(collection, isIncludedInMission: false)
+        }
+
+        let excluded = collectionRepository.ensureCollection(for: concepts[0])
+        let included = collectionRepository.ensureCollection(for: concepts[1])
+        collectionRepository.updateMissionInclusion(excluded, isIncludedInMission: false)
+        collectionRepository.updateMissionInclusion(included, isIncludedInMission: true)
+
+        let targetDate = Date(timeIntervalSince1970: 1_735_689_600)
+        let mission = manager.mission(for: targetDate)
+        #expect(mission.conceptId == included.id)
+    }
+
+    @Test func missionFallsBackSafelyWhenAllCollectionsAreExcluded() {
+        let (manager, _, collectionRepository, _) = makeMissionManagerWithConcepts(
+            suiteName: "mission-inclusion-all-disabled",
+            conceptCount: 1
+        )
+
+        for collection in collectionRepository.collections {
+            collectionRepository.updateMissionInclusion(collection, isIncludedInMission: false)
+        }
+
+        let targetDate = Date(timeIntervalSince1970: 1_735_776_000)
+        let mission = manager.mission(for: targetDate)
+        let fallbackConcept = manager.systemConcepts.first ?? Concept.mock
+        #expect(mission.conceptId == fallbackConcept.id)
+    }
 }

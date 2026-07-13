@@ -15,6 +15,7 @@ struct AddCollectionView: View {
     @State private var missionPrompt: String
     @State private var description: String
     @State private var selectedColorHex: String
+    @State private var isIncludedInMission: Bool
     @State private var autoFilledTitle: String?
     @State private var autoFilledMissionPrompt: String?
     @State private var autoFilledDescription: String?
@@ -29,6 +30,7 @@ struct AddCollectionView: View {
     ]
 
     private var isEditing: Bool { editingCollection != nil }
+    private var isEditingSystemCollection: Bool { editingCollection?.collectionType == .system }
 
     private var titleIsUserEdited: Bool {
         fieldIsUserEdited(current: title, autoFilled: autoFilledTitle)
@@ -43,7 +45,8 @@ struct AddCollectionView: View {
     }
 
     private var canSave: Bool {
-        !title.trimmingCharacters(in: .whitespaces).isEmpty
+        if isEditingSystemCollection { return true }
+        return !title.trimmingCharacters(in: .whitespaces).isEmpty
             && !missionPrompt.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
@@ -56,6 +59,7 @@ struct AddCollectionView: View {
         _selectedColorHex = State(
             initialValue: editingCollection?.themeColorHex ?? PhotoCollection.presetColorHexes[0]
         )
+        _isIncludedInMission = State(initialValue: editingCollection?.isIncludedInMission ?? true)
         _autoFilledTitle = State(initialValue: nil)
         _autoFilledMissionPrompt = State(initialValue: nil)
         _autoFilledDescription = State(initialValue: nil)
@@ -92,83 +96,129 @@ struct AddCollectionView: View {
 
     private var headerSection: some View {
         VStack(alignment: .leading, spacing: AppSpacing.sm) {
-            Text("Custom Collection")
+            Text(isEditingSystemCollection ? "컬렉션 설정" : "Custom Collection")
                 .font(AppFont.title2)
                 .foregroundStyle(AppColor.Text.primary)
 
             Text(
-                isEditing
-                    ? "컬렉션 정보를 바꿔도 기존 사진은 그대로 남아요."
-                    : "Custom Concept를 만들면, 그 Concept로 찍은 사진이 이 컬렉션에 쌓여요."
+                headerDescription
             )
             .font(AppFont.callout)
             .foregroundStyle(AppColor.Text.secondary)
         }
     }
 
-    private var formSection: some View {
-        VStack(alignment: .leading, spacing: AppSpacing.lg) {
-            formField(title: "컬렉션 이름", placeholder: "예: 커피 타임", text: $title)
-            formField(title: "미션 문구", placeholder: "예: 커피를 찍으세요", text: $missionPrompt)
-            formField(title: "설명 (선택)", placeholder: "이 컬렉션에 담고 싶은 순간", text: $description)
-
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text("이모지")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.Text.primary)
-
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible(), spacing: AppSpacing.sm), count: 6),
-                    spacing: AppSpacing.sm
-                ) {
-                    ForEach(emojiOptions, id: \.self) { option in
-                        Button {
-                            selectEmoji(option)
-                        } label: {
-                            Text(option)
-                                .font(.system(size: 24))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, AppSpacing.sm)
-                                .background(
-                                    emoji == option ? AppColor.Accent.soft : AppColor.Background.secondary,
-                                    in: RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
-                                )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
-
-            VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                Text("테마 색")
-                    .font(AppFont.subheadline)
-                    .foregroundStyle(AppColor.Text.primary)
-
-                LazyVGrid(
-                    columns: Array(repeating: GridItem(.flexible(), spacing: AppSpacing.sm), count: 6),
-                    spacing: AppSpacing.sm
-                ) {
-                    ForEach(PhotoCollection.presetColorHexes, id: \.self) { hex in
-                        Button {
-                            selectedColorHex = hex
-                        } label: {
-                            Circle()
-                                .fill(Color(hex: hex))
-                                .frame(height: 36)
-                                .overlay {
-                                    if selectedColorHex == hex {
-                                        Image(systemName: "checkmark")
-                                            .font(.system(size: 12, weight: .bold))
-                                            .foregroundStyle(AppColor.Accent.highlight)
-                                    }
-                                }
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-            }
+    private var headerDescription: String {
+        if isEditingSystemCollection {
+            return "기본 컬렉션은 이름/설명 수정 없이 오늘의 발견 포함 여부만 바꿀 수 있어요."
         }
-        .appCardStyle()
+        return isEditing
+            ? "컬렉션 정보를 바꿔도 기존 사진은 그대로 남아요."
+            : "Custom Concept를 만들면, 그 Concept로 찍은 사진이 이 컬렉션에 쌓여요."
+    }
+
+    @ViewBuilder
+    private var formSection: some View {
+        if isEditingSystemCollection {
+            missionInclusionSettingSection
+                .appCardStyle()
+        } else {
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                formField(title: "컬렉션 이름", placeholder: "예: 커피 타임", text: $title)
+                formField(title: "미션 문구", placeholder: "예: 커피를 찍으세요", text: $missionPrompt)
+                formField(title: "설명 (선택)", placeholder: "이 컬렉션에 담고 싶은 순간", text: $description)
+
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    Text("이모지")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.Text.primary)
+
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: AppSpacing.sm), count: 6),
+                        spacing: AppSpacing.sm
+                    ) {
+                        ForEach(emojiOptions, id: \.self) { option in
+                            Button {
+                                selectEmoji(option)
+                            } label: {
+                                Text(option)
+                                    .font(.system(size: 24))
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, AppSpacing.sm)
+                                    .background(
+                                        emoji == option ? AppColor.Accent.soft : AppColor.Background.secondary,
+                                        in: RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                    Text("테마 색")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.Text.primary)
+
+                    LazyVGrid(
+                        columns: Array(repeating: GridItem(.flexible(), spacing: AppSpacing.sm), count: 6),
+                        spacing: AppSpacing.sm
+                    ) {
+                        ForEach(PhotoCollection.presetColorHexes, id: \.self) { hex in
+                            Button {
+                                selectedColorHex = hex
+                            } label: {
+                                Circle()
+                                    .fill(Color(hex: hex))
+                                    .frame(height: 36)
+                                    .overlay {
+                                        if selectedColorHex == hex {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 12, weight: .bold))
+                                                .foregroundStyle(AppColor.Accent.highlight)
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+
+                if isEditing {
+                    missionInclusionSettingSection
+                }
+            }
+            .appCardStyle()
+        }
+    }
+
+    private var missionInclusionSettingSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            HStack(spacing: AppSpacing.md) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                    Text("오늘의 발견에 포함")
+                        .font(AppFont.subheadline)
+                        .foregroundStyle(AppColor.Text.primary)
+                    Text(
+                        isIncludedInMission
+                            ? "오늘의 발견 후보에 포함돼요."
+                            : "목록에는 보이고, 오늘의 발견에서 제외돼요."
+                    )
+                    .font(AppFont.caption1)
+                    .foregroundStyle(AppColor.Text.secondary)
+                }
+
+                Spacer()
+
+                Toggle("오늘의 발견에 포함", isOn: $isIncludedInMission)
+                    .labelsHidden()
+            }
+            .padding(AppSpacing.md)
+            .background(
+                AppColor.Background.secondary,
+                in: RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
+            )
+        }
     }
 
     private func formField(title: String, placeholder: String, text: Binding<String>) -> some View {
@@ -220,6 +270,14 @@ struct AddCollectionView: View {
     }
 
     private func saveCollection() {
+        if let editingCollection, editingCollection.collectionType == .system {
+            collectionRepository.updateMissionInclusion(
+                editingCollection,
+                isIncludedInMission: isIncludedInMission
+            )
+            return
+        }
+
         let trimmedTitle = title.trimmingCharacters(in: .whitespaces)
         let trimmedMissionPrompt = missionPrompt.trimmingCharacters(in: .whitespaces)
         let trimmedDescription = description.trimmingCharacters(in: .whitespaces)
@@ -233,6 +291,7 @@ struct AddCollectionView: View {
                 missionPrompt: trimmedMissionPrompt,
                 description: resolvedDescription,
                 themeColorHex: selectedColorHex,
+                isIncludedInMission: isIncludedInMission,
                 accessToken: authManager.accessToken
             )
         } else {

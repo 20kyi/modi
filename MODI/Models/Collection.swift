@@ -36,6 +36,8 @@ final class MODICollection {
     var sourceTemplateID: String?
     /// 컬렉션 완성 목표 발견 수.
     var targetCount: Int = 20
+    /// 오늘의 발견(미션) 후보 포함 여부.
+    var isIncludedInMission: Bool = true
 
     @Relationship(deleteRule: .cascade, inverse: \MODIRecord.collection)
     var records: [MODIRecord]?
@@ -51,7 +53,8 @@ final class MODICollection {
         themeColorHex: String = "E8ECF0",
         category: CollectionCategory = .custom,
         sourceTemplateID: String? = nil,
-        targetCount: Int = 20
+        targetCount: Int = 20,
+        isIncludedInMission: Bool = true
     ) {
         self.id = id
         self.title = title
@@ -64,6 +67,7 @@ final class MODICollection {
         self.category = category.rawValue
         self.sourceTemplateID = sourceTemplateID
         self.targetCount = targetCount
+        self.isIncludedInMission = isIncludedInMission
     }
 }
 
@@ -164,7 +168,8 @@ extension MODICollection {
             missionPrompt: photoCollection.missionPrompt,
             themeColorHex: photoCollection.themeColorHex,
             category: photoCollection.category,
-            sourceTemplateID: photoCollection.sourceTemplateID
+            sourceTemplateID: photoCollection.sourceTemplateID,
+            isIncludedInMission: photoCollection.isIncludedInMission
         )
     }
 

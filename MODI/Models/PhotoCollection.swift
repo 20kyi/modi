@@ -30,6 +30,7 @@ struct PhotoCollection: Identifiable, Equatable, Hashable, Codable {
     let themeColorHex: String
     let isBuiltIn: Bool
     let sourceTemplateID: String?
+    var isIncludedInMission: Bool = true
 
     var themeColor: Color { Color(hex: themeColorHex) }
 
@@ -39,6 +40,49 @@ struct PhotoCollection: Identifiable, Equatable, Hashable, Codable {
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(id)
+    }
+}
+
+extension PhotoCollection {
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case emoji
+        case category
+        case description
+        case missionPrompt
+        case themeColorHex
+        case isBuiltIn
+        case sourceTemplateID
+        case isIncludedInMission
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        emoji = try container.decode(String.self, forKey: .emoji)
+        category = try container.decode(CollectionCategory.self, forKey: .category)
+        description = try container.decode(String.self, forKey: .description)
+        missionPrompt = try container.decode(String.self, forKey: .missionPrompt)
+        themeColorHex = try container.decode(String.self, forKey: .themeColorHex)
+        isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
+        sourceTemplateID = try container.decodeIfPresent(String.self, forKey: .sourceTemplateID)
+        isIncludedInMission = try container.decodeIfPresent(Bool.self, forKey: .isIncludedInMission) ?? true
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encode(emoji, forKey: .emoji)
+        try container.encode(category, forKey: .category)
+        try container.encode(description, forKey: .description)
+        try container.encode(missionPrompt, forKey: .missionPrompt)
+        try container.encode(themeColorHex, forKey: .themeColorHex)
+        try container.encode(isBuiltIn, forKey: .isBuiltIn)
+        try container.encodeIfPresent(sourceTemplateID, forKey: .sourceTemplateID)
+        try container.encode(isIncludedInMission, forKey: .isIncludedInMission)
     }
 }
 

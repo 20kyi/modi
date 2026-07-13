@@ -94,16 +94,18 @@ final class MissionManager {
     /// 해당 날짜의 Concept 선택을 반환합니다. 없으면 Concept 풀에서 자동 배정합니다.
     func mission(for date: Date) -> TodayMission {
         let key = TodayMission.dayKey(for: date)
+        let concepts = missionCandidateConcepts()
 
         if let existing = todayMissions[key] {
-            return existing
+            if concepts.isEmpty || concepts.contains(where: { $0.id == existing.conceptId }) {
+                return existing
+            }
         }
 
-        let concepts = allConcepts
         let selectedConcept: Concept
 
         if concepts.isEmpty {
-            selectedConcept = Concept.mock
+            selectedConcept = missionFallbackConcept()
         } else {
             let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
             let index = (dayOfYear - 1) % concepts.count
@@ -214,7 +216,26 @@ final class MissionManager {
 
     private func rerollCandidates(on date: Date) -> [Concept] {
         let initialConceptId = mission(for: date).initialConceptId
-        return allConcepts.filter { $0.id != initialConceptId }
+        return missionCandidateConcepts().filter { $0.id != initialConceptId }
+    }
+
+    private func missionCandidateConcepts() -> [Concept] {
+        guard let collectionRepository else {
+            return allConcepts
+        }
+
+        let includedCollectionIDs = Set(
+            collectionRepository.collections
+                .filter(\.isIncludedInMission)
+                .map(\.id)
+        )
+
+        guard !includedCollectionIDs.isEmpty else { return [] }
+        return allConcepts.filter { includedCollectionIDs.contains($0.id) }
+    }
+
+    private func missionFallbackConcept() -> Concept {
+        systemConcepts.first ?? allConcepts.first ?? Concept.mock
     }
 
     // MARK: - Completion
