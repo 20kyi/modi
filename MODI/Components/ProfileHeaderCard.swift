@@ -6,6 +6,7 @@ struct ProfileHeaderCard: View {
     let tagline: String
     let stats: DiscoveryStats
     let nameSuffix: String
+    let isPremium: Bool
     let missionPlaceholder: ProfileTopCollection?
 
     init(
@@ -13,12 +14,14 @@ struct ProfileHeaderCard: View {
         tagline: String,
         stats: DiscoveryStats,
         nameSuffix: String = "님",
+        isPremium: Bool = false,
         missionPlaceholder: ProfileTopCollection? = nil
     ) {
         self.nickname = nickname
         self.tagline = tagline
         self.stats = stats
         self.nameSuffix = nameSuffix
+        self.isPremium = isPremium
         self.missionPlaceholder = missionPlaceholder
     }
 
@@ -30,10 +33,24 @@ struct ProfileHeaderCard: View {
                 collectionBadge(missionPlaceholder, accessibilityLabel: "오늘의 미션")
             }
 
-            VStack(spacing: AppSpacing.xs) {
+            VStack(spacing: AppSpacing.sm) {
                 Text("\(nickname)\(nameSuffix)")
                     .font(AppFont.title2)
                     .foregroundStyle(AppColor.Text.primary)
+
+                if isPremium {
+                    Text("✨ MODI+")
+                        .font(AppFont.caption1.weight(.semibold))
+                        .foregroundStyle(AppColor.Semantic.warning)
+                        .padding(.horizontal, AppSpacing.md)
+                        .padding(.vertical, AppSpacing.xs)
+                        .background(
+                            AppColor.Semantic.warning.opacity(0.12),
+                            in: Capsule(style: .continuous)
+                        )
+                        .padding(.bottom, AppSpacing.xs)
+                        .accessibilityLabel("MODI+ 프리미엄")
+                }
 
                 Text(tagline)
                     .font(AppFont.callout)
@@ -110,6 +127,17 @@ struct ProfileHeaderCard: View {
         .appScreenPadding()
         .appScreenBackground()
         .preferredColorScheme(.dark)
+}
+
+#Preview("Premium") {
+    ProfileHeaderCard(
+        nickname: "영임",
+        tagline: "MODI Explorer",
+        stats: .mock,
+        isPremium: true
+    )
+    .appScreenPadding()
+    .appScreenBackground()
 }
 
 #Preview("No Records Placeholder") {

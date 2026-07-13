@@ -63,6 +63,7 @@ struct ProfileView: View {
                         tagline: authManager.session.profileTagline,
                         stats: viewModel.stats,
                         nameSuffix: authManager.session.nameSuffix,
+                        isPremium: premiumManager.hasPremium,
                         missionPlaceholder: missionPlaceholder
                     )
 
