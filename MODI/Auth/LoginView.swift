@@ -81,7 +81,7 @@ struct LoginView: View {
             .buttonStyle(.plain)
             .disabled(isSigningIn)
 
-            Button("나중에 둘러보기") {
+            Button("게스트로 둘러보기") {
                 authManager.setGuest()
                 onComplete()
             }

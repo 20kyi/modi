@@ -76,7 +76,7 @@ struct SecondaryButtonStyle: ButtonStyle {
 }
 
 #Preview("Secondary · Light") {
-    Button("나중에 둘러보기") {}
+    Button("게스트로 둘러보기") {}
         .buttonStyle(SecondaryButtonStyle())
         .padding()
         .appScreenBackground()
@@ -84,7 +84,7 @@ struct SecondaryButtonStyle: ButtonStyle {
 }
 
 #Preview("Secondary · Dark") {
-    Button("나중에 둘러보기") {}
+    Button("게스트로 둘러보기") {}
         .buttonStyle(SecondaryButtonStyle())
         .padding()
         .appScreenBackground()
