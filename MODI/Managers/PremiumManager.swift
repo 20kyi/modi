@@ -16,6 +16,19 @@ final class PremiumManager {
         isDeveloperPremiumEnabled
     }
 
+    /// StoreKit 연동 시에도 동일한 이름으로 참조할 수 있는 프리미엄 여부입니다.
+    var hasPremium: Bool {
+        isPremium
+    }
+
+    /// 무료 사용자가 만들 수 있는 커스텀 컬렉션 최대 개수입니다.
+    static let freeCustomCollectionLimit = 1
+
+    /// 커스텀 컬렉션(`collectionType == .custom`) 생성 가능 여부를 판단합니다.
+    func canCreateCustomCollection(currentCount: Int) -> Bool {
+        hasPremium || currentCount < Self.freeCustomCollectionLimit
+    }
+
     private let storage: UserDefaults
 
     private enum StorageKeys {

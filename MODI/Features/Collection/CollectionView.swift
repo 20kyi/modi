@@ -5,8 +5,12 @@ struct CollectionView: View {
 
     @Environment(CollectionStore.self) private var store
     @Environment(RecordRepository.self) private var repository
-
     @Environment(CollectionRepository.self) private var collectionRepository
+    @Environment(PremiumManager.self) private var premiumManager
+
+    @State private var isShowingAddCollection = false
+    @State private var isShowingCollectionLimitSheet = false
+    @State private var isShowingPremium = false
 
     private let columns = [
         GridItem(.flexible(), spacing: AppSpacing.gridGutter),
@@ -34,13 +38,27 @@ struct CollectionView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink {
-                        AddCollectionView()
-                    } label: {
+                    Button(action: attemptCreateCustomCollection) {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .semibold))
                     }
                 }
+            }
+            .navigationDestination(isPresented: $isShowingAddCollection) {
+                AddCollectionView()
+            }
+            .navigationDestination(isPresented: $isShowingPremium) {
+                PremiumView()
+            }
+            .sheet(isPresented: $isShowingCollectionLimitSheet) {
+                CustomCollectionLimitSheet(
+                    onShowPremium: {
+                        isShowingCollectionLimitSheet = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            isShowingPremium = true
+                        }
+                    }
+                )
             }
             .navigationDestination(for: PhotoCollection.self) { collection in
                 CollectionDetailView(collection: collection)
@@ -61,6 +79,18 @@ struct CollectionView: View {
 
     private var visibleCategories: [CollectionCategory] {
         [.color, .nature, .custom]
+    }
+
+    private var customCollectionCount: Int {
+        collectionRepository.customCollections.count
+    }
+
+    private func attemptCreateCustomCollection() {
+        if premiumManager.canCreateCustomCollection(currentCount: customCollectionCount) {
+            isShowingAddCollection = true
+        } else {
+            isShowingCollectionLimitSheet = true
+        }
     }
 
     private var headerSection: some View {
@@ -87,9 +117,7 @@ struct CollectionView: View {
 
                 if category == .custom {
                     Spacer()
-                    NavigationLink {
-                        AddCollectionView()
-                    } label: {
+                    Button(action: attemptCreateCustomCollection) {
                         Label("추가", systemImage: "plus.circle")
                             .font(AppFont.footnote)
                             .foregroundStyle(AppColor.Accent.highlight)
@@ -98,9 +126,7 @@ struct CollectionView: View {
             }
 
             if collections.isEmpty {
-                NavigationLink {
-                    AddCollectionView()
-                } label: {
+                Button(action: attemptCreateCustomCollection) {
                     HStack(spacing: AppSpacing.md) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 28))
@@ -148,6 +174,7 @@ struct CollectionView: View {
         .environment(repository)
         .environment(collectionRepository)
         .environment(TitleCelebrationManager())
+        .environment(PremiumManager.shared)
         .preferredColorScheme(.light)
 }
 
@@ -161,5 +188,6 @@ struct CollectionView: View {
         .environment(repository)
         .environment(collectionRepository)
         .environment(TitleCelebrationManager())
+        .environment(PremiumManager.shared)
         .preferredColorScheme(.dark)
 }

@@ -5,12 +5,20 @@ struct RecommendedCollectionAddSheet: View {
 
     @Environment(CollectionRepository.self) private var collectionRepository
     @Environment(AuthManager.self) private var authManager
+    @Environment(PremiumManager.self) private var premiumManager
     @Environment(\.dismiss) private var dismiss
 
     let template: RecommendedCollectionTemplate
 
+    @State private var isShowingCollectionLimitSheet = false
+    @State private var isShowingPremium = false
+
     private var isAlreadyAdded: Bool {
         collectionRepository.hasAddedTemplate(template.id)
+    }
+
+    private var customCollectionCount: Int {
+        collectionRepository.customCollections.count
     }
 
     var body: some View {
@@ -66,11 +74,7 @@ struct RecommendedCollectionAddSheet: View {
                         )
                 } else {
                     Button("컬렉션에 추가하기") {
-                        collectionRepository.addCustomCollection(
-                            from: template,
-                            accessToken: authManager.accessToken
-                        )
-                        dismiss()
+                        attemptAddCustomCollection()
                     }
                     .buttonStyle(PrimaryButtonStyle())
                 }
@@ -86,8 +90,33 @@ struct RecommendedCollectionAddSheet: View {
                         .foregroundStyle(AppColor.Accent.highlight)
                 }
             }
+            .navigationDestination(isPresented: $isShowingPremium) {
+                PremiumView()
+            }
+            .sheet(isPresented: $isShowingCollectionLimitSheet) {
+                CustomCollectionLimitSheet(
+                    onShowPremium: {
+                        isShowingCollectionLimitSheet = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            isShowingPremium = true
+                        }
+                    }
+                )
+            }
         }
         .presentationDetents([.medium])
+    }
+
+    private func attemptAddCustomCollection() {
+        if premiumManager.canCreateCustomCollection(currentCount: customCollectionCount) {
+            collectionRepository.addCustomCollection(
+                from: template,
+                accessToken: authManager.accessToken
+            )
+            dismiss()
+        } else {
+            isShowingCollectionLimitSheet = true
+        }
     }
 }
 
