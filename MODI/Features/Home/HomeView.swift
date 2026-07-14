@@ -151,7 +151,7 @@ struct HomeView: View {
                 .foregroundStyle(AppColor.Text.secondary)
 
             HStack(alignment: .center, spacing: AppSpacing.xs) {
-                Text(authManager.session.homeGreetingName)
+                Text("\(authManager.session.displayName)님")
                     .font(AppFont.title1)
                     .foregroundStyle(AppColor.Text.primary)
 
