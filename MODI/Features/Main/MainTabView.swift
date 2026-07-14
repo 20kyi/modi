@@ -218,6 +218,7 @@ struct MainTabView: View {
         repository: RecordRepository,
         collectionRepository: CollectionRepository
     ) {
+        missionManager.syncCompletionStatus(repository: repository)
         streakManager.refresh(
             recordRepository: repository,
             collectionRepository: collectionRepository

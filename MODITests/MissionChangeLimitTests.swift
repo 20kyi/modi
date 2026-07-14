@@ -187,4 +187,79 @@ struct MissionChangeLimitTests {
         let fallbackConcept = manager.systemConcepts.first ?? Concept.mock
         #expect(mission.conceptId == fallbackConcept.id)
     }
+
+    @Test func sameUserAndDateSelectSameMissionAcrossDevices() {
+        let firstStorage = UserDefaults(suiteName: "mission-sync-device-a")!
+        let secondStorage = UserDefaults(suiteName: "mission-sync-device-b")!
+        firstStorage.removePersistentDomain(forName: "mission-sync-device-a")
+        secondStorage.removePersistentDomain(forName: "mission-sync-device-b")
+        firstStorage.set("same-user", forKey: "modi_auth_userId")
+        secondStorage.set("same-user", forKey: "modi_auth_userId")
+
+        let (_, _, firstCollectionRepository, _) = makeMissionManagerWithConcepts(
+            suiteName: "mission-sync-device-a",
+            conceptCount: 0
+        )
+        firstStorage.set("same-user", forKey: "modi_auth_userId")
+        let firstManager = MissionManager(storage: firstStorage)
+        firstManager.configure(collectionRepository: firstCollectionRepository)
+
+        let (_, _, secondCollectionRepository, _) = makeMissionManagerWithConcepts(
+            suiteName: "mission-sync-device-b",
+            conceptCount: 0
+        )
+        secondStorage.set("same-user", forKey: "modi_auth_userId")
+        let secondManager = MissionManager(storage: secondStorage)
+        secondManager.configure(collectionRepository: secondCollectionRepository)
+
+        let date = Date(timeIntervalSince1970: 1_784_044_800)
+        let firstMission = firstManager.mission(for: date)
+        let secondMission = secondManager.mission(for: date)
+
+        #expect(firstMission.userId == "same-user")
+        #expect(secondMission.userId == "same-user")
+        #expect(firstMission.collectionId == secondMission.collectionId)
+    }
+
+    @Test func missionCompletionSyncsFromSyncedRecord() {
+        let (manager, repository, collectionRepository, _) = makeMissionManagerWithConcepts(
+            suiteName: "mission-completion-sync",
+            conceptCount: 0
+        )
+        let date = Date(timeIntervalSince1970: 1_784_044_800)
+        let mission = manager.mission(for: date)
+        guard let concept = manager.concept(for: mission.collectionId) else {
+            Issue.record("Missing mission concept")
+            return
+        }
+
+        let collection = collectionRepository.ensureCollection(for: concept)
+        _ = try? repository.saveRecord(
+            image: UIImage(systemName: "photo")!,
+            originalImage: UIImage(systemName: "photo")!,
+            concept: concept,
+            collection: collection,
+            recordDate: date
+        )
+        manager.syncCompletionStatus(on: date, repository: repository)
+
+        #expect(manager.mission(for: date).isCompleted)
+        #expect(manager.isMissionCompleted(on: date, repository: repository))
+    }
+
+    @Test func missionIsStoredSeparatelyByDate() {
+        let (manager, _, _, _) = makeMissionManagerWithConcepts(
+            suiteName: "mission-date-separate",
+            conceptCount: 0
+        )
+        let calendar = Calendar.current
+        let firstDate = Date(timeIntervalSince1970: 1_784_044_800)
+        let secondDate = calendar.date(byAdding: .day, value: 1, to: firstDate)!
+
+        let firstMission = manager.mission(for: firstDate)
+        let secondMission = manager.mission(for: secondDate)
+
+        #expect(firstMission.dayKey != secondMission.dayKey)
+        #expect(firstMission.date != secondMission.date)
+    }
 }

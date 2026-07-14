@@ -34,6 +34,10 @@ final class MissionManager {
         systemConcepts + customConcepts
     }
 
+    var currentUserId: String {
+        activeScope
+    }
+
     var todaysMission: TodayMission {
         mission(for: .now)
     }
@@ -97,13 +101,14 @@ final class MissionManager {
 
     // MARK: - Today Mission
 
-    /// 해당 날짜의 Concept 선택을 반환합니다. 없으면 Concept 풀에서 자동 배정합니다.
+    /// 해당 사용자/날짜의 미션 컬렉션 선택을 반환합니다. 없으면 계정 기준으로 안정적인 미션을 배정합니다.
     func mission(for date: Date) -> TodayMission {
         let key = TodayMission.dayKey(for: date)
         let concepts = missionCandidateConcepts()
 
         if let existing = todayMissions[key] {
-            if concepts.isEmpty || concepts.contains(where: { $0.id == existing.conceptId }) {
+            if existing.userId == activeScope,
+               concepts.isEmpty || concepts.contains(where: { $0.id == existing.conceptId }) {
                 return existing
             }
         }
@@ -113,12 +118,20 @@ final class MissionManager {
         if concepts.isEmpty {
             selectedConcept = missionFallbackConcept()
         } else {
-            let dayOfYear = Calendar.current.ordinality(of: .day, in: .year, for: date) ?? 1
-            let index = (dayOfYear - 1) % concepts.count
-            selectedConcept = concepts[index]
+            let sortedConcepts = concepts.sorted { $0.id.uuidString < $1.id.uuidString }
+            let index = stableMissionIndex(
+                userId: activeScope,
+                dayKey: key,
+                candidateCount: sortedConcepts.count
+            )
+            selectedConcept = sortedConcepts[index]
         }
 
-        let mission = TodayMission(conceptId: selectedConcept.id, date: date)
+        let mission = TodayMission(
+            userId: activeScope,
+            collectionId: selectedConcept.id,
+            date: date
+        )
         todayMissions[key] = mission
         saveTodayMissions()
         return mission
@@ -127,7 +140,13 @@ final class MissionManager {
     /// 오늘 사용할 Concept을 직접 선택합니다.
     func selectConcept(_ concept: Concept, for date: Date = .now) {
         let key = TodayMission.dayKey(for: date)
-        let mission = TodayMission(conceptId: concept.id, date: date)
+        let existing = todayMissions[key]
+        let mission = TodayMission(
+            userId: activeScope,
+            collectionId: concept.id,
+            date: date,
+            isCompleted: existing?.isCompleted ?? false
+        )
         todayMissions[key] = mission
         saveTodayMissions()
     }
@@ -197,10 +216,12 @@ final class MissionManager {
         let current = mission(for: date)
         let key = TodayMission.dayKey(for: date)
         let mission = TodayMission(
-            conceptId: concept.id,
-            initialConceptId: current.initialConceptId,
+            userId: activeScope,
+            collectionId: concept.id,
+            initialCollectionId: current.initialConceptId,
             date: date,
-            hasChangedConcept: true
+            isCompleted: current.isCompleted,
+            hasChangedCollection: true
         )
         todayMissions[key] = mission
         saveTodayMissions()
@@ -238,6 +259,24 @@ final class MissionManager {
         return allConcepts.filter { includedCollectionIDs.contains($0.id) }
     }
 
+    private func stableMissionIndex(userId: String, dayKey: String, candidateCount: Int) -> Int {
+        guard candidateCount > 0 else { return 0 }
+        let seed = "\(userId)|\(dayKey)"
+        return Int(Self.stableHash(seed) % UInt64(candidateCount))
+    }
+
+    private static func stableHash(_ value: String) -> UInt64 {
+        var hash: UInt64 = 14_695_981_039_346_656_037
+        let prime: UInt64 = 1_099_511_628_211
+
+        for byte in value.utf8 {
+            hash ^= UInt64(byte)
+            hash = hash &* prime
+        }
+
+        return hash
+    }
+
     private func missionCandidateCollections(from collections: [MODICollection]) -> [MODICollection] {
         guard !hasPremiumAccess else {
             return collections.filter(\.isIncludedInMission)
@@ -268,18 +307,29 @@ final class MissionManager {
     // MARK: - Completion
 
     func isMissionCompleted(on date: Date = .now, repository: RecordRepository) -> Bool {
-        // 이미 오늘 기록이 하나라도 있으면 "오늘의 미션 완료"로 간주합니다.
-        !repository.fetchRecords(on: date).isEmpty
+        let todayMission = mission(for: date)
+        if todayMission.isCompleted { return true }
+        return repository.hasRecord(on: date, conceptId: todayMission.collectionId)
     }
 
     func isTodaysMissionCompleted(repository: RecordRepository) -> Bool {
         isMissionCompleted(on: .now, repository: repository)
     }
 
+    func syncCompletionStatus(on date: Date = .now, repository: RecordRepository) {
+        let key = TodayMission.dayKey(for: date)
+        let todayMission = mission(for: date)
+        let isCompleted = repository.hasRecord(on: date, conceptId: todayMission.collectionId)
+
+        guard todayMission.isCompleted != isCompleted else { return }
+        todayMissions[key] = todayMission.withCompletion(isCompleted)
+        saveTodayMissions()
+    }
+
     /// 기존 HomeView / DailyMissionCard와 연결하기 위한 UI 모델.
     func dailyMission(
         for date: Date = .now,
-        isCompleted: Bool
+        isCompleted: Bool? = nil
     ) -> DailyMission? {
         let todayMission = mission(for: date)
         guard let concept = concept(for: todayMission.conceptId) else { return nil }
@@ -287,7 +337,7 @@ final class MissionManager {
         return DailyMission(
             from: concept,
             date: date,
-            isCompleted: isCompleted
+            isCompleted: isCompleted ?? todayMission.isCompleted
         )
     }
 

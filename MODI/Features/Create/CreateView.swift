@@ -59,16 +59,10 @@ struct CreateView: View {
     }
 
     private var todaysRecord: MODIRecord? {
-        repository.fetchRecords(on: .now)
-            .sorted { $0.createdAt > $1.createdAt }
-            .first
+        repository.record(on: .now, conceptId: missionManager.todaysMission.collectionId)
     }
 
     private var displayConcept: Concept? {
-        if let todaysRecord,
-           let concept = missionManager.concept(for: todaysRecord.conceptId) {
-            return concept
-        }
         return missionManager.todaysConcept
     }
 
@@ -91,7 +85,7 @@ struct CreateView: View {
                         todayMission: missionManager.todaysMission,
                         concept: concept,
                         mission: todaysMission,
-                        onSaved: {},
+                        onSaved: syncMissionCompletion,
                         onSaveFailed: { _ in
                             saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                         }
@@ -111,7 +105,7 @@ struct CreateView: View {
                     PhotoEditorView(
                         image: presentation.image,
                         concept: concept,
-                        onSaved: {},
+                        onSaved: syncMissionCompletion,
                         onSaveFailed: { _ in
                             saveErrorMessage = "사진 파일을 저장하는 중 문제가 발생했어요."
                         }
@@ -282,6 +276,10 @@ struct CreateView: View {
         } else if !premiumManager.hasPremium {
             isShowingMissionChangeLimitSheet = true
         }
+    }
+
+    private func syncMissionCompletion() {
+        missionManager.syncCompletionStatus(repository: repository)
     }
 }
 
