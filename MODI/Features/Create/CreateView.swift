@@ -513,10 +513,6 @@ struct CreateView: View {
                     .strokeBorder(palette.accent.opacity(0.28), lineWidth: 1)
             }
 
-            if let record = todaysRecord {
-                completedPhotoActions(for: record)
-            }
-
             Spacer()
         }
         .appScreenPadding()
