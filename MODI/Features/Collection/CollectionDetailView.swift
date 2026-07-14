@@ -241,24 +241,6 @@ struct CollectionDetailView: View {
                         .foregroundStyle(AppColor.Text.secondary)
                 }
 
-                if selectedRecord.userWrittenTexts.isEmpty {
-                    Text("아직 남긴 메모가 없어요.")
-                        .font(AppFont.body)
-                        .foregroundStyle(AppColor.Text.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .appCardStyle()
-                } else {
-                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
-                        ForEach(selectedRecord.userWrittenTexts, id: \.self) { text in
-                            Text(text)
-                                .font(AppFont.body)
-                                .foregroundStyle(AppColor.Text.primary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                    .appCardStyle()
-                }
-
                 Button {
                     presentEditor(for: selectedRecord)
                 } label: {
