@@ -5,11 +5,14 @@ import SwiftUI
 
 struct ModiPlusView: View {
 
+    @Environment(AuthManager.self) private var authManager
     @Environment(PremiumManager.self) private var premiumManager
     @Environment(ThemeManager.self) private var themeManager
     @Environment(\.openURL) private var openURL
 
     @State private var selectedOptionID = ModiPlusPurchaseOption.recommendedID
+    @State private var isShowingLogin = false
+    @State private var pendingActionAfterLogin: PendingPremiumAction?
 
     private let benefits = PremiumBenefitCatalog.benefits
     private let premiumThemes = PremiumBenefitCatalog.premiumThemes
@@ -60,6 +63,26 @@ struct ModiPlusView: View {
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             ctaSection
+        }
+        .fullScreenCover(isPresented: $isShowingLogin, onDismiss: {
+            pendingActionAfterLogin = nil
+        }) {
+            LoginView {
+                guard authManager.session.isLoggedIn else {
+                    pendingActionAfterLogin = nil
+                    isShowingLogin = false
+                    return
+                }
+
+                let action = pendingActionAfterLogin
+                pendingActionAfterLogin = nil
+                isShowingLogin = false
+
+                Task {
+                    await performPremiumAction(action)
+                }
+            }
+            .environment(authManager)
         }
     }
 
@@ -264,12 +287,10 @@ struct ModiPlusView: View {
 
             VStack(spacing: AppSpacing.sm) {
                 Button {
-                    Task {
-                        await premiumManager.purchase(productID: selectedOption.productID)
-                    }
+                    handlePremiumAction(.purchase(selectedOption.productID))
                 } label: {
                     ZStack {
-                        Text(premiumManager.hasPremium ? "MODI+ 이용 중" : "\(selectedOption.title) 시작하기")
+                        Text(primaryButtonTitle)
                             .opacity(premiumManager.isPurchasing ? 0 : 1)
 
                         if premiumManager.isPurchasing {
@@ -282,9 +303,7 @@ struct ModiPlusView: View {
                 .disabled(premiumManager.isPurchasing || premiumManager.hasPremium || premiumManager.product(for: selectedOption.productID) == nil)
 
                 Button("이전 구매 복원") {
-                    Task {
-                        await premiumManager.restorePurchases()
-                    }
+                    handlePremiumAction(.restore)
                 }
                 .font(AppFont.footnote)
                 .fontWeight(.semibold)
@@ -397,6 +416,41 @@ struct ModiPlusView: View {
         )
     }
 
+    private var primaryButtonTitle: String {
+        if premiumManager.hasPremium {
+            return "MODI+ 이용 중"
+        }
+
+        if authManager.session.isGuest {
+            return "로그인하고 MODI+ 시작"
+        }
+
+        return "\(selectedOption.title) 시작하기"
+    }
+
+    private func handlePremiumAction(_ action: PendingPremiumAction) {
+        guard authManager.session.isLoggedIn else {
+            pendingActionAfterLogin = action
+            isShowingLogin = true
+            return
+        }
+
+        Task {
+            await performPremiumAction(action)
+        }
+    }
+
+    private func performPremiumAction(_ action: PendingPremiumAction?) async {
+        guard let action else { return }
+
+        switch action {
+        case .purchase(let productID):
+            await premiumManager.purchase(productID: productID)
+        case .restore:
+            await premiumManager.restorePurchases()
+        }
+    }
+
     private func sectionHeader(title: String) -> some View {
         Text(title)
             .font(AppFont.title3)
@@ -407,6 +461,13 @@ struct ModiPlusView: View {
         guard let url = URL(string: rawValue) else { return }
         openURL(url)
     }
+}
+
+// MARK: - PendingPremiumAction
+
+private enum PendingPremiumAction {
+    case purchase(String)
+    case restore
 }
 
 // MARK: - ModiPlusPurchaseOption
