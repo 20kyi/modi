@@ -5,6 +5,7 @@ import SwiftUI
 struct ModiPlusView: View {
 
     @Environment(PremiumManager.self) private var premiumManager
+    @Environment(ThemeManager.self) private var themeManager
 
     private let benefits = PremiumBenefitCatalog.benefits
     private let premiumThemes = PremiumBenefitCatalog.premiumThemes
@@ -30,6 +31,12 @@ struct ModiPlusView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .onAppear {
+            themeManager.clearPreviewTheme()
+        }
+        .onDisappear {
+            themeManager.clearPreviewTheme()
+        }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             ctaSection
         }
@@ -112,7 +119,14 @@ struct ModiPlusView: View {
 
             HStack(alignment: .top, spacing: AppSpacing.md) {
                 ForEach(premiumThemes) { theme in
-                    ThemePreviewCard(highlight: theme)
+                    ThemePreviewCard(
+                        highlight: theme,
+                        isSelected: themeManager.previewTheme == theme.theme
+                    ) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            themeManager.setPreviewTheme(theme.theme)
+                        }
+                    }
                 }
             }
             .padding(.vertical, AppSpacing.xxs)

@@ -84,7 +84,7 @@ enum AppColor {
 
         /// Empty state 등 텍스트 액션 버튼 라벨
         static var textAction: Color {
-            ThemeManager.shared.selectedTheme == .midnightFilm
+            ThemeManager.shared.renderedTheme == .midnightFilm
                 ? palette.primary
                 : palette.accent
         }

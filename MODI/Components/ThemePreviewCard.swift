@@ -5,6 +5,8 @@ import SwiftUI
 struct ThemePreviewCard: View {
 
     let highlight: PremiumThemeHighlight
+    var isSelected = false
+    var onTap: (() -> Void)?
 
     private var colors: ThemeColors { highlight.theme.definition.colors }
 
@@ -30,6 +32,13 @@ struct ThemePreviewCard: View {
             }
         }
         .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            onTap?()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(onTap == nil ? [] : .isButton)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     private var previewSquare: some View {
@@ -57,7 +66,7 @@ struct ThemePreviewCard: View {
         .clipShape(RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous))
         .overlay {
             RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .stroke(colors.borderDefault, lineWidth: 0.5)
+                .stroke(isSelected ? AppColor.Accent.highlight : colors.borderDefault, lineWidth: isSelected ? 2 : 0.5)
         }
     }
 

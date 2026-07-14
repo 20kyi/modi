@@ -10,6 +10,7 @@ final class ThemeManager {
     static let shared = ThemeManager()
 
     private(set) var selectedTheme: AppTheme
+    private(set) var previewTheme: AppTheme?
 
     private let storage: UserDefaults
 
@@ -18,8 +19,12 @@ final class ThemeManager {
         static let legacyAppearanceMode = "settings.app.appearanceMode"
     }
 
+    var renderedTheme: AppTheme {
+        previewTheme ?? selectedTheme
+    }
+
     var currentTheme: Theme {
-        selectedTheme.definition
+        renderedTheme.definition
     }
 
     var colors: ThemeColors {
@@ -46,6 +51,14 @@ final class ThemeManager {
         guard !theme.definition.isPremium || isPremium else { return }
         selectedTheme = theme
         storage.set(theme.rawValue, forKey: StorageKeys.selectedTheme)
+    }
+
+    func setPreviewTheme(_ theme: AppTheme) {
+        previewTheme = theme
+    }
+
+    func clearPreviewTheme() {
+        previewTheme = nil
     }
 
     /// 프리미엄이 해제된 경우 저장된 프리미엄 테마를 무료 테마로 되돌립니다.
