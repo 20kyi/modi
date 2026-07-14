@@ -21,6 +21,7 @@ final class MissionManager {
     private let catalog: SystemConceptCatalog
     private let conceptsAPIService: ConceptsAPIService
     private var activeScope: String
+    private var hasPremiumAccess = false
 
     var systemConcepts: [Concept] { catalog.concepts }
 
@@ -56,8 +57,13 @@ final class MissionManager {
         migrateLegacyChangeCountIfNeeded(on: .now)
     }
 
-    func configure(collectionRepository: CollectionRepository) {
+    func configure(collectionRepository: CollectionRepository, hasPremiumAccess: Bool = false) {
         self.collectionRepository = collectionRepository
+        self.hasPremiumAccess = hasPremiumAccess
+    }
+
+    func setPremiumAccess(_ hasPremiumAccess: Bool) {
+        self.hasPremiumAccess = hasPremiumAccess
     }
 
     // MARK: - Concept Sync
@@ -225,13 +231,34 @@ final class MissionManager {
         }
 
         let includedCollectionIDs = Set(
-            collectionRepository.collections
-                .filter(\.isIncludedInMission)
-                .map(\.id)
+            missionCandidateCollections(from: collectionRepository.collections).map(\.id)
         )
 
         guard !includedCollectionIDs.isEmpty else { return [] }
         return allConcepts.filter { includedCollectionIDs.contains($0.id) }
+    }
+
+    private func missionCandidateCollections(from collections: [MODICollection]) -> [MODICollection] {
+        guard !hasPremiumAccess else {
+            return collections.filter(\.isIncludedInMission)
+        }
+
+        let freeCustomSlotID = collections
+            .filter { $0.collectionType == .custom }
+            .sorted {
+                if $0.createdAt == $1.createdAt {
+                    return $0.id.uuidString < $1.id.uuidString
+                }
+                return $0.createdAt < $1.createdAt
+            }
+            .first?
+            .id
+
+        return collections.filter { collection in
+            guard collection.isIncludedInMission else { return false }
+            guard collection.collectionType == .custom else { return true }
+            return collection.id == freeCustomSlotID
+        }
     }
 
     private func missionFallbackConcept() -> Concept {
