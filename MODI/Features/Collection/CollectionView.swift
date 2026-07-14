@@ -337,7 +337,29 @@ struct CollectionView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            collectionContextMenu(for: collection)
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func collectionContextMenu(for collection: PhotoCollection) -> some View {
+        if let modiCollection = collectionRepository.collection(for: collection.id) {
+            Button {
+                handleCustomCollectionSelection(modiCollection, action: .edit)
+            } label: {
+                Label("수정", systemImage: "pencil")
+            }
+
+            if modiCollection.collectionType == .custom {
+                Button(role: .destructive) {
+                    handleCustomCollectionSelection(modiCollection, action: .delete)
+                } label: {
+                    Label("삭제", systemImage: "trash")
                 }
             }
         }
