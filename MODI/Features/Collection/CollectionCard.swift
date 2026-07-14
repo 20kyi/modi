@@ -89,7 +89,7 @@ struct CollectionCard: View {
     private var slotBadgeForeground: Color {
         switch slotBadge {
         case .premium:
-            AppColor.Text.onAccent
+            AppColor.Semantic.warning
         case .none, .basic:
             AppColor.Text.primary
         }
@@ -98,7 +98,7 @@ struct CollectionCard: View {
     private var slotBadgeBackground: AnyShapeStyle {
         switch slotBadge {
         case .premium:
-            AnyShapeStyle(AppColor.Accent.primary)
+            AnyShapeStyle(AppColor.Semantic.warning.opacity(0.12))
         case .none, .basic:
             AnyShapeStyle(.ultraThinMaterial)
         }

@@ -206,10 +206,10 @@ struct CollectionDetailView: View {
             } else if isPremiumCustomSlot {
                 Text("MODI+")
                     .font(AppFont.caption1.weight(.semibold))
-                    .foregroundStyle(AppColor.Text.onAccent)
+                    .foregroundStyle(AppColor.Semantic.warning)
                     .padding(.horizontal, AppSpacing.sm)
                     .padding(.vertical, AppSpacing.xxs)
-                    .background(AppColor.Accent.primary, in: Capsule())
+                    .background(AppColor.Semantic.warning.opacity(0.12), in: Capsule())
             }
         }
     }
