@@ -340,13 +340,22 @@ struct ModiPlusView: View {
                 .buttonStyle(PrimaryButtonStyle())
                 .disabled(premiumManager.isPurchasing || premiumManager.hasPremium || premiumManager.product(for: selectedOption.productID) == nil)
 
-                Button("이전 구매 복원") {
-                    handlePremiumAction(.restore)
+                HStack(spacing: AppSpacing.sm) {
+                    Button("이전 구매 복원") {
+                        handlePremiumAction(.restore)
+                    }
+                    .disabled(premiumManager.isPurchasing)
+
+                    Text("·")
+                        .foregroundStyle(AppColor.Text.tertiary)
+
+                    Button("구독 관리") {
+                        openSupportURL("https://apps.apple.com/account/subscriptions")
+                    }
                 }
                 .font(AppFont.footnote)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.Accent.highlight)
-                .disabled(premiumManager.isPurchasing)
 
                 legalDisclosure
             }
