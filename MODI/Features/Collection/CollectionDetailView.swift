@@ -26,6 +26,7 @@ struct CollectionDetailView: View {
     @State private var sharePayload: CollectionSharePayload?
     @State private var shareErrorMessage: String?
     @State private var deleteErrorMessage: String?
+    @State private var recordContextMenuTracker = ContextMenuVisibilityTracker<UUID>()
 
     init(collection: MODICollection) {
         self.modiCollection = collection
@@ -255,13 +256,25 @@ struct CollectionDetailView: View {
                             MODIRecordTile(collection: collection, record: record)
                         }
                         .buttonStyle(.plain)
-                        .contextMenu {
-                            Button("사진 수정", systemImage: "pencil") {
-                                presentEditor(for: record)
-                            }
-                            Button("사진 삭제", systemImage: "trash", role: .destructive) {
-                                recordPendingDeletion = record
-                            }
+                        .background {
+                            Color.clear
+                                .contextMenu {
+                                    Button {
+                                        performRecordContextMenuAction(from: record.id) {
+                                            presentEditor(for: record)
+                                        }
+                                    } label: {
+                                        recordContextMenuLabel("사진 수정", systemImage: "pencil", recordID: record.id)
+                                    }
+                                    Button(role: .destructive) {
+                                        performRecordContextMenuAction(from: record.id) {
+                                            recordPendingDeletion = record
+                                        }
+                                    } label: {
+                                        recordContextMenuLabel("사진 삭제", systemImage: "trash", recordID: record.id)
+                                    }
+                                }
+                                .id(record.id)
                         }
                     }
                 }
@@ -301,6 +314,33 @@ struct CollectionDetailView: View {
             image: image,
             existingRecord: record
         )
+    }
+
+    private func performRecordContextMenuAction(
+        from recordID: UUID,
+        _ action: @escaping @MainActor () -> Void
+    ) {
+        guard recordContextMenuTracker.allowsAction(from: recordID) else { return }
+
+        Task { @MainActor in
+            // Let UIKit finish dismissing the context menu before SwiftUI presents navigation or alerts.
+            try? await Task.sleep(for: .milliseconds(150))
+            action()
+        }
+    }
+
+    private func recordContextMenuLabel(
+        _ title: String,
+        systemImage: String,
+        recordID: UUID
+    ) -> some View {
+        Label(title, systemImage: systemImage)
+            .onAppear {
+                recordContextMenuTracker.markVisible(recordID)
+            }
+            .onDisappear {
+                recordContextMenuTracker.markHidden(recordID)
+            }
     }
 
     private func presentShareSheet() {

@@ -18,11 +18,17 @@ struct CollectionView: View {
     @State private var editingCollectionID: UUID?
     @State private var collectionPendingDeletion: MODICollection?
     @State private var deleteErrorMessage: String?
+    @State private var collectionContextMenuTracker = ContextMenuVisibilityTracker<UUID>()
 
     private let columns = [
         GridItem(.flexible(), spacing: AppSpacing.gridGutter),
         GridItem(.flexible(), spacing: AppSpacing.gridGutter)
     ]
+
+    private struct CollectionContextMenuState {
+        let collectionID: UUID
+        let canDelete: Bool
+    }
 
     var body: some View {
         NavigationStack {
@@ -201,6 +207,14 @@ struct CollectionView: View {
         }
     }
 
+    private func handleCustomCollectionSelection(
+        collectionID: UUID,
+        action: CustomCollectionPickerAction
+    ) {
+        guard let collection = collectionRepository.collection(for: collectionID) else { return }
+        handleCustomCollectionSelection(collection, action: action)
+    }
+
     private func collections(for action: CustomCollectionPickerAction) -> [MODICollection] {
         switch action {
         case .edit:
@@ -215,6 +229,28 @@ struct CollectionView: View {
             isShowingAddCollection = true
         } else {
             isShowingCollectionLimitSheet = true
+        }
+    }
+
+    private func collectionContextMenuState(for collection: PhotoCollection) -> CollectionContextMenuState? {
+        guard let modiCollection = collectionRepository.collection(for: collection.id) else { return nil }
+
+        return CollectionContextMenuState(
+            collectionID: modiCollection.id,
+            canDelete: modiCollection.collectionType == .custom
+        )
+    }
+
+    private func performCollectionContextMenuAction(
+        from collectionID: UUID,
+        _ action: @escaping @MainActor () -> Void
+    ) {
+        guard collectionContextMenuTracker.allowsAction(from: collectionID) else { return }
+
+        Task { @MainActor in
+            // Let UIKit finish dismissing the context menu before SwiftUI presents navigation or alerts.
+            try? await Task.sleep(for: .milliseconds(150))
+            action()
         }
     }
 
@@ -329,6 +365,8 @@ struct CollectionView: View {
             } else {
                 LazyVGrid(columns: columns, spacing: AppSpacing.gridGutter) {
                     ForEach(collections) { collection in
+                        let menuState = collectionContextMenuState(for: collection)
+
                         NavigationLink(value: collection) {
                             CollectionCard(
                                 collection: collection,
@@ -337,8 +375,14 @@ struct CollectionView: View {
                             )
                         }
                         .buttonStyle(.plain)
-                        .contextMenu {
-                            collectionContextMenu(for: collection)
+                        .background {
+                            if let menuState {
+                                Color.clear
+                                    .contextMenu {
+                                        collectionContextMenu(menuState)
+                                    }
+                                    .id(menuState.collectionID)
+                            }
                         }
                     }
                 }
@@ -347,22 +391,82 @@ struct CollectionView: View {
     }
 
     @ViewBuilder
-    private func collectionContextMenu(for collection: PhotoCollection) -> some View {
-        if let modiCollection = collectionRepository.collection(for: collection.id) {
-            Button {
-                handleCustomCollectionSelection(modiCollection, action: .edit)
-            } label: {
-                Label("수정", systemImage: "pencil")
+    private func collectionContextMenu(_ menuState: CollectionContextMenuState) -> some View {
+        Button {
+            performCollectionContextMenuAction(from: menuState.collectionID) {
+                handleCustomCollectionSelection(collectionID: menuState.collectionID, action: .edit)
             }
+        } label: {
+            collectionContextMenuLabel("수정", systemImage: "pencil", collectionID: menuState.collectionID)
+        }
 
-            if modiCollection.collectionType == .custom {
-                Button(role: .destructive) {
-                    handleCustomCollectionSelection(modiCollection, action: .delete)
-                } label: {
-                    Label("삭제", systemImage: "trash")
+        if menuState.canDelete {
+            Button(role: .destructive) {
+                performCollectionContextMenuAction(from: menuState.collectionID) {
+                    handleCustomCollectionSelection(collectionID: menuState.collectionID, action: .delete)
                 }
+            } label: {
+                collectionContextMenuLabel("삭제", systemImage: "trash", collectionID: menuState.collectionID)
             }
         }
+    }
+
+    private func collectionContextMenuLabel(
+        _ title: String,
+        systemImage: String,
+        collectionID: UUID
+    ) -> some View {
+        Label(title, systemImage: systemImage)
+            .onAppear {
+                collectionContextMenuTracker.markVisible(collectionID)
+            }
+            .onDisappear {
+                collectionContextMenuTracker.markHidden(collectionID)
+            }
+    }
+}
+
+@MainActor
+final class ContextMenuVisibilityTracker<ID: Hashable> {
+
+    private var visibleCounts: [ID: Int] = [:]
+    private var lastHiddenAt: [ID: Date] = [:]
+    private let hiddenActionGraceInterval: TimeInterval
+
+    init(hiddenActionGraceInterval: TimeInterval = 0.35) {
+        self.hiddenActionGraceInterval = hiddenActionGraceInterval
+    }
+
+    func markVisible(_ id: ID) {
+        visibleCounts[id, default: 0] += 1
+        lastHiddenAt[id] = nil
+    }
+
+    func markHidden(_ id: ID) {
+        let remainingVisibleCount = max((visibleCounts[id] ?? 0) - 1, 0)
+
+        if remainingVisibleCount == 0 {
+            visibleCounts[id] = nil
+            lastHiddenAt[id] = Date()
+        } else {
+            visibleCounts[id] = remainingVisibleCount
+        }
+    }
+
+    func isVisible(_ id: ID) -> Bool {
+        (visibleCounts[id] ?? 0) > 0
+    }
+
+    func allowsAction(from id: ID) -> Bool {
+        if isVisible(id) {
+            return true
+        }
+
+        guard let hiddenAt = lastHiddenAt[id] else {
+            return false
+        }
+
+        return Date().timeIntervalSince(hiddenAt) <= hiddenActionGraceInterval
     }
 }
 
