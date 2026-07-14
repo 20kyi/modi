@@ -46,6 +46,8 @@ struct ContentView: View {
             }
         }
         .task {
+            premiumManager.startStoreKitObservation()
+            await premiumManager.refreshPurchasedProducts()
             await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
         }
         .onOpenURL { url in

@@ -1,8 +1,9 @@
+import StoreKit
 import SwiftUI
 
 // MARK: - PremiumManager
 
-/// MODI+ 프리미엄 상태를 관리합니다. 실제 구독 연동 전까지 개발자용 토글로 상태를 시뮬레이션합니다.
+/// MODI+ 프리미엄 상태를 관리합니다.
 @Observable
 @MainActor
 final class PremiumManager {
@@ -10,15 +11,32 @@ final class PremiumManager {
     static let shared = PremiumManager()
 
     private(set) var isDeveloperPremiumEnabled: Bool
+    private(set) var isStorePremiumActive = false
+    private(set) var products: [Product] = []
+    private(set) var isLoadingProducts = false
+    private(set) var isPurchasing = false
+    private(set) var purchaseErrorMessage: String?
 
     /// 앱 전역에서 참조하는 프리미엄 활성 여부입니다.
     var isPremium: Bool {
-        isDeveloperPremiumEnabled
+        isDeveloperPremiumEnabled || isStorePremiumActive
     }
 
-    /// StoreKit 연동 시에도 동일한 이름으로 참조할 수 있는 프리미엄 여부입니다.
+    /// StoreKit 연동 후에도 동일한 이름으로 참조할 수 있는 프리미엄 여부입니다.
     var hasPremium: Bool {
         isPremium
+    }
+
+    enum ProductID {
+        static let monthly = "com.storybuild.modiapp.plus.monthly"
+        static let annual = "com.storybuild.modiapp.plus.annual"
+        static let lifetime = "com.storybuild.modiapp.plus.lifetime"
+
+        static let all: Set<String> = [
+            monthly,
+            annual,
+            lifetime,
+        ]
     }
 
     /// 무료 사용자가 만들 수 있는 커스텀 컬렉션 최대 개수입니다.
@@ -108,6 +126,7 @@ final class PremiumManager {
     }
 
     private let storage: UserDefaults
+    private var transactionUpdatesTask: Task<Void, Never>?
 
     private enum StorageKeys {
         static let developerPremiumEnabled = "settings.premium.developerEnabled"
@@ -124,5 +143,149 @@ final class PremiumManager {
         storage.set(isEnabled, forKey: StorageKeys.developerPremiumEnabled)
     }
 
+    func startStoreKitObservation() {
+        guard transactionUpdatesTask == nil else { return }
+
+        transactionUpdatesTask = Task { [weak self] in
+            for await result in StoreKit.Transaction.updates {
+                guard let self else { return }
+                await self.handleTransactionUpdate(result)
+            }
+        }
+    }
+
+    func loadProducts() async {
+        guard products.isEmpty, !isLoadingProducts else { return }
+
+        isLoadingProducts = true
+        purchaseErrorMessage = nil
+
+        do {
+            let loadedProducts = try await Product.products(for: ProductID.all)
+            products = loadedProducts.sorted { lhs, rhs in
+                productSortOrder(lhs.id) < productSortOrder(rhs.id)
+            }
+        } catch {
+            purchaseErrorMessage = "상품 정보를 불러오지 못했어요. 잠시 후 다시 시도해주세요."
+        }
+
+        isLoadingProducts = false
+    }
+
+    func product(for productID: String) -> Product? {
+        products.first { $0.id == productID }
+    }
+
+    func purchase(productID: String) async {
+        if products.isEmpty {
+            await loadProducts()
+        }
+
+        guard let product = product(for: productID) else {
+            purchaseErrorMessage = "선택한 상품을 찾을 수 없어요. App Store Connect 설정을 확인해주세요."
+            return
+        }
+
+        isPurchasing = true
+        purchaseErrorMessage = nil
+
+        do {
+            let result = try await product.purchase()
+
+            switch result {
+            case .success(let verificationResult):
+                let transaction = try checkVerified(verificationResult)
+                await refreshPurchasedProducts()
+                await transaction.finish()
+            case .userCancelled:
+                break
+            case .pending:
+                purchaseErrorMessage = "결제가 대기 중이에요. 승인 후 MODI+가 활성화됩니다."
+            @unknown default:
+                purchaseErrorMessage = "결제를 완료하지 못했어요. 잠시 후 다시 시도해주세요."
+            }
+        } catch {
+            purchaseErrorMessage = "결제를 완료하지 못했어요. 잠시 후 다시 시도해주세요."
+        }
+
+        isPurchasing = false
+    }
+
+    func restorePurchases() async {
+        isPurchasing = true
+        purchaseErrorMessage = nil
+
+        do {
+            try await AppStore.sync()
+            await refreshPurchasedProducts()
+
+            if !isStorePremiumActive {
+                purchaseErrorMessage = "복원할 MODI+ 구매 내역을 찾지 못했어요."
+            }
+        } catch {
+            purchaseErrorMessage = "구매 복원에 실패했어요. 잠시 후 다시 시도해주세요."
+        }
+
+        isPurchasing = false
+    }
+
+    func refreshPurchasedProducts() async {
+        var hasActiveEntitlement = false
+
+        for await result in StoreKit.Transaction.currentEntitlements {
+            guard let transaction = try? checkVerified(result) else { continue }
+            guard ProductID.all.contains(transaction.productID) else { continue }
+            guard transaction.revocationDate == nil else { continue }
+
+            if let expirationDate = transaction.expirationDate {
+                hasActiveEntitlement = expirationDate > Date()
+            } else {
+                hasActiveEntitlement = true
+            }
+
+            if hasActiveEntitlement {
+                break
+            }
+        }
+
+        isStorePremiumActive = hasActiveEntitlement
+    }
+
+    func clearPurchaseErrorMessage() {
+        purchaseErrorMessage = nil
+    }
+
+    private func handleTransactionUpdate(_ result: VerificationResult<StoreKit.Transaction>) async {
+        guard let transaction = try? checkVerified(result) else { return }
+        await refreshPurchasedProducts()
+        await transaction.finish()
+    }
+
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .verified(let safe):
+            safe
+        case .unverified:
+            throw StoreKitError.notVerified
+        }
+    }
+
+    private func productSortOrder(_ productID: String) -> Int {
+        switch productID {
+        case ProductID.monthly:
+            0
+        case ProductID.annual:
+            1
+        case ProductID.lifetime:
+            2
+        default:
+            3
+        }
+    }
+
     static let mock = PremiumManager(storage: UserDefaults(suiteName: "premium-manager-mock")!)
+}
+
+private enum StoreKitError: Error {
+    case notVerified
 }

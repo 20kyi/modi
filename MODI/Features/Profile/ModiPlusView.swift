@@ -1,3 +1,4 @@
+import StoreKit
 import SwiftUI
 
 // MARK: - ModiPlusView
@@ -44,8 +45,18 @@ struct ModiPlusView: View {
         .onAppear {
             themeManager.clearPreviewTheme()
         }
+        .task {
+            await premiumManager.loadProducts()
+        }
         .onDisappear {
             themeManager.clearPreviewTheme()
+        }
+        .alert("MODI+", isPresented: purchaseErrorIsPresented) {
+            Button("확인") {
+                premiumManager.clearPurchaseErrorMessage()
+            }
+        } message: {
+            Text(premiumManager.purchaseErrorMessage ?? "")
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
             ctaSection
@@ -128,7 +139,7 @@ struct ModiPlusView: View {
                 }
             }
 
-            Text("표시된 가격은 예시이며, 실제 결제 금액은 App Store에 표시되는 가격을 기준으로 적용됩니다.")
+            Text(premiumManager.products.isEmpty ? "상품 정보를 불러오는 중입니다. App Store Connect 등록 상태에 따라 표시까지 시간이 걸릴 수 있어요." : "표시된 가격은 App Store에 등록된 가격을 기준으로 적용됩니다.")
                 .font(AppFont.caption2)
                 .foregroundStyle(AppColor.Text.tertiary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -136,7 +147,10 @@ struct ModiPlusView: View {
     }
 
     private func purchaseOptionCard(_ option: ModiPlusPurchaseOption) -> some View {
-        Button {
+        let product = premiumManager.product(for: option.productID)
+        let price = product?.displayPrice ?? option.fallbackPrice
+
+        return Button {
             selectedOptionID = option.id
         } label: {
             HStack(alignment: .center, spacing: AppSpacing.md) {
@@ -166,11 +180,16 @@ struct ModiPlusView: View {
                 Spacer(minLength: 0)
 
                 VStack(alignment: .trailing, spacing: AppSpacing.xxs) {
-                    Text(option.price)
-                        .font(AppFont.headline)
-                        .foregroundStyle(AppColor.Text.primary)
+                    if premiumManager.isLoadingProducts && product == nil {
+                        ProgressView()
+                            .tint(AppColor.Accent.highlight)
+                    } else {
+                        Text(price)
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.Text.primary)
+                    }
 
-                    Text(option.renewalText)
+                    Text(productStatusText(for: option, product: product))
                         .font(AppFont.caption2)
                         .foregroundStyle(AppColor.Text.tertiary)
                 }
@@ -191,9 +210,23 @@ struct ModiPlusView: View {
                         lineWidth: selectedOptionID == option.id ? 1.5 : 0.75
                     )
             }
+            .opacity(product == nil && !premiumManager.isLoadingProducts ? 0.6 : 1)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(option.title), \(option.price), \(option.renewalText)")
+        .disabled(product == nil && !premiumManager.products.isEmpty)
+        .accessibilityLabel("\(option.title), \(price), \(option.renewalText)")
+    }
+
+    private func productStatusText(for option: ModiPlusPurchaseOption, product: Product?) -> String {
+        if product == nil && premiumManager.isLoadingProducts {
+            return "불러오는 중"
+        }
+
+        if product == nil && (!premiumManager.products.isEmpty || !premiumManager.isLoadingProducts) {
+            return "상품 없음"
+        }
+
+        return option.renewalText
     }
 
     // MARK: - Theme Preview
@@ -231,18 +264,32 @@ struct ModiPlusView: View {
 
             VStack(spacing: AppSpacing.sm) {
                 Button {
-                    // StoreKit 연결 예정
+                    Task {
+                        await premiumManager.purchase(productID: selectedOption.productID)
+                    }
                 } label: {
-                    Text("\(selectedOption.title) 시작하기")
+                    ZStack {
+                        Text(premiumManager.hasPremium ? "MODI+ 이용 중" : "\(selectedOption.title) 시작하기")
+                            .opacity(premiumManager.isPurchasing ? 0 : 1)
+
+                        if premiumManager.isPurchasing {
+                            ProgressView()
+                                .tint(AppColor.Text.onButton)
+                        }
+                    }
                 }
                 .buttonStyle(PrimaryButtonStyle())
+                .disabled(premiumManager.isPurchasing || premiumManager.hasPremium || premiumManager.product(for: selectedOption.productID) == nil)
 
                 Button("이전 구매 복원") {
-                    // StoreKit restore 연결 예정
+                    Task {
+                        await premiumManager.restorePurchases()
+                    }
                 }
                 .font(AppFont.footnote)
                 .fontWeight(.semibold)
                 .foregroundStyle(AppColor.Accent.highlight)
+                .disabled(premiumManager.isPurchasing)
 
                 legalDisclosure
             }
@@ -343,6 +390,13 @@ struct ModiPlusView: View {
 
     // MARK: - Helpers
 
+    private var purchaseErrorIsPresented: Binding<Bool> {
+        Binding(
+            get: { premiumManager.purchaseErrorMessage != nil },
+            set: { if !$0 { premiumManager.clearPurchaseErrorMessage() } }
+        )
+    }
+
     private func sectionHeader(title: String) -> some View {
         Text(title)
             .font(AppFont.title3)
@@ -359,36 +413,40 @@ struct ModiPlusView: View {
 
 private struct ModiPlusPurchaseOption: Identifiable {
     let id: String
+    let productID: String
     let title: String
     let subtitle: String
-    let price: String
+    let fallbackPrice: String
     let renewalText: String
     let badge: String?
 
-    static let recommendedID = "annual"
+    static let recommendedID = PremiumManager.ProductID.annual
 
     static let options: [ModiPlusPurchaseOption] = [
         ModiPlusPurchaseOption(
-            id: "monthly",
+            id: PremiumManager.ProductID.monthly,
+            productID: PremiumManager.ProductID.monthly,
             title: "월간 MODI+",
             subtitle: "가볍게 시작하고 매월 이용해요",
-            price: "₩3,900",
+            fallbackPrice: "₩3,900",
             renewalText: "매월 자동 갱신",
             badge: nil
         ),
         ModiPlusPurchaseOption(
-            id: "annual",
+            id: PremiumManager.ProductID.annual,
+            productID: PremiumManager.ProductID.annual,
             title: "연간 MODI+",
             subtitle: "1년 동안 더 합리적으로 이용해요",
-            price: "₩29,000",
+            fallbackPrice: "₩29,000",
             renewalText: "매년 자동 갱신",
             badge: "추천"
         ),
         ModiPlusPurchaseOption(
-            id: "lifetime",
+            id: PremiumManager.ProductID.lifetime,
+            productID: PremiumManager.ProductID.lifetime,
             title: "평생 이용권",
             subtitle: "구독 없이 한 번만 결제해요",
-            price: "₩59,000",
+            fallbackPrice: "₩59,000",
             renewalText: "1회 결제",
             badge: nil
         ),
