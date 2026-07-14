@@ -19,6 +19,7 @@ struct MainTabView: View {
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(MissionManager.self) private var missionManager
     @Environment(DeepLinkCoordinator.self) private var deepLinkCoordinator
+    @Environment(PremiumManager.self) private var premiumManager
     @State private var collectionStore = CollectionStore()
     @State private var repository: RecordRepository?
     @State private var collectionRepository: CollectionRepository?
@@ -117,6 +118,10 @@ struct MainTabView: View {
         .onChange(of: repository.records.count) {
             syncWidgetData(repository: repository, collectionRepository: collectionRepository)
         }
+        .onChange(of: premiumManager.hasPremium) { _, hasPremium in
+            missionManager.setPremiumAccess(hasPremium)
+            syncWidgetData(repository: repository, collectionRepository: collectionRepository)
+        }
         .onChange(of: authManager.session.isLoggedIn) { oldValue, newValue in
             if oldValue, !newValue {
                 clearLocalUserDataIfNeeded(
@@ -153,7 +158,10 @@ struct MainTabView: View {
         let collectionRepo = CollectionRepository(modelContext: modelContext)
         collectionRepo.bootstrap()
         collectionStore.configure(collectionRepository: collectionRepo)
-        missionManager.configure(collectionRepository: collectionRepo)
+        missionManager.configure(
+            collectionRepository: collectionRepo,
+            hasPremiumAccess: premiumManager.hasPremium
+        )
         repository = recordRepository
         collectionRepository = collectionRepo
         streakManager.refresh(
@@ -282,6 +290,7 @@ struct MainTabView: View {
         .environment(NotificationManager.mock)
         .environment(MissionManager.mock)
         .environment(AuthManager.mock)
+        .environment(PremiumManager.shared)
         .environment(repository)
         .environment(collectionRepository)
         .environment(streakManager)
