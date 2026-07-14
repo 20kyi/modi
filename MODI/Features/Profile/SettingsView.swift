@@ -304,11 +304,11 @@ struct SettingsView: View {
                 }
                 dividerInset()
                 settingsLinkRow(icon: "lock.doc", title: "개인정보 처리방침") {
-                    openSupportURL("https://example.com/modi/privacy")
+                    openSupportURL("https://20kyi.github.io/modi-support/privacy.html")
                 }
                 dividerInset()
                 settingsLinkRow(icon: "doc.text", title: "이용약관") {
-                    openSupportURL("https://example.com/modi/terms")
+                    openSupportURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
                 }
             }
             .appCardStyle(padding: 0)

@@ -6,9 +6,17 @@ struct ModiPlusView: View {
 
     @Environment(PremiumManager.self) private var premiumManager
     @Environment(ThemeManager.self) private var themeManager
+    @Environment(\.openURL) private var openURL
+
+    @State private var selectedOptionID = ModiPlusPurchaseOption.recommendedID
 
     private let benefits = PremiumBenefitCatalog.benefits
     private let premiumThemes = PremiumBenefitCatalog.premiumThemes
+    private let purchaseOptions = ModiPlusPurchaseOption.options
+
+    private var selectedOption: ModiPlusPurchaseOption {
+        purchaseOptions.first { $0.id == selectedOptionID } ?? purchaseOptions[0]
+    }
 
     var body: some View {
         ScrollView {
@@ -16,6 +24,7 @@ struct ModiPlusView: View {
                 heroSection
                 benefitsSection
                 themePreviewSection
+                pricingSection
 
                 #if DEBUG
                 developerSection
@@ -31,6 +40,7 @@ struct ModiPlusView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(AppColor.Background.primary, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .onAppear {
             themeManager.clearPreviewTheme()
         }
@@ -106,6 +116,86 @@ struct ModiPlusView: View {
         }
     }
 
+    // MARK: - Pricing
+
+    private var pricingSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            sectionHeader(title: "MODI+ 시작하기")
+
+            VStack(spacing: AppSpacing.sm) {
+                ForEach(purchaseOptions) { option in
+                    purchaseOptionCard(option)
+                }
+            }
+
+            Text("표시된 가격은 예시이며, 실제 결제 금액은 App Store에 표시되는 가격을 기준으로 적용됩니다.")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.Text.tertiary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func purchaseOptionCard(_ option: ModiPlusPurchaseOption) -> some View {
+        Button {
+            selectedOptionID = option.id
+        } label: {
+            HStack(alignment: .center, spacing: AppSpacing.md) {
+                VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                    HStack(spacing: AppSpacing.xs) {
+                        Text(option.title)
+                            .font(AppFont.headline)
+                            .foregroundStyle(AppColor.Text.primary)
+
+                        if let badge = option.badge {
+                            Text(badge)
+                                .font(AppFont.caption2)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(AppColor.Text.onButton)
+                                .padding(.horizontal, AppSpacing.sm)
+                                .padding(.vertical, AppSpacing.xxs)
+                                .background(AppColor.Accent.highlight, in: Capsule(style: .continuous))
+                        }
+                    }
+
+                    Text(option.subtitle)
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.Text.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: AppSpacing.xxs) {
+                    Text(option.price)
+                        .font(AppFont.headline)
+                        .foregroundStyle(AppColor.Text.primary)
+
+                    Text(option.renewalText)
+                        .font(AppFont.caption2)
+                        .foregroundStyle(AppColor.Text.tertiary)
+                }
+
+                Image(systemName: selectedOptionID == option.id ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .semibold))
+                    .foregroundStyle(selectedOptionID == option.id ? AppColor.Accent.highlight : AppColor.Text.tertiary)
+            }
+            .padding(AppSpacing.lg)
+            .background(
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    .fill(AppColor.Surface.card)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                    .stroke(
+                        selectedOptionID == option.id ? AppColor.Accent.highlight : AppColor.Border.default,
+                        lineWidth: selectedOptionID == option.id ? 1.5 : 0.75
+                    )
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(option.title), \(option.price), \(option.renewalText)")
+    }
+
     // MARK: - Theme Preview
 
     private var themePreviewSection: some View {
@@ -139,15 +229,51 @@ struct ModiPlusView: View {
         VStack(spacing: 0) {
             Divider()
 
-            Button {
-                // StoreKit 연결 예정
-            } label: {
-                Text("MODI+ 시작하기")
+            VStack(spacing: AppSpacing.sm) {
+                Button {
+                    // StoreKit 연결 예정
+                } label: {
+                    Text("\(selectedOption.title) 시작하기")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+
+                Button("이전 구매 복원") {
+                    // StoreKit restore 연결 예정
+                }
+                .font(AppFont.footnote)
+                .fontWeight(.semibold)
+                .foregroundStyle(AppColor.Accent.highlight)
+
+                legalDisclosure
             }
-            .buttonStyle(PrimaryButtonStyle())
             .appScreenPadding()
             .padding(.vertical, AppSpacing.md)
             .background(AppColor.Background.primary)
+        }
+    }
+
+    private var legalDisclosure: some View {
+        VStack(spacing: AppSpacing.xs) {
+            Text("구독은 Apple ID 계정으로 결제되며, 현재 구독 기간이 끝나기 최소 24시간 전에 해지하지 않으면 자동으로 갱신됩니다. 구독은 App Store 계정 설정에서 언제든지 관리하거나 해지할 수 있습니다.")
+                .font(AppFont.caption2)
+                .foregroundStyle(AppColor.Text.tertiary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: AppSpacing.sm) {
+                Button("이용약관") {
+                    openSupportURL("https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
+                }
+
+                Text("·")
+                    .foregroundStyle(AppColor.Text.tertiary)
+
+                Button("개인정보 처리방침") {
+                    openSupportURL("https://20kyi.github.io/modi-support/privacy.html")
+                }
+            }
+            .font(AppFont.caption2)
+            .foregroundStyle(AppColor.Accent.highlight)
         }
     }
 
@@ -222,6 +348,51 @@ struct ModiPlusView: View {
             .font(AppFont.title3)
             .foregroundStyle(AppColor.Text.primary)
     }
+
+    private func openSupportURL(_ rawValue: String) {
+        guard let url = URL(string: rawValue) else { return }
+        openURL(url)
+    }
+}
+
+// MARK: - ModiPlusPurchaseOption
+
+private struct ModiPlusPurchaseOption: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let price: String
+    let renewalText: String
+    let badge: String?
+
+    static let recommendedID = "annual"
+
+    static let options: [ModiPlusPurchaseOption] = [
+        ModiPlusPurchaseOption(
+            id: "monthly",
+            title: "월간 MODI+",
+            subtitle: "가볍게 시작하고 매월 이용해요",
+            price: "₩3,900",
+            renewalText: "매월 자동 갱신",
+            badge: nil
+        ),
+        ModiPlusPurchaseOption(
+            id: "annual",
+            title: "연간 MODI+",
+            subtitle: "1년 동안 더 합리적으로 이용해요",
+            price: "₩29,000",
+            renewalText: "매년 자동 갱신",
+            badge: "추천"
+        ),
+        ModiPlusPurchaseOption(
+            id: "lifetime",
+            title: "평생 이용권",
+            subtitle: "구독 없이 한 번만 결제해요",
+            price: "₩59,000",
+            renewalText: "1회 결제",
+            badge: nil
+        ),
+    ]
 }
 
 // MARK: - Preview
