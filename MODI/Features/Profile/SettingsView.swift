@@ -292,11 +292,11 @@ struct SettingsView: View {
         settingsSection(title: "지원") {
             VStack(spacing: 0) {
                 settingsLinkRow(icon: "questionmark.circle", title: "FAQ") {
-                    openSupportURL("https://example.com/modi/faq")
+                    openSupportURL("https://20kyi.github.io/modi-support/")
                 }
                 dividerInset()
                 settingsLinkRow(icon: "envelope", title: "문의하기") {
-                    openSupportURL("mailto:support@modi.app")
+                    openSupportURL("mailto:storybuild.team@gmail.com")
                 }
                 dividerInset()
                 settingsLinkRow(icon: "star.bubble", title: "앱 평가하기") {
