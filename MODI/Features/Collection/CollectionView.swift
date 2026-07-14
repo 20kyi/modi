@@ -100,9 +100,8 @@ struct CollectionView: View {
                     collections: collections(for: action),
                     photoCount: { collectionRepository.photoCount(for: $0) },
                     onSelect: { collection in
-                        let selectedAction = action
                         pickerAction = nil
-                        handleCustomCollectionSelection(collection, action: selectedAction)
+                        handleCustomCollectionSelection(collection, action: action)
                     }
                 )
             }

@@ -35,6 +35,11 @@ struct CustomCollectionPickerSheet: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    private let columns = Array(
+        repeating: GridItem(.flexible(), spacing: AppSpacing.sm),
+        count: 3
+    )
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -43,13 +48,13 @@ struct CustomCollectionPickerSheet: View {
                         .font(AppFont.callout)
                         .foregroundStyle(AppColor.Text.secondary)
 
-                    VStack(spacing: AppSpacing.sm) {
+                    LazyVGrid(columns: columns, spacing: AppSpacing.sm) {
                         ForEach(collections, id: \.id) { collection in
                             Button {
                                 onSelect(collection)
                                 dismiss()
                             } label: {
-                                collectionRow(collection)
+                                collectionGridItem(collection)
                             }
                             .buttonStyle(.plain)
                         }
@@ -74,42 +79,44 @@ struct CustomCollectionPickerSheet: View {
         .presentationDragIndicator(.visible)
     }
 
-    private func collectionRow(_ collection: MODICollection) -> some View {
+    private func collectionGridItem(_ collection: MODICollection) -> some View {
         let count = photoCount(collection.id)
 
-        return HStack(spacing: AppSpacing.md) {
+        return VStack(alignment: .leading, spacing: AppSpacing.xs) {
             RoundedRectangle(cornerRadius: AppRadius.md, style: .continuous)
-                .fill(collection.themeColor)
-                .frame(width: 48, height: 48)
+                .fill(AppColor.emojiBackground(from: collection.themeColorHex))
+                .aspectRatio(1, contentMode: .fit)
                 .overlay {
                     Text(collection.emoji)
-                        .font(.system(size: 24))
+                        .font(.system(size: 28))
+                }
+                .overlay(alignment: .topTrailing) {
+                    if count > 0 {
+                        Text("\(count)")
+                            .font(AppFont.caption2)
+                            .foregroundStyle(AppColor.Text.onAccent)
+                            .padding(.horizontal, AppSpacing.xs)
+                            .padding(.vertical, 2)
+                            .background(AppColor.Accent.primary, in: Capsule())
+                            .padding(AppSpacing.xs)
+                    }
                 }
 
             VStack(alignment: .leading, spacing: AppSpacing.xxs) {
                 Text(collection.title)
-                    .font(AppFont.body)
+                    .font(AppFont.caption1)
                     .foregroundStyle(AppColor.Text.primary)
+                    .lineLimit(1)
 
                 Text(collection.missionPrompt)
-                    .font(AppFont.footnote)
+                    .font(AppFont.caption2)
                     .foregroundStyle(AppColor.Text.secondary)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-
-            Spacer(minLength: 0)
-
-            if count > 0 {
-                Text("\(count)")
-                    .font(AppFont.caption1)
-                    .foregroundStyle(AppColor.Text.secondary)
-            }
-
-            Image(systemName: "chevron.right")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(AppColor.Text.tertiary)
         }
-        .appCardStyle()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appCardStyle(padding: AppSpacing.sm)
     }
 }
 
