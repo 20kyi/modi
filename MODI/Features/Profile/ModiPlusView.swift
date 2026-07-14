@@ -29,10 +29,6 @@ struct ModiPlusView: View {
                 benefitsSection
                 themePreviewSection
                 pricingSection
-
-                #if DEBUG
-                developerSection
-                #endif
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .appScreenPadding()
