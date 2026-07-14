@@ -23,6 +23,8 @@ struct CustomCollectionLimitSheet: View {
                         """
                 )
 
+                benefitSummary
+
                 Spacer()
 
                 VStack(spacing: AppSpacing.sm) {
@@ -45,6 +47,37 @@ struct CustomCollectionLimitSheet: View {
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
+    }
+
+    private var benefitSummary: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sm) {
+            Text("MODI+로 더 자유롭게 기록해요")
+                .font(AppFont.subheadline)
+                .foregroundStyle(AppColor.Text.primary)
+
+            VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                benefitRow("커스텀 컬렉션을 원하는 만큼 만들 수 있어요")
+                benefitRow("컬렉션별 미션으로 사진을 깔끔하게 모을 수 있어요")
+                benefitRow("내 취향에 맞는 기록 루틴을 오래 유지할 수 있어요")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(AppSpacing.md)
+        .background(AppColor.Accent.soft, in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous))
+    }
+
+    private func benefitRow(_ text: String) -> some View {
+        HStack(alignment: .top, spacing: AppSpacing.sm) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(AppColor.Accent.highlight)
+                .padding(.top, 1)
+
+            Text(text)
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.Text.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
