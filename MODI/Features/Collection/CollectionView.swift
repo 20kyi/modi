@@ -20,10 +20,22 @@ struct CollectionView: View {
     @State private var deleteErrorMessage: String?
     @State private var collectionContextMenuTracker = ContextMenuVisibilityTracker<UUID>()
 
-    private let columns = [
-        GridItem(.flexible(), spacing: AppSpacing.gridGutter),
-        GridItem(.flexible(), spacing: AppSpacing.gridGutter)
-    ]
+    private var isPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
+    private var columns: [GridItem] {
+        if isPad {
+            return [
+                GridItem(.adaptive(minimum: 160, maximum: 220), spacing: AppSpacing.lg)
+            ]
+        }
+
+        return [
+            GridItem(.flexible(), spacing: AppSpacing.gridGutter),
+            GridItem(.flexible(), spacing: AppSpacing.gridGutter)
+        ]
+    }
 
     private struct CollectionContextMenuState {
         let collectionID: UUID
@@ -40,7 +52,8 @@ struct CollectionView: View {
                         categorySection(category)
                     }
                 }
-                .appScreenPadding()
+                .padding(.horizontal, isPad ? AppSpacing.huge : AppSpacing.screenHorizontal)
+                .frame(maxWidth: isPad ? 1240 : .infinity, alignment: .leading)
                 .padding(.top, AppSpacing.md)
                 .padding(.bottom, AppSpacing.xxxl)
             }
@@ -363,7 +376,7 @@ struct CollectionView: View {
                 }
                 .buttonStyle(.plain)
             } else {
-                LazyVGrid(columns: columns, spacing: AppSpacing.gridGutter) {
+                LazyVGrid(columns: columns, spacing: isPad ? AppSpacing.xl : AppSpacing.gridGutter) {
                     ForEach(collections) { collection in
                         let menuState = collectionContextMenuState(for: collection)
 

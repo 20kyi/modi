@@ -45,42 +45,18 @@ struct ProfileView: View {
         )
     }
 
+    private var isPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
-                    ProfileHeaderCard(
-                        nickname: authManager.session.displayName,
-                        tagline: authManager.session.profileTagline,
-                        stats: viewModel.stats,
-                        nameSuffix: authManager.session.nameSuffix,
-                        isPremium: premiumManager.hasPremium,
-                        missionPlaceholder: missionPlaceholder
-                    )
-
-                    if authManager.session.isGuest {
-                        VStack(alignment: .leading, spacing: AppSpacing.md) {
-                            Button("로그인하고 기록 보호하기") {
-                                isShowingLogin = true
-                            }
-                            .buttonStyle(PrimaryButtonStyle())
-
-                            Text("로그인은 기록 보호를 위한 선택이에요.")
-                                .font(AppFont.footnote)
-                                .foregroundStyle(AppColor.Text.secondary)
-                                .multilineTextAlignment(.center)
-                                .frame(maxWidth: .infinity, alignment: .center)
-                        }
-                        .appCardStyle()
-                    }
-
-                    discoveryCalendarSection
-                    earnedBannersSection
-                    settingsSection
+            GeometryReader { proxy in
+                ScrollView {
+                    profileContent(availableWidth: proxy.size.width)
+                    .padding(.top, AppSpacing.md)
+                    .padding(.bottom, AppSpacing.xxxl)
                 }
-                .appScreenPadding()
-                .padding(.top, AppSpacing.md)
-                .padding(.bottom, AppSpacing.xxxl)
             }
             .appScreenBackground()
             .navigationTitle("프로필")
@@ -92,6 +68,11 @@ struct ProfileView: View {
             }
             .navigationDestination(isPresented: $isShowingPremium) {
                 PremiumView()
+            }
+            .navigationDestination(for: CollectionNavigationValue.self) { navigationValue in
+                if let collection = collectionRepository.collection(for: navigationValue.id) {
+                    CollectionDetailView(collection: collection)
+                }
             }
             .sheet(item: $selectedCalendarDay) { selection in
                 DiscoveryDaySheet(
@@ -148,6 +129,98 @@ struct ProfileView: View {
         }
     }
 
+    @ViewBuilder
+    private func profileContent(availableWidth: CGFloat) -> some View {
+        if isPad {
+            iPadProfileContent(availableWidth: availableWidth)
+        } else {
+            iPhoneProfileContent
+        }
+    }
+
+    private var iPhoneProfileContent: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
+            profileHeaderSection
+            guestSignInSection
+            earnedBannersSection
+            discoveryCalendarSection
+            settingsSection
+        }
+        .appScreenPadding()
+    }
+
+    @ViewBuilder
+    private func iPadProfileContent(availableWidth: CGFloat) -> some View {
+        if availableWidth < 820 {
+            iPadSingleColumnProfileContent
+        } else {
+            iPadTwoColumnProfileContent
+        }
+    }
+
+    private var iPadSingleColumnProfileContent: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xl) {
+            profileHeaderSection
+            guestSignInSection
+            earnedBannersSection
+            recentCollectionsSection
+            discoveryCalendarSection
+            settingsSection
+        }
+        .padding(.horizontal, AppSpacing.xxxl)
+        .frame(maxWidth: 620, alignment: .leading)
+    }
+
+    private var iPadTwoColumnProfileContent: some View {
+        HStack(alignment: .top, spacing: AppSpacing.huge) {
+            VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                profileHeaderSection
+                guestSignInSection
+                earnedBannersSection
+                settingsSection
+            }
+            .frame(width: 360, alignment: .topLeading)
+
+            VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                recentCollectionsSection
+                discoveryCalendarSection
+            }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+        }
+        .padding(.horizontal, AppSpacing.huge)
+        .frame(maxWidth: 1180, alignment: .leading)
+    }
+
+    private var profileHeaderSection: some View {
+        ProfileHeaderCard(
+            nickname: authManager.session.displayName,
+            tagline: authManager.session.profileTagline,
+            stats: viewModel.stats,
+            nameSuffix: authManager.session.nameSuffix,
+            isPremium: premiumManager.hasPremium,
+            missionPlaceholder: missionPlaceholder
+        )
+    }
+
+    @ViewBuilder
+    private var guestSignInSection: some View {
+        if authManager.session.isGuest {
+            VStack(alignment: .leading, spacing: AppSpacing.md) {
+                Button("로그인하고 기록 보호하기") {
+                    isShowingLogin = true
+                }
+                .buttonStyle(PrimaryButtonStyle())
+
+                Text("로그인은 기록 보호를 위한 선택이에요.")
+                    .font(AppFont.footnote)
+                    .foregroundStyle(AppColor.Text.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+            .appCardStyle()
+        }
+    }
+
     // MARK: - Discovery Calendar
 
     private var discoveryCalendarSection: some View {
@@ -156,11 +229,13 @@ struct ProfileView: View {
 
             DiscoveryCalendarView(
                 recordedDayEmojis: viewModel.recordedDayEmojis,
+                dayCellHeight: isPad ? 54 : 36,
+                dayGridSpacing: isPad ? AppSpacing.md : AppSpacing.sm,
                 onDaySelected: { date in
                     selectedCalendarDay = SelectedCalendarDay(date: date)
                 }
             )
-                .appCardStyle()
+                .appCardStyle(padding: isPad ? AppSpacing.xl : AppSpacing.cardPadding)
         }
     }
 
@@ -199,6 +274,69 @@ struct ProfileView: View {
                 }
             }
         }
+    }
+
+    // MARK: - iPad Dashboard
+
+    private var recentCollectionsSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            sectionHeader(title: "최근 컬렉션")
+
+            if viewModel.collectionSummaries.isEmpty {
+                EmptyStateView(
+                    icon: "square.grid.2x2",
+                    title: "아직 모인 컬렉션이 없어요",
+                    message: "오늘의 미션으로 첫 컬렉션을 채워보세요"
+                )
+            } else {
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 240), spacing: AppSpacing.md)],
+                    spacing: AppSpacing.md
+                ) {
+                    ForEach(viewModel.collectionSummaries) { summary in
+                        NavigationLink(value: CollectionNavigationValue(id: summary.id)) {
+                            CollectionSummaryCard(summary: summary)
+                        }
+                        .buttonStyle(.plain)
+                        .hoverEffect(.highlight)
+                    }
+                }
+            }
+        }
+    }
+
+    private var statsDashboardSection: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            sectionHeader(title: "통계")
+
+            LazyVGrid(
+                columns: [GridItem(.adaptive(minimum: 160), spacing: AppSpacing.md)],
+                spacing: AppSpacing.md
+            ) {
+                dashboardStatCard(value: "\(viewModel.stats.totalRecords)", label: "총 발견", icon: "sparkles")
+                dashboardStatCard(value: "\(viewModel.stats.activeCollections)", label: "활성 컬렉션", icon: "square.grid.2x2.fill")
+                dashboardStatCard(value: "\(viewModel.stats.monthlyRecords)", label: "이번 달 발견", icon: "calendar")
+                dashboardStatCard(value: "\(viewModel.stats.streakDays)", label: "연속 발견", icon: "flame.fill")
+            }
+        }
+    }
+
+    private func dashboardStatCard(value: String, label: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: AppSpacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(AppColor.Accent.highlight)
+
+            Text(value)
+                .font(AppFont.title2)
+                .foregroundStyle(AppColor.Text.primary)
+
+            Text(label)
+                .font(AppFont.footnote)
+                .foregroundStyle(AppColor.Text.secondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .appCardStyle()
     }
 
     // MARK: - Settings

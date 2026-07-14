@@ -7,6 +7,8 @@ struct DiscoveryCalendarView: View {
     let recordedDayEmojis: [String: String]
     var onDaySelected: ((Date) -> Void)?
     @State private var displayedMonth: Date
+    private let dayCellHeight: CGFloat
+    private let dayGridSpacing: CGFloat
 
     private let calendar = Calendar.current
     private let weekdaySymbols = ["일", "월", "화", "수", "목", "금", "토"]
@@ -14,10 +16,14 @@ struct DiscoveryCalendarView: View {
     init(
         recordedDayEmojis: [String: String],
         referenceMonth: Date = .now,
+        dayCellHeight: CGFloat = 36,
+        dayGridSpacing: CGFloat = AppSpacing.sm,
         onDaySelected: ((Date) -> Void)? = nil
     ) {
         self.recordedDayEmojis = recordedDayEmojis
         self.onDaySelected = onDaySelected
+        self.dayCellHeight = dayCellHeight
+        self.dayGridSpacing = dayGridSpacing
         let components = Calendar.current.dateComponents([.year, .month], from: referenceMonth)
         _displayedMonth = State(
             initialValue: Calendar.current.date(from: components) ?? referenceMonth
@@ -88,13 +94,13 @@ struct DiscoveryCalendarView: View {
     }
 
     private var dayGrid: some View {
-        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: AppSpacing.sm) {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: dayGridSpacing) {
             ForEach(calendarDayCells) { cell in
                 if let date = cell.date {
                     dayCell(for: date)
                 } else {
                     Color.clear
-                        .frame(height: 36)
+                        .frame(height: dayCellHeight)
                 }
             }
         }
@@ -113,7 +119,7 @@ struct DiscoveryCalendarView: View {
             VStack(spacing: AppSpacing.xxs) {
                 if let dayEmoji {
                     Text(dayEmoji)
-                        .font(.system(size: 18))
+                        .font(.system(size: dayCellHeight > 36 ? 24 : 18))
                 } else {
                     Text("\(calendar.component(.day, from: date))")
                         .font(isToday ? AppFont.subheadline.weight(.semibold) : AppFont.subheadline)
@@ -132,7 +138,7 @@ struct DiscoveryCalendarView: View {
                     }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 36)
+            .frame(height: dayCellHeight)
             .background {
                 if isToday {
                     RoundedRectangle(cornerRadius: AppRadius.sm, style: .continuous)

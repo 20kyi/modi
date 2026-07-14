@@ -27,6 +27,7 @@ struct CollectionDetailView: View {
     @State private var shareErrorMessage: String?
     @State private var deleteErrorMessage: String?
     @State private var recordContextMenuTracker = ContextMenuVisibilityTracker<UUID>()
+    @State private var selectedRecordID: UUID?
 
     init(collection: MODICollection) {
         self.modiCollection = collection
@@ -58,6 +59,15 @@ struct CollectionDetailView: View {
         repository.fetchRecords(for: collection)
     }
 
+    private var selectedRecord: MODIRecord? {
+        if let selectedRecordID,
+           let record = records.first(where: { $0.id == selectedRecordID }) {
+            return record
+        }
+
+        return records.first
+    }
+
     private var progress: CollectionProgress {
         CollectionProgress.make(conceptID: collection.id, totalDiscoveries: records.count)
     }
@@ -71,20 +81,30 @@ struct CollectionDetailView: View {
         collection.collectionType == .custom && !isFreeCustomSlot
     }
 
-    private let columns = Array(
-        repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
-        count: 3
-    )
+    private var isPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
+    private var columns: [GridItem] {
+        if isPad {
+            return [
+                GridItem(.adaptive(minimum: 92, maximum: 132), spacing: AppSpacing.md)
+            ]
+        }
+
+        return Array(
+            repeating: GridItem(.flexible(), spacing: AppSpacing.gridGutter),
+            count: 3
+        )
+    }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
-                headerSection
-                photosSection
+        Group {
+            if isPad {
+                iPadDetailContent
+            } else {
+                iPhoneDetailContent
             }
-            .appScreenPadding()
-            .padding(.top, AppSpacing.md)
-            .padding(.bottom, AppSpacing.xxxl)
         }
         .appScreenBackground()
         .navigationTitle(collection.title)
@@ -101,6 +121,12 @@ struct CollectionDetailView: View {
                 }
                 .accessibilityLabel("공유하기")
             }
+        }
+        .onAppear {
+            syncSelectedRecord()
+        }
+        .onChange(of: records.count) {
+            syncSelectedRecord()
         }
         .fullScreenCover(item: $editorPresentation) { presentation in
             PhotoEditorView(
@@ -147,6 +173,99 @@ struct CollectionDetailView: View {
             }
         } message: {
             Text(shareErrorMessage ?? "공유를 준비하지 못했어요.")
+        }
+    }
+
+    private var iPhoneDetailContent: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
+                headerSection
+                photosSection
+            }
+            .appScreenPadding()
+            .padding(.top, AppSpacing.md)
+            .padding(.bottom, AppSpacing.xxxl)
+        }
+    }
+
+    private var iPadDetailContent: some View {
+        HStack(alignment: .top, spacing: AppSpacing.huge) {
+            featuredPhotoPane
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                    headerSection
+                    selectedRecordInfoSection
+                    photosSection
+                }
+                .padding(.vertical, AppSpacing.xxl)
+                .padding(.trailing, AppSpacing.huge)
+            }
+            .frame(width: 380)
+        }
+        .padding(.leading, AppSpacing.huge)
+    }
+
+    @ViewBuilder
+    private var featuredPhotoPane: some View {
+        if let selectedRecord {
+            MODIRecordImage(record: selectedRecord, contentMode: .fit)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(AppSpacing.xxl)
+                .background(AppColor.Background.secondary, in: RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: AppRadius.xxl, style: .continuous))
+                .appShadow(.medium)
+                .padding(.vertical, AppSpacing.xxl)
+        } else {
+            EmptyStateView(
+                icon: "photo.on.rectangle.angled",
+                title: "아직 사진이 없어요",
+                message: "이 컬렉션 Concept로 사진을 찍으면 여기에 모여요."
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.vertical, AppSpacing.xxl)
+        }
+    }
+
+    @ViewBuilder
+    private var selectedRecordInfoSection: some View {
+        if let selectedRecord {
+            VStack(alignment: .leading, spacing: AppSpacing.lg) {
+                VStack(alignment: .leading, spacing: AppSpacing.xs) {
+                    Text("기록 정보")
+                        .font(AppFont.title3)
+                        .foregroundStyle(AppColor.Text.primary)
+
+                    Text(selectedRecord.discoveryDateLabel)
+                        .font(AppFont.footnote)
+                        .foregroundStyle(AppColor.Text.secondary)
+                }
+
+                if selectedRecord.userWrittenTexts.isEmpty {
+                    Text("아직 남긴 메모가 없어요.")
+                        .font(AppFont.body)
+                        .foregroundStyle(AppColor.Text.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .appCardStyle()
+                } else {
+                    VStack(alignment: .leading, spacing: AppSpacing.sm) {
+                        ForEach(selectedRecord.userWrittenTexts, id: \.self) { text in
+                            Text(text)
+                                .font(AppFont.body)
+                                .foregroundStyle(AppColor.Text.primary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .appCardStyle()
+                }
+
+                Button {
+                    presentEditor(for: selectedRecord)
+                } label: {
+                    Label("편집하기", systemImage: "wand.and.stars")
+                }
+                .buttonStyle(PrimaryButtonStyle())
+            }
         }
     }
 
@@ -250,12 +369,9 @@ struct CollectionDetailView: View {
                     message: "이 컬렉션 Concept로 사진을 찍으면 여기에 모여요."
                 )
             } else {
-                LazyVGrid(columns: columns, spacing: AppSpacing.gridGutter) {
+                LazyVGrid(columns: columns, spacing: isPad ? AppSpacing.md : AppSpacing.gridGutter) {
                     ForEach(records, id: \.id) { record in
-                        NavigationLink(value: RecordNavigationValue(id: record.id)) {
-                            MODIRecordTile(collection: collection, record: record)
-                        }
-                        .buttonStyle(.plain)
+                        recordThumbnail(record)
                         .background {
                             Color.clear
                                 .contextMenu {
@@ -281,6 +397,32 @@ struct CollectionDetailView: View {
 
                 nextStageHintSection
             }
+        }
+    }
+
+    @ViewBuilder
+    private func recordThumbnail(_ record: MODIRecord) -> some View {
+        if isPad {
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    selectedRecordID = record.id
+                }
+            } label: {
+                MODIRecordTile(collection: collection, record: record)
+                    .overlay {
+                        if selectedRecord?.id == record.id {
+                            RoundedRectangle(cornerRadius: AppRadius.photo, style: .continuous)
+                                .strokeBorder(AppColor.Accent.highlight, lineWidth: 3)
+                        }
+                    }
+            }
+            .buttonStyle(.plain)
+            .hoverEffect(.highlight)
+        } else {
+            NavigationLink(value: RecordNavigationValue(id: record.id)) {
+                MODIRecordTile(collection: collection, record: record)
+            }
+            .buttonStyle(.plain)
         }
     }
 
@@ -314,6 +456,18 @@ struct CollectionDetailView: View {
             image: image,
             existingRecord: record
         )
+    }
+
+    private func syncSelectedRecord() {
+        if selectedRecordID == nil {
+            selectedRecordID = records.first?.id
+            return
+        }
+
+        guard let selectedRecordID else { return }
+        if !records.contains(where: { $0.id == selectedRecordID }) {
+            self.selectedRecordID = records.first?.id
+        }
     }
 
     private func performRecordContextMenuAction(

@@ -2,11 +2,20 @@ import SwiftUI
 
 struct CollectionPreviewView: View {
 
+    enum Presentation: Equatable {
+        case carousel
+        case grid
+    }
+
     let gallery: TodaysMissionCollectionGallery
     var onCreateTapped: (() -> Void)?
+    var presentation: Presentation = .carousel
+    var thumbnailSize: CGFloat = 108
 
-    private let thumbnailSize: CGFloat = 108
     private static let marqueeMinimumRecordCount = 4
+    private let gridColumns = [
+        GridItem(.adaptive(minimum: 132, maximum: 180), spacing: AppSpacing.lg)
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
@@ -20,6 +29,8 @@ struct CollectionPreviewView: View {
                     actionTitle: onCreateTapped == nil ? nil : "기록하기",
                     action: onCreateTapped
                 )
+            } else if presentation == .grid {
+                gridRecordSection
             } else if gallery.records.count < Self.marqueeMinimumRecordCount {
                 staticRecordRow
             } else {
@@ -48,6 +59,14 @@ struct CollectionPreviewView: View {
             speed: MarqueeScrollSpeed.homeCollection
         ) { record in
             recordThumbnailLink(for: record)
+        }
+    }
+
+    private var gridRecordSection: some View {
+        LazyVGrid(columns: gridColumns, spacing: AppSpacing.lg) {
+            ForEach(gallery.records.prefix(8), id: \.id) { record in
+                recordThumbnailLink(for: record)
+            }
         }
     }
 

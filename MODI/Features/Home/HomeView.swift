@@ -48,33 +48,15 @@ struct HomeView: View {
         return missionManager.remainingMissionChangeCount(hasPremium: premiumManager.hasPremium)
     }
 
+    private var isPad: Bool {
+        UIDevice.current.userInterfaceIdiom == .pad
+    }
+
     var body: some View {
         NavigationStack {
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
-                        headerSection
-
-                        todaysModiSection
-
-                        DailyMissionCard(
-                            mission: todaysMission,
-                            onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
-                            canOfferMissionChange: canOfferMissionChange,
-                            showsMissionChangeButton: showsMissionChangeButton,
-                            hasPremium: premiumManager.hasPremium,
-                            remainingMissionChanges: remainingMissionChanges,
-                            onChangeMissionTapped: rerollMission
-                        )
-                        .id(HomeScrollAnchor.todayMission)
-
-                        collectionPreviewSection
-
-                        recentDiscoverySection
-
-                        monthlyConceptSection
-                    }
-                    .appScreenPadding()
+                    homeContent
                     .padding(.top, AppSpacing.md)
                     .padding(.bottom, AppSpacing.xxxl)
                 }
@@ -128,6 +110,68 @@ struct HomeView: View {
                 )
             }
         }
+    }
+
+    @ViewBuilder
+    private var homeContent: some View {
+        if isPad {
+            iPadHomeContent
+        } else {
+            iPhoneHomeContent
+        }
+    }
+
+    private var iPhoneHomeContent: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.sectionGap) {
+            headerSection
+
+            todaysModiSection
+
+            missionCard
+
+            collectionPreviewSection
+
+            recentDiscoverySection
+
+            monthlyConceptSection
+        }
+        .appScreenPadding()
+    }
+
+    private var iPadHomeContent: some View {
+        VStack(alignment: .leading, spacing: AppSpacing.xxl) {
+            headerSection
+
+            HStack(alignment: .top, spacing: AppSpacing.huge) {
+                VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                    todaysModiSection
+                    missionCard
+                    monthlyConceptSection
+                }
+                .frame(maxWidth: 430, alignment: .topLeading)
+
+                VStack(alignment: .leading, spacing: AppSpacing.xl) {
+                    collectionPreviewSection
+                    recentDiscoverySection
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+        }
+        .padding(.horizontal, AppSpacing.huge)
+        .frame(maxWidth: 1180, alignment: .leading)
+    }
+
+    private var missionCard: some View {
+        DailyMissionCard(
+            mission: todaysMission,
+            onRecordTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
+            canOfferMissionChange: canOfferMissionChange,
+            showsMissionChangeButton: showsMissionChangeButton,
+            hasPremium: premiumManager.hasPremium,
+            remainingMissionChanges: remainingMissionChanges,
+            onChangeMissionTapped: rerollMission
+        )
+        .id(HomeScrollAnchor.todayMission)
     }
 
     // MARK: - Header
@@ -185,7 +229,9 @@ struct HomeView: View {
             if let gallery = viewModel.todaysMissionGallery {
                 CollectionPreviewView(
                     gallery: gallery,
-                    onCreateTapped: isTodaysMissionCompleted ? nil : onCreateTapped
+                    onCreateTapped: isTodaysMissionCompleted ? nil : onCreateTapped,
+                    presentation: isPad ? .grid : .carousel,
+                    thumbnailSize: isPad ? 148 : 108
                 )
             }
         }
