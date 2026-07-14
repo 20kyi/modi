@@ -12,6 +12,7 @@ final class PremiumManager {
 
     private(set) var isDeveloperPremiumEnabled: Bool
     private(set) var isStorePremiumActive = false
+    private(set) var activeProductID: String?
     private(set) var products: [Product] = []
     private(set) var isLoadingProducts = false
     private(set) var isPurchasing = false
@@ -195,6 +196,10 @@ final class PremiumManager {
             switch result {
             case .success(let verificationResult):
                 let transaction = try checkVerified(verificationResult)
+                if ProductID.all.contains(transaction.productID) {
+                    isStorePremiumActive = true
+                    activeProductID = transaction.productID
+                }
                 await refreshPurchasedProducts()
                 await transaction.finish()
             case .userCancelled:
@@ -230,25 +235,29 @@ final class PremiumManager {
     }
 
     func refreshPurchasedProducts() async {
-        var hasActiveEntitlement = false
+        var activeEntitlementProductID: String?
 
         for await result in StoreKit.Transaction.currentEntitlements {
             guard let transaction = try? checkVerified(result) else { continue }
             guard ProductID.all.contains(transaction.productID) else { continue }
             guard transaction.revocationDate == nil else { continue }
 
+            let hasActiveEntitlement: Bool
             if let expirationDate = transaction.expirationDate {
                 hasActiveEntitlement = expirationDate > Date()
             } else {
                 hasActiveEntitlement = true
             }
 
-            if hasActiveEntitlement {
-                break
+            guard hasActiveEntitlement else { continue }
+
+            if shouldPreferEntitlement(transaction.productID, over: activeEntitlementProductID) {
+                activeEntitlementProductID = transaction.productID
             }
         }
 
-        isStorePremiumActive = hasActiveEntitlement
+        isStorePremiumActive = activeEntitlementProductID != nil
+        activeProductID = activeEntitlementProductID
     }
 
     func clearPurchaseErrorMessage() {
@@ -280,6 +289,24 @@ final class PremiumManager {
             2
         default:
             3
+        }
+    }
+
+    private func shouldPreferEntitlement(_ productID: String, over currentProductID: String?) -> Bool {
+        guard let currentProductID else { return true }
+        return entitlementPriority(productID) > entitlementPriority(currentProductID)
+    }
+
+    private func entitlementPriority(_ productID: String) -> Int {
+        switch productID {
+        case ProductID.lifetime:
+            3
+        case ProductID.annual:
+            2
+        case ProductID.monthly:
+            1
+        default:
+            0
         }
     }
 

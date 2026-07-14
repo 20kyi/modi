@@ -152,6 +152,10 @@ struct ModiPlusView: View {
         VStack(alignment: .leading, spacing: AppSpacing.md) {
             sectionHeader(title: "MODI+ 시작하기")
 
+            if premiumManager.hasPremium {
+                currentPlanBanner
+            }
+
             VStack(spacing: AppSpacing.sm) {
                 ForEach(purchaseOptions) { option in
                     purchaseOptionCard(option)
@@ -165,9 +169,40 @@ struct ModiPlusView: View {
         }
     }
 
+    private var currentPlanBanner: some View {
+        HStack(spacing: AppSpacing.md) {
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(AppColor.Semantic.successThemed)
+
+            VStack(alignment: .leading, spacing: AppSpacing.xxs) {
+                Text("현재 이용 중인 플랜")
+                    .font(AppFont.caption1)
+                    .foregroundStyle(AppColor.Text.secondary)
+
+                Text(currentPlanTitle)
+                    .font(AppFont.headline)
+                    .foregroundStyle(AppColor.Text.primary)
+            }
+
+            Spacer(minLength: 0)
+        }
+        .padding(AppSpacing.lg)
+        .background(
+            AppColor.Semantic.successThemed.opacity(0.12),
+            in: RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: AppRadius.lg, style: .continuous)
+                .stroke(AppColor.Semantic.successThemed.opacity(0.28), lineWidth: 1)
+        }
+    }
+
     private func purchaseOptionCard(_ option: ModiPlusPurchaseOption) -> some View {
         let product = premiumManager.product(for: option.productID)
         let price = product?.displayPrice ?? option.fallbackPrice
+        let isActiveOption = premiumManager.activeProductID == option.productID
+        let badge = isActiveOption ? "이용 중" : option.badge
 
         return Button {
             selectedOptionID = option.id
@@ -179,14 +214,17 @@ struct ModiPlusView: View {
                             .font(AppFont.headline)
                             .foregroundStyle(AppColor.Text.primary)
 
-                        if let badge = option.badge {
+                        if let badge {
                             Text(badge)
                                 .font(AppFont.caption2)
                                 .fontWeight(.semibold)
                                 .foregroundStyle(AppColor.Text.onButton)
                                 .padding(.horizontal, AppSpacing.sm)
                                 .padding(.vertical, AppSpacing.xxs)
-                                .background(AppColor.Accent.highlight, in: Capsule(style: .continuous))
+                                .background(
+                                    isActiveOption ? AppColor.Semantic.successThemed : AppColor.Accent.highlight,
+                                    in: Capsule(style: .continuous)
+                                )
                         }
                     }
 
@@ -210,7 +248,7 @@ struct ModiPlusView: View {
 
                     Text(productStatusText(for: option, product: product))
                         .font(AppFont.caption2)
-                        .foregroundStyle(AppColor.Text.tertiary)
+                        .foregroundStyle(isActiveOption ? AppColor.Semantic.successThemed : AppColor.Text.tertiary)
                 }
 
                 Image(systemName: selectedOptionID == option.id ? "checkmark.circle.fill" : "circle")
@@ -237,6 +275,10 @@ struct ModiPlusView: View {
     }
 
     private func productStatusText(for option: ModiPlusPurchaseOption, product: Product?) -> String {
+        if premiumManager.activeProductID == option.productID {
+            return "현재 이용 중"
+        }
+
         if product == nil && premiumManager.isLoadingProducts {
             return "불러오는 중"
         }
@@ -422,6 +464,19 @@ struct ModiPlusView: View {
         }
 
         return "\(selectedOption.title) 시작하기"
+    }
+
+    private var currentPlanTitle: String {
+        if let activeProductID = premiumManager.activeProductID,
+           let activeOption = purchaseOptions.first(where: { $0.productID == activeProductID }) {
+            return activeOption.title
+        }
+
+        if premiumManager.isDeveloperPremiumEnabled {
+            return "개발자 프리미엄"
+        }
+
+        return "MODI+"
     }
 
     private func handlePremiumAction(_ action: PendingPremiumAction) {
