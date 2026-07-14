@@ -12,6 +12,7 @@ final class PremiumManager {
 
     private(set) var isDeveloperPremiumEnabled: Bool
     private(set) var isStorePremiumActive = false
+    private(set) var isServerPremiumActive = false
     private(set) var activeProductID: String?
     private(set) var products: [Product] = []
     private(set) var isLoadingProducts = false
@@ -20,7 +21,7 @@ final class PremiumManager {
 
     /// 앱 전역에서 참조하는 프리미엄 활성 여부입니다.
     var isPremium: Bool {
-        isDeveloperPremiumEnabled || isStorePremiumActive
+        isDeveloperPremiumEnabled || isStorePremiumActive || isServerPremiumActive
     }
 
     /// StoreKit 연동 후에도 동일한 이름으로 참조할 수 있는 프리미엄 여부입니다.
@@ -177,7 +178,7 @@ final class PremiumManager {
         products.first { $0.id == productID }
     }
 
-    func purchase(productID: String) async {
+    func purchase(productID: String, accessToken: String? = nil) async {
         if products.isEmpty {
             await loadProducts()
         }
@@ -201,6 +202,7 @@ final class PremiumManager {
                     activeProductID = transaction.productID
                 }
                 await refreshPurchasedProducts()
+                await syncTransactionIfPossible(transaction, accessToken: accessToken)
                 await transaction.finish()
             case .userCancelled:
                 break
@@ -216,13 +218,14 @@ final class PremiumManager {
         isPurchasing = false
     }
 
-    func restorePurchases() async {
+    func restorePurchases(accessToken: String? = nil) async {
         isPurchasing = true
         purchaseErrorMessage = nil
 
         do {
             try await AppStore.sync()
             await refreshPurchasedProducts()
+            await syncCurrentEntitlements(accessToken: accessToken)
 
             if !isStorePremiumActive {
                 purchaseErrorMessage = "복원할 MODI+ 구매 내역을 찾지 못했어요."
@@ -232,6 +235,27 @@ final class PremiumManager {
         }
 
         isPurchasing = false
+    }
+
+    func refreshServerSubscription(accessToken: String?) async {
+        guard let accessToken, !accessToken.isEmpty else {
+            isServerPremiumActive = false
+            return
+        }
+
+        do {
+            let response = try await SubscriptionsAPIService.shared.fetchMySubscription(
+                accessToken: accessToken
+            )
+            isServerPremiumActive = response.hasPremium
+            if let productID = response.activeSubscription?.productId {
+                activeProductID = productID
+            } else if !isStorePremiumActive {
+                activeProductID = nil
+            }
+        } catch {
+            // Local StoreKit entitlements remain the source of truth if the server is unavailable.
+        }
     }
 
     func refreshPurchasedProducts() async {
@@ -257,7 +281,11 @@ final class PremiumManager {
         }
 
         isStorePremiumActive = activeEntitlementProductID != nil
-        activeProductID = activeEntitlementProductID
+        if let activeEntitlementProductID {
+            activeProductID = activeEntitlementProductID
+        } else if !isServerPremiumActive {
+            activeProductID = nil
+        }
     }
 
     func clearPurchaseErrorMessage() {
@@ -309,6 +337,77 @@ final class PremiumManager {
             0
         }
     }
+
+    func syncCurrentEntitlements(accessToken: String?) async {
+        guard let accessToken, !accessToken.isEmpty else { return }
+
+        var didSync = false
+
+        for await result in StoreKit.Transaction.currentEntitlements {
+            guard let transaction = try? checkVerified(result) else { continue }
+            guard ProductID.all.contains(transaction.productID) else { continue }
+            guard transaction.revocationDate == nil else { continue }
+            if let expirationDate = transaction.expirationDate, expirationDate <= Date() {
+                continue
+            }
+
+            await syncTransactionIfPossible(transaction, accessToken: accessToken)
+            didSync = true
+        }
+
+        if !didSync {
+            await refreshServerSubscription(accessToken: accessToken)
+        }
+    }
+
+    private func syncTransactionIfPossible(
+        _ transaction: StoreKit.Transaction,
+        accessToken: String?
+    ) async {
+        guard let accessToken, !accessToken.isEmpty else { return }
+        guard let planType = planType(for: transaction.productID) else { return }
+
+        let request = SyncSubscriptionRequest(
+            productId: transaction.productID,
+            planType: planType,
+            transactionId: String(transaction.id),
+            originalTransactionId: String(transaction.originalID),
+            purchasedAt: Self.iso8601Formatter.string(from: transaction.purchaseDate),
+            expiresAt: transaction.expirationDate.map { Self.iso8601Formatter.string(from: $0) },
+            environment: .unknown,
+            status: .active
+        )
+
+        do {
+            let response = try await SubscriptionsAPIService.shared.syncSubscription(
+                request,
+                accessToken: accessToken
+            )
+            isServerPremiumActive = response.status == .active
+            activeProductID = response.productId
+        } catch {
+            // Keep local entitlement active even when the backend sync fails.
+        }
+    }
+
+    private func planType(for productID: String) -> SubscriptionPlanType? {
+        switch productID {
+        case ProductID.monthly:
+            .monthly
+        case ProductID.annual:
+            .annual
+        case ProductID.lifetime:
+            .lifetime
+        default:
+            nil
+        }
+    }
+
+    private static let iso8601Formatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 
     static let mock = PremiumManager(storage: UserDefaults(suiteName: "premium-manager-mock")!)
 }

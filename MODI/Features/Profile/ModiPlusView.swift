@@ -496,9 +496,12 @@ struct ModiPlusView: View {
 
         switch action {
         case .purchase(let productID):
-            await premiumManager.purchase(productID: productID)
+            await premiumManager.purchase(
+                productID: productID,
+                accessToken: authManager.accessToken
+            )
         case .restore:
-            await premiumManager.restorePurchases()
+            await premiumManager.restorePurchases(accessToken: authManager.accessToken)
         }
     }
 

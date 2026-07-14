@@ -42,12 +42,16 @@ struct ContentView: View {
         .onChange(of: authManager.session) {
             missionManager.syncSessionScope()
             Task {
+                await premiumManager.refreshServerSubscription(accessToken: authManager.accessToken)
+                await premiumManager.syncCurrentEntitlements(accessToken: authManager.accessToken)
                 await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
             }
         }
         .task {
             premiumManager.startStoreKitObservation()
             await premiumManager.refreshPurchasedProducts()
+            await premiumManager.refreshServerSubscription(accessToken: authManager.accessToken)
+            await premiumManager.syncCurrentEntitlements(accessToken: authManager.accessToken)
             await missionManager.refreshSystemConcepts(accessToken: authManager.accessToken)
         }
         .onOpenURL { url in

@@ -24,6 +24,24 @@ enum ConceptCategory {
   CUSTOM
 }
 
+enum SubscriptionPlanType {
+  MONTHLY
+  ANNUAL
+  LIFETIME
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum StoreEnvironment {
+  SANDBOX
+  PRODUCTION
+  UNKNOWN
+}
+
 // ---------------------------------------------------------------------------
 // User
 // ---------------------------------------------------------------------------
@@ -41,8 +59,35 @@ model User {
   records     Record[]
   collections Collection[]
   favorites   Favorite[]
+  subscriptions UserSubscription[]
 
   @@map("users")
+}
+
+// ---------------------------------------------------------------------------
+// UserSubscription — App Store MODI+ purchase state
+// ---------------------------------------------------------------------------
+
+model UserSubscription {
+  id                    String               @id @default(uuid()) @db.Uuid
+  userId                String               @db.Uuid
+  productId             String
+  planType              SubscriptionPlanType
+  status                SubscriptionStatus   @default(ACTIVE)
+  transactionId         String               @unique
+  originalTransactionId String               @unique
+  purchasedAt           DateTime
+  expiresAt             DateTime?
+  environment           StoreEnvironment     @default(UNKNOWN)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, status])
+  @@index([productId])
+  @@map("user_subscriptions")
 }
 
 // ---------------------------------------------------------------------------
